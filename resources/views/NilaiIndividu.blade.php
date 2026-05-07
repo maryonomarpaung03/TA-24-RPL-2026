@@ -1,19 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penilaian Individu - DELPRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.12.0/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-slate-50 font-sans" x-data="{ sidebarOpen: true }">
-    <div class="flex h-screen overflow-hidden">
-        @include('partials.sidebar')
+@extends('layouts.app')
 
-        <main class="flex-1 overflow-y-auto">
-            <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+@section('title', 'Penilaian Individu - DELPRO')
+@section('body_class', 'bg-slate-50 font-sans')
+@section('main_class', 'flex-1 overflow-y-auto')
+@section('hide_header', '1')
+
+@section('content')
+@php
+    $groupMembers = $anggota ?? [($studentData['name'] ?? 'Anggota')];
+@endphp
+<div class="max-w-7xl mx-auto px-6 py-8 space-y-6" x-data="{ activeTab: 'individual' }">
                 <!-- Student Header Card -->
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
                     <div class="flex items-start justify-between mb-6">
@@ -49,22 +45,19 @@
 
                 <!-- Tab Navigation -->
                 <div class="bg-white rounded-2xl border-b border-slate-200 flex">
-                    <button class="px-6 py-4 text-sm font-semibold text-blue-600 border-b-2 border-blue-600 flex items-center gap-2">
-                        
+                    <button @click="activeTab = 'individual'" :class="activeTab === 'individual' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-600'" class="px-6 py-4 text-sm font-semibold hover:text-slate-900 transition">
                         Individual Evaluation
                     </button>
-                    <a href="{{ route('penilaian-kelompok', $id) }}" class="px-6 py-4 text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-2">
-                        
+                    <button @click="activeTab = 'group'" :class="activeTab === 'group' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-600'" class="px-6 py-4 text-sm font-semibold hover:text-slate-900 transition">
                         Group Evaluation
-                    </a>
-                    <a href="{{ route('nilai-dari-dosen', $id) }}" class="px-6 py-4 text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-2">
-                        
+                    </button>
+                    <button @click="activeTab = 'lecturer'" :class="activeTab === 'lecturer' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-600'" class="px-6 py-4 text-sm font-semibold hover:text-slate-900 transition">
                         Lecturer Evaluation
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Main Content -->
-                <div class="grid gap-6 lg:grid-cols-[1.8fr_1fr]">
+                <!-- Individual Evaluation -->
+                <div x-show="activeTab === 'individual'" x-cloak class="grid gap-6 lg:grid-cols-[1.8fr_1fr]">
                     <!-- Left Panel: Assessment Metrics -->
                     <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
                         <div class="flex items-center justify-between mb-6">
@@ -164,10 +157,45 @@
                     </div>
                 </div>
 
-                <!-- Lecturer Feedback Section -->
-                <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
+                <!-- Group Evaluation -->
+                <div x-show="activeTab === 'group'" x-cloak class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 max-w-4xl">
+                    <h3 class="text-lg font-bold text-slate-900 mb-6">Group Evaluation</h3>
+                    <form class="space-y-8">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Penilaian Kelompok</label>
+                            <input type="number" min="10" max="100" class="border border-slate-300 rounded-lg p-2 w-24 text-center outline-none focus:border-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Penilaian Individu</label>
+                            <div class="max-w-xl border border-slate-300 rounded-lg overflow-hidden">
+                                <table class="w-full text-xs">
+                                    <tr class="bg-white border-b border-slate-300">
+                                        <th class="p-3 text-left font-bold border-r border-slate-300 uppercase w-2/3">Nama</th>
+                                        <th class="p-3 text-left font-bold uppercase">Nilai</th>
+                                    </tr>
+                                    @foreach($groupMembers as $name)
+                                    <tr class="border-b border-slate-300 last:border-b-0">
+                                        <td class="p-3 border-r border-slate-300 font-medium">{{ $name }}</td>
+                                        <td class="p-1"><input type="number" min="10" max="100" class="w-full p-2 outline-none text-center bg-transparent"></td>
+                                    </tr>
+                                    @endforeach
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Refleksi</label>
+                            <textarea maxlength="500" placeholder="Ketikkan refleksi Anda di sini..." class="w-full border border-slate-300 rounded-2xl p-4 h-28 resize-none outline-none focus:border-blue-400 text-xs italic"></textarea>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button type="button" class="bg-gray-200 px-6 py-2 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-300 transition">Batal</button>
+                            <button type="submit" class="bg-blue-600 px-6 py-2 rounded-full text-xs font-bold text-white hover:bg-blue-700 transition">Submit</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lecturer Evaluation -->
+                <div x-show="activeTab === 'lecturer'" x-cloak class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
                     <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                        
                         Detailed Lecturer Feedback
                     </h3>
                     <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-lg italic text-slate-700">
@@ -175,8 +203,5 @@
                     </div>
                     <p class="text-xs text-slate-500 mt-4 text-center">SUBMITTED 01 OCT 2024</p>
                 </div>
-            </div>
-        </main>
-    </div>
-</body>
-</html>
+ </div>
+@endsection

@@ -1,48 +1,17 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penyusunan Rencana - DELPRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        table td, table th { border: 1px solid #e5e7eb; padding: 12px; font-size: 0.75rem; vertical-align: top; }
-        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    </style>
-</head>
-<body class="bg-gray-100 font-sans" x-data="{ sidebarOpen: true, deleteModal: false, taskToDelete: null }">
+@extends('layouts.app')
 
-    <div class="flex h-screen overflow-hidden">
-        <!-- SIDEBAR UTAMA -->
-        <aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-sm z-50">
-            <div class="p-6 text-center"><a href="{{ route('dashboard') }}"><h1 class="text-2xl font-bold text-blue-600">DELPRO</h1></a></div>
-            <nav class="flex-1 px-4 mt-4 space-y-2">
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 p-3 rounded-xl text-gray-500 hover:bg-gray-100">
-                    <i class="fas fa-th-large w-6 text-center"></i><span x-show="sidebarOpen">Dashboard</span>
-                </a>
-                <a href="{{ route('projek-saya') }}" class="flex items-center space-x-3 p-3 rounded-xl bg-blue-100 text-blue-700 font-bold">
-                    <i class="fas fa-project-diagram w-6 text-center"></i><span x-show="sidebarOpen">Projek Saya</span>
-                </a>
-            </nav>
-            <button @click="sidebarOpen = !sidebarOpen" class="p-4 border-t text-gray-400 hover:text-blue-600 flex items-center justify-center space-x-2">
-                <span x-show="sidebarOpen">Collapse</span><i :class="sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'" class="fas"></i>
-            </button>
-        </aside>
+@section('title', 'Penyusunan Rencana - DELPRO')
+@section('root_data', '{ sidebarOpen: true, deleteModal: false, taskToDelete: null }')
 
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            <!-- HEADER -->
-            <header class="bg-white px-8 py-4 flex justify-between items-center border-b border-gray-100 sticky top-0 z-40">
-                <div><p class="text-gray-400 text-[10px] uppercase font-bold tracking-widest">selamat datang,</p><h3 class="font-bold text-gray-800">{{ $user['name'] }}</h3></div>
-                <div class="flex items-center space-x-6">
-                    <div class="relative"><i class="fas fa-bell text-gray-300 text-2xl"></i><span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center border-2 border-white font-bold">{{ $user['notif_count'] }}</span></div>
-                    <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-sm">{{ $user['initials'] }}</div>
-                </div>
-            </header>
+@push('head')
+<style>
+    table td, table th { border: 1px solid #e5e7eb; padding: 12px; font-size: 0.75rem; vertical-align: top; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+@endpush
 
-            <div class="p-6 space-y-6">
+@section('content')
+<div class="p-6 space-y-6">
                 <!-- 2 & 3. Judul & Breadcrumb -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
                     <div>
@@ -146,11 +115,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
-    </div>
+ </div>
 
-    <!-- 8. MODAL HAPUS -->
+<!-- 8. MODAL HAPUS -->
     <div x-show="deleteModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" x-cloak>
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center" @click.outside="deleteModal = false">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
@@ -164,6 +131,4 @@
             </div>
         </div>
     </div>
-
-</body>
-</html>
+@endsection

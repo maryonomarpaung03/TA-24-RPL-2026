@@ -1,39 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projek Saya - DELPRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-50 font-sans" x-data="{ sidebarOpen: true }">
-    @php
-        $featuredProject = collect($projects)->firstWhere('featured', true) ?? ($projects[0] ?? null);
-        $otherProjects = collect($projects)->reject(function ($item) use ($featuredProject) {
-            return $featuredProject && $item['id'] === $featuredProject['id'];
-        })->values();
-    @endphp
-    <div class="flex h-screen overflow-hidden">
-        <!-- SIDEBAR -->
-        <aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-sm">
-            <div class="p-6 text-center"><a href="{{ route('dashboard') }}"><h1 class="text-2xl font-bold text-blue-600">DELPRO</h1><p x-show="sidebarOpen" class="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Monitoring Project</p></a></div>
-            <nav class="flex-1 px-4 mt-4 space-y-2">
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 p-3 rounded-xl text-gray-500 hover:bg-gray-100"><i class="fas fa-th-large w-6 text-center"></i><span x-show="sidebarOpen">Dashboard</span></a>
-                <a href="{{ route('projek-saya') }}" class="flex items-center space-x-3 p-3 rounded-xl bg-blue-100 text-blue-700 font-bold"><i class="fas fa-project-diagram w-6 text-center"></i><span x-show="sidebarOpen">Projek Saya</span></a>
-            </nav>
-            <button @click="sidebarOpen = !sidebarOpen" class="p-4 border-t text-gray-400 hover:text-blue-600 flex items-center justify-center space-x-2"><span x-show="sidebarOpen" class="text-sm">Collapse</span><i :class="sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'" class="fas"></i></button>
-        </aside>
+@extends('layouts.app')
 
-        <!-- MAIN -->
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            <header class="bg-white px-8 py-4 flex justify-between items-center border-b border-gray-100 sticky top-0 z-40">
-                <div><p class="text-gray-400 text-xs">selamat datang,</p><h3 class="font-bold text-gray-800">{{ $user['name'] }}</h3></div>
-                <div class="flex items-center space-x-6"><a href="{{ route('notifikasi') }}" class="relative p-2"><i class="fas fa-bell text-gray-300 text-2xl"></i><span class="absolute top-1 right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center border-2 border-white font-bold">{{ $user['notif_count'] }}</span></a><div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-sm">{{ $user['initials'] }}</div></div>
-            </header>
+@section('title', 'Projek Saya - DELPRO')
+@section('body_class', 'bg-gray-50 font-sans')
 
-            <div class="p-8" x-data="{ statusFilter: 'all' }">
+@section('content')
+@php
+    $featuredProject = collect($projects)->firstWhere('featured', true) ?? ($projects[0] ?? null);
+    $otherProjects = collect($projects)->reject(function ($item) use ($featuredProject) {
+        return $featuredProject && $item['id'] === $featuredProject['id'];
+    })->values();
+@endphp
+<div class="p-8" x-data="{ statusFilter: 'all' }">
                 <div class="flex justify-between items-center mb-8">
                     <div><h2 class="text-3xl font-bold text-gray-900">Projek Saya</h2><p class="text-gray-500">Kelola semua proyek akademik Anda</p></div>
                     <a href="{{ route('buat-projek') }}" class="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition">+ Buat Projek</a>
@@ -138,16 +115,13 @@
                         <p class="text-sm text-gray-500">Buat ruang kolaborasi baru untuk ide penelitian Anda.</p>
                     </a>
                 </div>
-            </div>
-        </main>
-    </div>
+ </div>
 
-    @if(session('success'))
+@if(session('success'))
     <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" 
          class="fixed bottom-10 right-10 bg-green-600 text-white px-8 py-4 rounded-2xl shadow-2xl z-[100] flex items-center space-x-3 transition-all">
         <i class="fas fa-check-circle text-xl"></i>
         <span class="font-bold">{{ session('success') }}</span>
     </div>
-    @endif
-</body>
-</html>
+@endif
+@endsection

@@ -1,31 +1,24 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dekomposisi Masalah - DELPRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .dot-grid { 
-            background-image: radial-gradient(#d1d5db 1px, transparent 1px); 
-            background-size: 20px 20px; 
-        }
-        /* Style untuk scrollbar vertikal pada komentar */
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
-    </style>
-</head>
-<body class="bg-gray-100 font-sans" x-data="{ sidebarOpen: true, zoom: 1 }">
+@extends('layouts.app')
 
-    <div class="flex h-screen overflow-hidden">
-        @include('partials.sidebar')
+@section('title', 'Dekomposisi Masalah - DELPRO')
+@section('root_data', '{ sidebarOpen: true, zoom: 1 }')
+@section('main_class', 'flex-1 overflow-y-auto')
+@section('hide_header', '1')
 
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 overflow-y-auto">
-            <div class="max-w-full mx-auto px-6 py-8">
+@push('head')
+<style>
+    .dot-grid { 
+        background-image: radial-gradient(#d1d5db 1px, transparent 1px); 
+        background-size: 20px 20px; 
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+</style>
+@endpush
+
+@section('content')
+<div class="max-w-full mx-auto px-6 py-8">
                 <div class="flex flex-col gap-6">
                     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
                         <div>
@@ -156,9 +149,5 @@
                         </aside>
                     </div>
                 </div>
-            </div>
-        </main>
-    </div>
-
-</body>
-</html>
+ </div>
+@endsection

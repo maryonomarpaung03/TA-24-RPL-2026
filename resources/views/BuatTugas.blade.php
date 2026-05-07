@@ -1,44 +1,9 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Tugas - DELPRO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-100 font-sans" x-data="{ sidebarOpen: true }">
+@extends('layouts.app')
 
-    <div class="flex h-screen overflow-hidden">
-        <!-- SIDEBAR -->
-        <aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-sm z-50">
-            <div class="p-6 text-center"><a href="{{ route('dashboard') }}"><h1 class="text-2xl font-bold text-blue-600">DELPRO</h1></a></div>
-            <nav class="flex-1 px-4 mt-4 space-y-2">
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 p-3 rounded-xl text-gray-500 hover:bg-gray-100">
-                    <i class="fas fa-th-large w-6 text-center"></i><span x-show="sidebarOpen">Dashboard</span>
-                </a>
-                <a href="{{ route('projek-saya') }}" class="flex items-center space-x-3 p-3 rounded-xl bg-blue-100 text-blue-700 font-bold">
-                    <i class="fas fa-project-diagram w-6 text-center"></i><span x-show="sidebarOpen">Projek Saya</span>
-                </a>
-            </nav>
-            <button @click="sidebarOpen = !sidebarOpen" class="p-4 border-t text-gray-400 hover:text-blue-600 flex items-center justify-center space-x-2">
-                <span x-show="sidebarOpen">Collapse</span><i :class="sidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'" class="fas"></i>
-            </button>
-        </aside>
+@section('title', 'Tambah Tugas - DELPRO')
 
-        <!-- MAIN -->
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            <!-- HEADER -->
-            <header class="bg-white px-8 py-4 flex justify-between items-center border-b border-gray-100 sticky top-0 z-40">
-                <div><p class="text-gray-400 text-[10px] uppercase font-bold tracking-widest">selamat datang,</p><h3 class="font-bold text-gray-800">{{ $user['name'] }}</h3></div>
-                <div class="flex items-center space-x-6 text-2xl">
-                    <div class="relative"><i class="fas fa-bell text-gray-300"></i><span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center border-2 border-white font-bold">{{ $user['notif_count'] }}</span></div>
-                    <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm shadow-sm">{{ $user['initials'] }}</div>
-                </div>
-            </header>
-
-            <div class="p-6 space-y-6">
+@section('content')
+<div class="p-6 space-y-6">
                 <!-- Judul Projek & Gear -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
                     <h2 class="text-2xl font-bold text-gray-900">{{ $namaProjek }}</h2>
@@ -127,9 +92,5 @@
                         </form>
                     </div>
                 </div>
-            </div>
-        </main>
-    </div>
-
-</body>
-</html>
+</div>
+@endsection
