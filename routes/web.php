@@ -10,6 +10,7 @@ use App\Http\Controllers\BuatTugasController;
 use App\Http\Controllers\WaktuProgresController;
 use App\Http\Controllers\PelaksanaanController;
 use App\Http\Controllers\NilaiKelompokController;
+use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
 use App\Http\Controllers\NilaiDariDosenController;
 
@@ -31,6 +32,7 @@ Route::prefix('projek/{id}')->group(function () {
     Route::get('/waktu-progres', [WaktuProgresController::class, 'index'])->name('waktu-progres');
     Route::get('/pelaksanaan', [PelaksanaanController::class, 'index'])->name('pelaksanaan');
     Route::get('/penilaian-kelompok', [NilaiKelompokController::class, 'index'])->name('penilaian-kelompok');
+    Route::get('/penilaian-individu', [NilaiIndividuController::class, 'index'])->name('penilaian-individu');
     Route::get('/penilaian-dosen-status', [BelumDosenNilaiController::class, 'index'])->name('penilaian-dosen-status');
     Route::get('/nilai-dari-dosen', [NilaiDariDosenController::class, 'index'])->name('nilai-dari-dosen');
 });

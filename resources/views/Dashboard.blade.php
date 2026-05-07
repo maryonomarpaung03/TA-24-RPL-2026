@@ -61,7 +61,117 @@
                 </div>
             </div>
 
-            <!-- STATS -->
+            @if(!empty($selected_project))
+            <div class="space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.3em] text-gray-500 font-semibold mb-2">Problem Identification</p>
+                            <h2 class="text-3xl font-bold text-slate-900">{{ $selected_project['name'] }}</h2>
+                            <p class="mt-2 text-sm text-slate-500">{{ $selected_project['description'] }}</p>
+                        </div>
+                        <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                            <i class="fas fa-search"></i>
+                            Identifikasi Masalah
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-[1.9fr_1fr] gap-6">
+                    <div class="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm">
+                        <div class="space-y-5">
+                            <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
+                                <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Problem Statement</h3>
+                                <p class="text-base text-slate-800">What is the central issue you aim to solve?</p>
+                                <div class="mt-5">
+                                    <textarea rows="4" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Tuliskan pernyataan masalah inti proyek Anda..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
+                                    <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Context & Background</h3>
+                                    <textarea rows="5" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Jelaskan lingkungan, pemangku kepentingan, dan mengapa masalah ini penting..."></textarea>
+                                </div>
+                                <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
+                                    <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Initial Observations</h3>
+                                    <div class="space-y-3 text-sm text-slate-700">
+                                        <div class="rounded-3xl bg-white border border-slate-200 p-4">Inefficiency in current data processing workflows.</div>
+                                        <div class="rounded-3xl bg-white border border-slate-200 p-4">High cognitive load for first-year researchers.</div>
+                                    </div>
+                                    <button type="button" class="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"><i class="fas fa-plus"></i> Add observation</button>
+                                </div>
+                            </div>
+
+                            <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
+                                <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Upload Supporting Evidence</h3>
+                                <div class="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
+                                    <p class="mb-4">Drag and drop research papers, data charts, or stakeholder interview transcripts.</p>
+                                    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                        <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Browse Files</button>
+                                        <button type="button" class="rounded-full border border-blue-600 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">Import from Drive</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Save Draft</button>
+                                <button type="button" class="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Submit Phase 1</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="space-y-6">
+                        <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
+                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Project Team</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3 rounded-3xl bg-slate-50 p-4">
+                                    <div class="h-11 w-11 rounded-full bg-blue-600 text-white grid place-items-center font-bold">AS</div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">Anisa Safri</p>
+                                        <p class="text-xs text-slate-500">Team Lead</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 rounded-3xl bg-slate-50 p-4">
+                                    <div class="h-11 w-11 rounded-full bg-slate-200 text-slate-700 grid place-items-center font-bold">BK</div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">Budi Kusuma</p>
+                                        <p class="text-xs text-slate-500">Data Analyst</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-6 w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Manage Team</button>
+                        </div>
+
+                        <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
+                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Identification Guide</h3>
+                            <div class="space-y-4 text-sm text-slate-700">
+                                <div class="rounded-3xl bg-slate-50 p-4">
+                                    <p class="font-semibold text-slate-900">Define the core challenge</p>
+                                    <p class="mt-2 text-slate-600">Identify clear problem statements, understand the context, and gather evidence.</p>
+                                </div>
+                                <div class="rounded-3xl bg-slate-50 p-4">
+                                    <p class="font-semibold text-slate-900">Break down problems</p>
+                                    <p class="mt-2 text-slate-600">Use decomposition to make large problems manageable.</p>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-6 w-full rounded-full border border-blue-600 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">View CT Framework</button>
+                        </div>
+
+                        <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
+                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Phase Progress</h3>
+                            <p class="text-sm font-semibold text-slate-900 mb-3">Draft Problem Statement</p>
+                            <div class="h-3 rounded-full bg-slate-100 overflow-hidden mb-4"><div class="h-full w-4/5 bg-blue-600"></div></div>
+                            <div class="space-y-3 text-sm text-slate-600">
+                                <p>Draft Problem Statement</p>
+                                <p>Define Stakeholders</p>
+                                <p>Upload Data Evidence</p>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+            @else
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 @foreach ($statistics as $key => $value)
                 <div class="bg-white p-6 rounded shadow border-l-4 border-blue-500 text-center">
@@ -88,6 +198,7 @@
                     @foreach ($deadlines as $d)<div class="flex justify-between items-center mb-4 p-2 hover:bg-gray-50 rounded"><div class="flex items-center space-x-3"><div class="w-2 h-2 rounded-full {{ $d['priority'] == 'red' ? 'bg-red-500' : 'bg-yellow-400' }}"></div><div><h4 class="text-sm font-bold">{{ $d['task'] }}</h4><p class="text-[10px] text-gray-400">{{ $d['project'] }}</p></div></div><span class="text-sm font-black">{{ $d['days_left'] }}d</span></div>@endforeach
                 </div>
             </div>
+            @endif
         </div>
     </div>
     <script>

@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = [
             'name' => 'Daniati Simatupang',
@@ -49,6 +49,25 @@ class DashboardController extends Controller
             return $d['days_left'] <= 7;
         });
 
-        return view('dashboard', compact('user', 'statistics', 'pie_chart_data', 'bar_chart_data', 'ongoing_projects', 'deadlines'));
+        $projectLibrary = [
+            1 => [
+                'id' => 1,
+                'name' => 'Aplikasi Absensi Online Berbasis QR Code',
+                'description' => 'Pantau milestone, tugas, dan evaluasi proyek yang sedang berjalan.',
+            ],
+            2 => [
+                'id' => 2,
+                'name' => 'Sistem Rekomendasi Film Menggunakan Machine Learning',
+                'description' => 'Lihat menu khusus proyek dan navigasi fitur ketika proyek ini dipilih.',
+            ],
+        ];
+
+        $selected_project = null;
+        $projectId = $request->query('project_id');
+        if ($projectId && isset($projectLibrary[$projectId])) {
+            $selected_project = $projectLibrary[$projectId];
+        }
+
+        return view('dashboard', compact('user', 'statistics', 'pie_chart_data', 'bar_chart_data', 'ongoing_projects', 'deadlines', 'selected_project'));
     }
 }
