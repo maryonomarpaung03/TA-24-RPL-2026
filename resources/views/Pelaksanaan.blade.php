@@ -17,29 +17,6 @@
                 </div>
 
                 <div class="flex space-x-12">
-                    <!-- Navigasi Ikon Samping (1-5) -->
-                    <div class="w-24 space-y-4">
-                        @php
-                            $menus = [
-                                ['icon' => 'fa-comments', 'label' => 'Dekomposisi Masalah', 'r' => 'dekomposisi'],
-                                ['icon' => 'fa-tasks', 'label' => 'Penyusunan Rencana', 'r' => 'penyusunan'],
-                                ['icon' => 'fa-calendar-alt', 'label' => 'Waktu Progres', 'r' => 'waktu-progres'],
-                                ['icon' => 'fa-project-diagram', 'label' => 'Pelaksanaan & Evaluasi', 'r' => '#'],
-                                ['icon' => 'fa-clipboard-check', 'label' => 'Penilaian', 'r' => 'penilaian-kelompok']
-                            ];
-                        @endphp
-                        @foreach($menus as $index => $m)
-                            <div class="relative group">
-                                <a href="{{ $m['r'] != '#' ? route($m['r'], $id) : '#' }}" 
-                                   class="{{ $index == 3 ? 'bg-blue-200' : 'bg-white' }} p-5 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-center transition hover:shadow-md">
-                                    <i class="fas {{ $m['icon'] }} text-2xl text-gray-700"></i>
-                                </a>
-                                <div class="absolute left-24 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-[10px] px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 pointer-events-none shadow-lg">
-                                    {{ $m['label'] }}
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
 
                     <!-- KANBAN BOARD -->
                     <div class="flex-1">

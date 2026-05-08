@@ -4,14 +4,19 @@
 
 @push('head')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>.chart-container { position: relative; height: 300px; width: 100%; }</style>
+<style>.chart-container { position: relative; height: 300px; width: 100%; } [x-cloak] { display: none !important; }</style>
 @endpush
 
 @section('content')
-<div class="flex-1 p-6 overflow-hidden">
+<div class="flex-1 p-6 overflow-y-auto">
 
             @if(!empty($selected_project))
-            <div class="space-y-6">
+            <div class="space-y-6" x-data="{
+                editMode: true,
+                problemStatement: '',
+                contextBg: '',
+                observations: ['Inefficiency in current data processing workflows.', 'High cognitive load for first-year researchers.']
+            }">
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div>
@@ -19,9 +24,15 @@
                             <h2 class="text-3xl font-bold text-slate-900">{{ $selected_project['name'] }}</h2>
                             <p class="mt-2 text-sm text-slate-500">{{ $selected_project['description'] }}</p>
                         </div>
-                        <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-                            <i class="fas fa-search"></i>
-                            Identifikasi Masalah
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <div class="inline-flex rounded-full bg-slate-100 p-1 border border-slate-200">
+                                <button type="button" @click="editMode = false" :class="editMode ? 'text-slate-500 hover:text-slate-700' : 'bg-white text-blue-700 shadow-sm'" class="rounded-full px-4 py-2 text-xs font-bold transition">Tampilan</button>
+                                <button type="button" @click="editMode = true" :class="editMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="rounded-full px-4 py-2 text-xs font-bold transition">Edit</button>
+                            </div>
+                            <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                                <i class="fas fa-search"></i>
+                                Identifikasi Masalah
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -32,38 +43,52 @@
                             <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
                                 <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Problem Statement</h3>
                                 <p class="text-base text-slate-800">What is the central issue you aim to solve?</p>
-                                <div class="mt-5">
-                                    <textarea rows="4" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Tuliskan pernyataan masalah inti proyek Anda..."></textarea>
+                                <div class="mt-5" x-show="editMode" x-cloak>
+                                    <textarea x-model="problemStatement" rows="4" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Tuliskan pernyataan masalah inti proyek Anda..."></textarea>
+                                </div>
+                                <div class="mt-5 rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 min-h-[6rem]" x-show="!editMode" x-cloak>
+                                    <p class="whitespace-pre-wrap" x-text="problemStatement.trim() ? problemStatement : 'Belum ada pernyataan masalah.'"></p>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
                                     <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Context & Background</h3>
-                                    <textarea rows="5" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Jelaskan lingkungan, pemangku kepentingan, dan mengapa masalah ini penting..."></textarea>
+                                    <textarea x-show="editMode" x-cloak x-model="contextBg" rows="5" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Jelaskan lingkungan, pemangku kepentingan, dan mengapa masalah ini penting..."></textarea>
+                                    <div class="rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 min-h-[7.5rem]" x-show="!editMode" x-cloak>
+                                        <p class="whitespace-pre-wrap" x-text="contextBg.trim() ? contextBg : 'Belum ada konteks & latar belakang.'"></p>
+                                    </div>
                                 </div>
                                 <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
                                     <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Initial Observations</h3>
                                     <div class="space-y-3 text-sm text-slate-700">
-                                        <div class="rounded-3xl bg-white border border-slate-200 p-4">Inefficiency in current data processing workflows.</div>
-                                        <div class="rounded-3xl bg-white border border-slate-200 p-4">High cognitive load for first-year researchers.</div>
+                                        <template x-for="(obs, idx) in observations" :key="idx">
+                                            <div class="rounded-3xl bg-white border border-slate-200 p-4">
+                                                <input type="text" x-show="editMode" x-model="observations[idx]" class="w-full bg-transparent outline-none text-slate-800">
+                                                <span x-show="!editMode" x-text="obs"></span>
+                                            </div>
+                                        </template>
                                     </div>
-                                    <button type="button" class="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"><i class="fas fa-plus"></i> Add observation</button>
+                                    <button type="button" x-show="editMode" @click="observations.push('')" class="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"><i class="fas fa-plus"></i> Add observation</button>
                                 </div>
                             </div>
 
                             <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
                                 <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Upload Supporting Evidence</h3>
-                                <div class="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
+                                <div x-show="editMode" x-cloak class="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
                                     <p class="mb-4">Drag and drop research papers, data charts, or stakeholder interview transcripts.</p>
                                     <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
                                         <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Browse Files</button>
                                         <button type="button" class="rounded-full border border-blue-600 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">Import from Drive</button>
                                     </div>
                                 </div>
+                                <div x-show="!editMode" x-cloak class="rounded-[1.5rem] border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600">
+                                    <p class="font-semibold text-slate-800 mb-1">Lampiran</p>
+                                    <p>Mode tampilan: unggah dokumen dinonaktifkan. Aktifkan mode <span class="font-semibold text-blue-700">Edit</span> untuk menambah bukti pendukung.</p>
+                                </div>
                             </div>
 
-                            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div x-show="editMode" x-cloak class="flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Save Draft</button>
                                 <button type="button" class="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Submit Phase 1</button>
                             </div>
@@ -89,7 +114,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" class="mt-6 w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Manage Team</button>
+                            <button type="button" x-show="editMode" class="mt-6 w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Manage Team</button>
                         </div>
 
                         <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
@@ -153,8 +178,16 @@
 
 @push('scripts')
 <script>
+(function () {
     const chartOpt = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } };
-    new Chart(document.getElementById('pieChart'), { type: 'pie', data: { labels: ['Ongoing', 'Planning', 'Completed'], datasets: [{ data: @json(array_values($pie_chart_data)), backgroundColor: ['#3b82f6', '#facc15', '#22c55e'], borderWidth: 0 }] }, options: chartOpt });
-    new Chart(document.getElementById('barChart'), { type: 'bar', data: { labels: ['To Do', 'In Progress', 'Done'], datasets: [{ label: 'Tasks', data: @json(array_values($bar_chart_data)), backgroundColor: ['#3b82f6', '#facc15', '#22c55e'], borderRadius: 4 }] }, options: chartOpt });
+    const pieEl = document.getElementById('pieChart');
+    const barEl = document.getElementById('barChart');
+    if (pieEl) {
+        new Chart(pieEl, { type: 'pie', data: { labels: ['Ongoing', 'Planning', 'Completed'], datasets: [{ data: @json(array_values($pie_chart_data)), backgroundColor: ['#3b82f6', '#facc15', '#22c55e'], borderWidth: 0 }] }, options: chartOpt });
+    }
+    if (barEl) {
+        new Chart(barEl, { type: 'bar', data: { labels: ['To Do', 'In Progress', 'Done'], datasets: [{ label: 'Tasks', data: @json(array_values($bar_chart_data)), backgroundColor: ['#3b82f6', '#facc15', '#22c55e'], borderRadius: 4 }] }, options: chartOpt });
+    }
+})();
 </script>
 @endpush

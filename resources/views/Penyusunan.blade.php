@@ -32,28 +32,6 @@
                 </div>
 
                 <div class="flex space-x-6">
-                    <!-- 5. Sidebar Navigasi Ikon -->
-                    <div class="w-24 space-y-4">
-                        @php
-                            $menus = [
-                                ['icon' => 'fa-comments', 'color' => 'bg-white', 'label' => 'Dekomposisi Masalah', 'route' => route('dekomposisi', $id)],
-                                ['icon' => 'fa-tasks', 'color' => 'bg-blue-200', 'label' => 'Penyusunan Rencana Proyek', 'route' => '#'],
-                                ['icon' => 'fa-calendar-alt', 'color' => 'bg-white', 'label' => 'Waktu Progres', 'route' => '#'],
-                                ['icon' => 'fa-project-diagram', 'color' => 'bg-white', 'label' => 'Pelaksanaan & Evaluasi', 'route' => '#'],
-                                ['icon' => 'fa-clipboard-check', 'color' => 'bg-white', 'label' => 'Penilaian', 'route' => '#']
-                            ];
-                        @endphp
-                        @foreach($menus as $menu)
-                        <div class="relative group">
-                            <a href="{{ $menu['route'] }}" class="{{ $menu['color'] }} p-5 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-center transition hover:shadow-md">
-                                <i class="fas {{ $menu['icon'] }} text-2xl text-gray-700"></i>
-                            </a>
-                            <div class="absolute left-24 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-[10px] px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50">
-                                {{ $menu['label'] }}
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
 
                     <!-- 6. TABEL PENYUSUNAN -->
                     <div class="flex-1 bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">

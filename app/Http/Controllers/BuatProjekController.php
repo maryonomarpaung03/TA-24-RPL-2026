@@ -23,8 +23,11 @@ class BuatProjekController extends Controller
             'judul' => 'required',
             'masalah' => 'required',
             'deskripsi' => 'required',
+            'lampiran' => 'nullable|array',
+            'lampiran.*' => 'file|max:10240|mimes:pdf,jpg,jpeg,png,gif,doc,docx',
         ]);
 
+        // Lampiran: untuk saat ini hanya validasi; penyimpanan ke storage/database bisa ditambah nanti.
         // Di sini nantinya tempat logika menyimpan ke database (Model Project::create)
 
         // Redirect ke Projek Saya dengan pesan sukses untuk Pop-up

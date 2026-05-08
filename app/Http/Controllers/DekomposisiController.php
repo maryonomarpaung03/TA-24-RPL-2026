@@ -14,7 +14,33 @@ class DekomposisiController extends Controller
         ];
 
         $namaProjek = $projekList[$id] ?? 'Projek Unknown';
+        $diagramSeed = [
+            'nodes' => [
+                [
+                    'key' => 'root',
+                    'title' => 'Ketidakefisienan dan ketidakakuratan sistem absensi',
+                    'shape' => 'capsule',
+                    'color' => '#dbeafe',
+                    'x' => 420,
+                    'y' => 250,
+                ],
+                [
+                    'key' => 'n1',
+                    'title' => 'Input data absensi masih manual',
+                    'shape' => 'rounded',
+                    'color' => '#fef3c7',
+                    'x' => 120,
+                    'y' => 140,
+                ],
+            ],
+            'connections' => [
+                ['from' => 'root', 'to' => 'n1'],
+            ],
+            'comments' => [
+                ['author' => 'NT', 'text' => 'Bagian validasi real-time sudah saya tambahkan ya teman-teman.'],
+            ],
+        ];
 
-        return view('Dekomposisi', compact('user', 'namaProjek', 'id'));
+        return view('Dekomposisi', compact('user', 'namaProjek', 'id', 'diagramSeed'));
     }
 }
