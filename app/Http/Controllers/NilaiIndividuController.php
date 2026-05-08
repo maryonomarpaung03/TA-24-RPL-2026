@@ -46,7 +46,46 @@ class NilaiIndividuController extends Controller
 
         $submittedDate = '01 Oct 2024';
 
-        return view('NilaiIndividu', compact('user', 'studentData', 'assessmentMetrics', 'cumulativeAverage', 'cumulativeGrade', 'performanceStatus', 'skillsMastery', 'systemInteractions', 'lecturerFeedback', 'submittedDate', 'id'));
+        $groupEvaluationSummary = [
+            'overall_score' => 88,
+            'grade' => 'A-',
+            'status' => 'Lulus',
+            'evaluated_at' => '08 May 2026',
+            'evaluator' => 'Dr. Ahmad Faisal',
+        ];
+
+        $groupEvaluationComponents = [
+            ['component' => 'Kolaborasi Tim', 'score' => 90, 'weight' => '30%'],
+            ['component' => 'Kualitas Solusi', 'score' => 87, 'weight' => '35%'],
+            ['component' => 'Dokumentasi', 'score' => 85, 'weight' => '20%'],
+            ['component' => 'Presentasi', 'score' => 89, 'weight' => '15%'],
+        ];
+
+        $groupMemberScores = [
+            ['name' => 'Daniati Simatupang', 'score' => 90],
+            ['name' => 'Niko Tarigan', 'score' => 86],
+            ['name' => 'Rehan Hutabarat', 'score' => 88],
+        ];
+
+        $groupLecturerNote = 'Tim menunjukkan kerja sama yang baik dan output proyek stabil. Pertahankan konsistensi dokumentasi dan pengujian untuk fase akhir.';
+
+        return view('NilaiIndividu', compact(
+            'user',
+            'studentData',
+            'assessmentMetrics',
+            'cumulativeAverage',
+            'cumulativeGrade',
+            'performanceStatus',
+            'skillsMastery',
+            'systemInteractions',
+            'lecturerFeedback',
+            'submittedDate',
+            'groupEvaluationSummary',
+            'groupEvaluationComponents',
+            'groupMemberScores',
+            'groupLecturerNote',
+            'id'
+        ));
     }
 }
 

@@ -27,10 +27,17 @@
         max-width: 280px;
         padding: 4px 0;
     }
+    /* Tanpa ring/fokus biru di luar kotak topik (drawflow + selection) */
     .drawflow .drawflow-node.topic-node.selected {
         background: transparent !important;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35) !important;
-        border-radius: 8px;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    .drawflow .drawflow-node.topic-node:focus,
+    .drawflow .drawflow-node.topic-node:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
     }
     .drawflow .drawflow-node.topic-node .topic-inner {
         box-shadow: none !important;
@@ -90,11 +97,34 @@
         -webkit-line-clamp: 7;
         -webkit-box-orient: vertical;
     }
+    /*
+     * Drawflow default memakai stroke biru untuk jalur koneksi antar node.
+     * Override ke slate agar selaras dengan palet halaman (bukan bug — memang bawaan library).
+     */
+    .drawflow .connection .main-path {
+        stroke: #94a3b8 !important;
+        stroke-width: 2px;
+    }
+    .drawflow .connection .main-path:hover {
+        stroke: #64748b !important;
+    }
+    .drawflow .connection.selected .main-path {
+        stroke: #475569 !important;
+    }
+    .drawflow .drawflow-node .input,
+    .drawflow .drawflow-node .output {
+        background: #cbd5e1;
+        border-color: #94a3b8;
+    }
+    .drawflow .drawflow-node .input:hover,
+    .drawflow .drawflow-node .output:hover {
+        background: #94a3b8;
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="max-w-full mx-auto px-6 py-8" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'))">
+<div class="max-w-full mx-auto px-6 py-8" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(csrf_token()))">
     <div class="flex flex-col gap-6">
                     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
                         <div>
@@ -148,19 +178,28 @@
 
                             <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
                                 <h3 class="text-sm uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Daftar Diagram</h3>
-                                <ul class="space-y-4 text-sm text-slate-700">
-                                    <li class="flex items-center justify-between gap-3 rounded-3xl bg-slate-50 px-4 py-4">
-                                        <span>Sub-masalah utama</span>
-                                        <i class="fas fa-list text-slate-400"></i>
-                                    </li>
-                                    <li class="flex items-center justify-between gap-3 rounded-3xl bg-slate-50 px-4 py-4">
-                                        <span>Hubungan sebab-akibat</span>
-                                        <i class="fas fa-list text-slate-400"></i>
-                                    </li>
+                                <div class="space-y-3">
+                                    <template x-if="topicList.length === 0">
+                                        <div class="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                                            Belum ada topik.
+                                        </div>
+                                    </template>
+
                                     <template x-for="topic in topicList" :key="topic.id">
-                                        <li class="flex items-center justify-between gap-3 rounded-3xl bg-slate-50 px-4 py-4">
-                                            <span class="truncate" x-text="topic.title"></span>
-                                            <div class="flex items-center gap-2">
+                                        <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                                            <div class="min-w-0">
+                                                <p class="truncate text-sm font-semibold text-slate-700" x-text="topic.title"></p>
+                                                <p class="text-[11px] text-slate-500" x-text="'Dibuat oleh: ' + (topic.createdBy || '-')"></p>
+                                            </div>
+                                            <div class="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    @click="openEditTopic(topic)"
+                                                    class="h-7 w-7 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                                                    title="Edit topik"
+                                                >
+                                                    <i class="fas fa-pen text-[11px]"></i>
+                                                </button>
                                                 <button
                                                     x-show="!topic.isRoot"
                                                     @click="removeTopic(topic.id)"
@@ -170,11 +209,10 @@
                                                 >
                                                     <i class="fas fa-trash text-[11px]"></i>
                                                 </button>
-                                                <i class="fas fa-list text-slate-400"></i>
                                             </div>
-                                        </li>
+                                        </div>
                                     </template>
-                                </ul>
+                                </div>
                             </div>
 
                             <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
@@ -258,15 +296,50 @@
             </div>
         </div>
     </div>
+
+    <div x-show="showEditTopicModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="w-full max-w-lg bg-white rounded-3xl p-8 shadow-2xl" @click.outside="showEditTopicModal = false">
+            <h3 class="text-xl font-bold text-slate-900 mb-6">Edit Topik</h3>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Topik</label>
+                    <textarea x-model="editTopicText" rows="4" placeholder="Ubah teks topik..." class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Warna Topik</label>
+                    <input type="color" x-model="editTopicColor" class="w-full h-12 rounded-xl border border-slate-200 bg-white px-2 py-2 cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Bentuk Topik</label>
+                    <select x-model="editTopicShape" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-400">
+                        <option value="circle">Lingkaran</option>
+                        <option value="square">Persegi</option>
+                        <option value="rectangle">Persegi Panjang</option>
+                        <option value="rounded">Petak Membulat</option>
+                        <option value="capsule">Kapsul</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-7 flex justify-end gap-3">
+                <button type="button" @click="showEditTopicModal = false" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Batal</button>
+                <button type="button" @click="saveEditedTopic()" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan</button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
 @push('scripts')
 <script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
 <script>
-function dekomposisiBoard(seedData, userInitials) {
+function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, csrfToken) {
     return {
         showTopicModal: false,
+        showEditTopicModal: false,
+        editTopicId: null,
+        editTopicText: '',
+        editTopicColor: '#dbeafe',
+        editTopicShape: 'rounded',
         newTopicText: '',
         newTopicColor: '#dbeafe',
         newTopicShape: 'rounded',
@@ -279,6 +352,10 @@ function dekomposisiBoard(seedData, userInitials) {
         nodeIdMap: {},
         seed: seedData,
         userInitials: userInitials || 'ME',
+        currentUserName: String(currentUserName || '').trim(),
+        projectId: projectId,
+        syncUrl: String(syncUrl || ''),
+        csrfToken: String(csrfToken || ''),
         init() {
             this.$nextTick(() => this.setupDrawflow());
         },
@@ -305,12 +382,37 @@ function dekomposisiBoard(seedData, userInitials) {
             const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
             return luminance > 0.55 ? '#0f172a' : '#f8fafc';
         },
+        topicCreator(topic) {
+            const raw = topic.createdBy ?? topic.created_by ?? '';
+            const s = String(raw).trim();
+            return s || '';
+        },
+        topicCreatedAt(topic) {
+            const raw = topic.createdAt ?? topic.created_at ?? '';
+            const s = String(raw).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            return this.todayDate();
+        },
+        todayDate() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        },
+        topicHoverTitle(topic) {
+            const who = this.topicCreator(topic);
+            if (!who) return '';
+            return 'Dibuat oleh: ' + who;
+        },
         nodeHtml(topic) {
             const bg = this.sanitizeHexColor(topic.color);
             const fg = this.textColorForBackground(bg);
             const title = this.escapeHtml(topic.title);
             const ring = 'rgba(15,23,42,0.12)';
-            return `<div class="${this.shapeClass(topic.shape)} topic-inner" style="border:1px solid ${ring};background:${bg};"><div class="node-label" style="color:${fg};">${title}</div></div>`;
+            const tip = this.topicHoverTitle(topic);
+            const tipAttr = tip ? ` title="${this.escapeHtml(tip)}"` : '';
+            return `<div class="${this.shapeClass(topic.shape)} topic-inner"${tipAttr} style="border:1px solid ${ring};background:${bg};"><div class="node-label" style="color:${fg};">${title}</div></div>`;
         },
         setupDrawflow() {
             this.editor = new Drawflow(this.$refs.drawflow);
@@ -321,6 +423,14 @@ function dekomposisiBoard(seedData, userInitials) {
             this.seed.nodes.forEach((topic) => {
                 const inputPorts = 1;
                 const outputPorts = 1;
+                const topicData = {
+                    key: topic.key,
+                    title: topic.title,
+                    shape: topic.shape,
+                    color: topic.color,
+                    createdBy: this.topicCreator(topic) || this.currentUserName || this.userInitials,
+                    createdAt: this.topicCreatedAt(topic),
+                };
                 const newId = this.editor.addNode(
                     topic.key,
                     inputPorts,
@@ -328,8 +438,8 @@ function dekomposisiBoard(seedData, userInitials) {
                     topic.x,
                     topic.y,
                     'topic-node',
-                    { key: topic.key, title: topic.title, shape: topic.shape, color: topic.color },
-                    this.nodeHtml(topic)
+                    topicData,
+                    this.nodeHtml(topicData)
                 );
                 this.nodeIdMap[topic.key] = newId;
             });
@@ -348,14 +458,106 @@ function dekomposisiBoard(seedData, userInitials) {
             this.editor.on('connectionRemoved', () => this.syncTopicList());
             this.editor.on('nodeRemoved', () => this.syncTopicList());
         },
+        getPersistPayload() {
+            if (!this.editor) return { nodes: [], connections: [] };
+            const data = this.editor.export().drawflow.Home.data || {};
+            const nodes = Object.keys(data).map((id) => {
+                const node = data[id];
+                return {
+                    key: node.data?.key || node.name || `node-${id}`,
+                    title: node.data?.title || node.name || '',
+                    shape: node.data?.shape || 'rounded',
+                    color: this.sanitizeHexColor(node.data?.color || '#dbeafe'),
+                    createdBy: this.topicCreator(node.data || {}),
+                    createdAt: this.topicCreatedAt(node.data || {}),
+                    x: Number(node.pos_x || 0),
+                    y: Number(node.pos_y || 0),
+                };
+            });
+            const connectionsMap = new Map();
+            Object.keys(data).forEach((id) => {
+                const node = data[id];
+                const fromKey = node.data?.key || node.name;
+                Object.keys(node.outputs || {}).forEach((outKey) => {
+                    const list = node.outputs[outKey].connections || [];
+                    list.forEach((conn) => {
+                        const toNode = data[String(conn.node)];
+                        const toKey = toNode?.data?.key || toNode?.name;
+                        if (!fromKey || !toKey) return;
+                        const uniq = `${fromKey}__${toKey}`;
+                        if (!connectionsMap.has(uniq)) {
+                            connectionsMap.set(uniq, { from: fromKey, to: toKey });
+                        }
+                    });
+                });
+            });
+            return { nodes, connections: Array.from(connectionsMap.values()) };
+        },
+        async persistDiagram() {
+            if (!this.syncUrl || !this.csrfToken) return;
+            const payload = this.getPersistPayload();
+            try {
+                await fetch(this.syncUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                    },
+                    body: JSON.stringify(payload),
+                });
+            } catch (e) {
+                console.error('Gagal sinkronisasi dekomposisi:', e);
+            }
+        },
         syncTopicList() {
             const all = this.editor.export().drawflow.Home.data;
             this.topicList = Object.keys(all).map((id) => ({
                 id: Number(id),
                 key: all[id].data.key,
                 title: all[id].data.title || all[id].name,
+                shape: all[id].data.shape || 'rounded',
+                color: all[id].data.color || '#dbeafe',
+                createdBy: this.topicCreator(all[id].data),
                 isRoot: all[id].data.key === 'root',
             }));
+            this.persistDiagram();
+        },
+        openEditTopic(topic) {
+            if (!this.editor) return;
+            this.editTopicId = topic.id;
+            this.editTopicText = topic.title || '';
+            this.editTopicColor = this.sanitizeHexColor(topic.color);
+            this.editTopicShape = topic.shape || 'rounded';
+            this.showEditTopicModal = true;
+        },
+        saveEditedTopic() {
+            if (!this.editTopicText.trim() || !this.editor || this.editTopicId == null) return;
+            const id = this.editTopicId;
+            const entry = this.editor.getNodeFromId(id);
+            if (!entry || !entry.data) return;
+            const key = entry.data.key;
+            const prevBy = this.topicCreator(entry.data);
+            const updated = {
+                ...entry.data,
+                key,
+                title: this.editTopicText.trim(),
+                shape: this.editTopicShape,
+                color: this.sanitizeHexColor(this.editTopicColor),
+                createdBy: prevBy || this.currentUserName || this.userInitials,
+                createdAt: this.topicCreatedAt(entry.data),
+            };
+            const newHtml = this.nodeHtml(updated);
+            const mod = this.editor.getModuleFromNodeId(id);
+            const store = this.editor.drawflow.drawflow[mod].data[id];
+            store.data = updated;
+            store.html = newHtml;
+            const el = this.editor.container.querySelector('#node-' + id + ' .drawflow_content_node');
+            if (el) el.innerHTML = newHtml;
+            this.editor.updateConnectionNodes('node-' + id);
+            this.syncTopicList();
+            this.showEditTopicModal = false;
+            this.editTopicId = null;
         },
         removeTopic(topicId) {
             if (!this.editor) return;
@@ -376,6 +578,15 @@ function dekomposisiBoard(seedData, userInitials) {
             const key = `n-${Date.now()}`;
             const posX = 120 + (this.topicList.length % 4) * 180;
             const posY = 90 + Math.floor(this.topicList.length / 4) * 120;
+            const creator = this.currentUserName || this.userInitials;
+            const payload = {
+                key,
+                title: this.newTopicText.trim(),
+                shape: this.newTopicShape,
+                color: this.newTopicColor,
+                createdBy: creator,
+                createdAt: this.todayDate(),
+            };
             this.editor.addNode(
                 key,
                 1,
@@ -383,8 +594,8 @@ function dekomposisiBoard(seedData, userInitials) {
                 posX,
                 posY,
                 'topic-node',
-                { key, title: this.newTopicText.trim(), shape: this.newTopicShape, color: this.newTopicColor },
-                this.nodeHtml({ title: this.newTopicText.trim(), shape: this.newTopicShape, color: this.newTopicColor })
+                payload,
+                this.nodeHtml(payload)
             );
             this.syncTopicList();
             this.newTopicText = '';

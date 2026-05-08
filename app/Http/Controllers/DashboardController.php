@@ -64,10 +64,11 @@ class DashboardController extends Controller
 
         $selected_project = null;
         $projectId = $request->query('project_id');
+        $initialEditMode = $request->query('mode') === 'edit';
         if ($projectId && isset($projectLibrary[$projectId])) {
             $selected_project = $projectLibrary[$projectId];
         }
 
-        return view('dashboard', compact('user', 'statistics', 'pie_chart_data', 'bar_chart_data', 'ongoing_projects', 'deadlines', 'selected_project'));
+        return view('dashboard', compact('user', 'statistics', 'pie_chart_data', 'bar_chart_data', 'ongoing_projects', 'deadlines', 'selected_project', 'initialEditMode'));
     }
 }

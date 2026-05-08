@@ -62,10 +62,6 @@
                     <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
                         <div class="flex items-center justify-between mb-6">
                             <h2 class="text-xl font-bold text-slate-900">Individual Assessment Metrics</h2>
-                            <button class="text-blue-600 font-semibold text-sm flex items-center gap-2 hover:text-blue-700">
-                                
-                                Edit
-                            </button>
                         </div>
 
                         <!-- Assessment Table -->
@@ -145,9 +141,9 @@
 
                         <!-- Action Buttons -->
                         <div class="flex gap-3">
-                            <button class="flex-1 rounded-lg bg-blue-600 text-white font-semibold py-3 hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                                
-                                Report
+                            <button type="button" onclick="downloadEvaluationPdf('individual')" class="flex-1 rounded-lg bg-blue-600 text-white font-semibold py-3 hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-file-pdf"></i>
+                                Download PDF
                             </button>
                             <button class="flex-1 rounded-lg border border-slate-300 text-slate-700 font-semibold py-3 hover:bg-slate-50 transition flex items-center justify-center gap-2">
                                 
@@ -158,39 +154,81 @@
                 </div>
 
                 <!-- Group Evaluation -->
-                <div x-show="activeTab === 'group'" x-cloak class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 max-w-4xl">
-                    <h3 class="text-lg font-bold text-slate-900 mb-6">Group Evaluation</h3>
-                    <form class="space-y-8">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Penilaian Kelompok</label>
-                            <input type="number" min="10" max="100" class="border border-slate-300 rounded-lg p-2 w-24 text-center outline-none focus:border-blue-400">
+                <div x-show="activeTab === 'group'" x-cloak class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
+                        <div class="mb-6 flex items-center justify-between gap-3">
+                            <h3 class="text-lg font-bold text-slate-900">Group Evaluation</h3>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Penilaian Individu</label>
-                            <div class="max-w-xl border border-slate-300 rounded-lg overflow-hidden">
-                                <table class="w-full text-xs">
-                                    <tr class="bg-white border-b border-slate-300">
-                                        <th class="p-3 text-left font-bold border-r border-slate-300 uppercase w-2/3">Nama</th>
-                                        <th class="p-3 text-left font-bold uppercase">Nilai</th>
-                                    </tr>
-                                    @foreach($groupMembers as $name)
-                                    <tr class="border-b border-slate-300 last:border-b-0">
-                                        <td class="p-3 border-r border-slate-300 font-medium">{{ $name }}</td>
-                                        <td class="p-1"><input type="number" min="10" max="100" class="w-full p-2 outline-none text-center bg-transparent"></td>
-                                    </tr>
-                                    @endforeach
-                                </table>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                            <div class="rounded-xl bg-blue-50 border border-blue-200 p-4">
+                                <p class="text-[11px] font-bold text-slate-500 uppercase">Nilai Kelompok</p>
+                                <p class="mt-2 text-2xl font-bold text-blue-700">{{ $groupEvaluationSummary['overall_score'] }}</p>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                                <p class="text-[11px] font-bold text-slate-500 uppercase">Grade</p>
+                                <p class="mt-2 text-2xl font-bold text-slate-900">{{ $groupEvaluationSummary['grade'] }}</p>
+                            </div>
+                            <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                                <p class="text-[11px] font-bold text-slate-500 uppercase">Status</p>
+                                <p class="mt-2 text-lg font-bold text-emerald-700">{{ $groupEvaluationSummary['status'] }}</p>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                                <p class="text-[11px] font-bold text-slate-500 uppercase">Tanggal Nilai</p>
+                                <p class="mt-2 text-sm font-bold text-slate-900">{{ $groupEvaluationSummary['evaluated_at'] }}</p>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Refleksi</label>
-                            <textarea maxlength="500" placeholder="Ketikkan refleksi Anda di sini..." class="w-full border border-slate-300 rounded-2xl p-4 h-28 resize-none outline-none focus:border-blue-400 text-xs italic"></textarea>
+
+                        <div class="rounded-2xl border border-slate-200 overflow-hidden">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 text-slate-600">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left font-semibold">Komponen</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Bobot</th>
+                                        <th class="px-4 py-3 text-right font-semibold">Nilai</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($groupEvaluationComponents as $component)
+                                    <tr class="border-t border-slate-200">
+                                        <td class="px-4 py-3 font-semibold text-slate-800">{{ $component['component'] }}</td>
+                                        <td class="px-4 py-3 text-slate-600">{{ $component['weight'] }}</td>
+                                        <td class="px-4 py-3 text-right font-bold text-slate-900">{{ $component['score'] }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="flex justify-end gap-3">
-                            <button type="button" class="bg-gray-200 px-6 py-2 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-300 transition">Batal</button>
-                            <button type="submit" class="bg-blue-600 px-6 py-2 rounded-full text-xs font-bold text-white hover:bg-blue-700 transition">Submit</button>
+                    </div>
+
+                    <aside class="space-y-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                            <h4 class="text-sm font-bold text-slate-900 mb-4">Nilai per Anggota</h4>
+                            <div class="space-y-3">
+                                @foreach($groupMemberScores as $member)
+                                <div class="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+                                    <p class="text-sm font-semibold text-slate-700">{{ $member['name'] }}</p>
+                                    <span class="text-sm font-bold text-blue-700">{{ $member['score'] }}</span>
+                                </div>
+                                @endforeach
+                            </div>
                         </div>
-                    </form>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                            <h4 class="text-sm font-bold text-slate-900 mb-3">Catatan Dosen</h4>
+                            <p class="text-sm leading-relaxed text-slate-600">{{ $groupLecturerNote }}</p>
+                            <p class="mt-4 text-xs font-semibold text-slate-500">Evaluator: {{ $groupEvaluationSummary['evaluator'] }}</p>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button type="button" onclick="downloadEvaluationPdf('group')" class="flex-1 rounded-lg bg-blue-600 text-white font-semibold py-3 hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-file-pdf"></i>
+                                Download PDF
+                            </button>
+                            <button class="flex-1 rounded-lg border border-slate-300 text-slate-700 font-semibold py-3 hover:bg-slate-50 transition flex items-center justify-center gap-2">
+                                Share
+                            </button>
+                        </div>
+                    </aside>
                 </div>
 
                 <!-- Lecturer Evaluation -->
@@ -205,3 +243,84 @@
                 </div>
  </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+function downloadEvaluationPdf(type) {
+    const jsPdfLib = window.jspdf;
+    if (!jsPdfLib || !jsPdfLib.jsPDF) {
+        alert('Library PDF belum termuat. Silakan coba lagi.');
+        return;
+    }
+
+    const doc = new jsPdfLib.jsPDF();
+    const studentData = @json($studentData);
+    const assessmentMetrics = @json($assessmentMetrics);
+    const groupSummary = @json($groupEvaluationSummary);
+    const groupComponents = @json($groupEvaluationComponents);
+    const groupMembers = @json($groupMemberScores);
+    const groupNote = @json($groupLecturerNote);
+
+    doc.setFontSize(16);
+    doc.text('DELPRO - Evaluation Report', 14, 16);
+    doc.setFontSize(11);
+    doc.text(`Nama: ${studentData.name}`, 14, 24);
+    doc.text(`Project: ${studentData.project}`, 14, 30);
+    doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 36);
+
+    if (type === 'individual') {
+        doc.setFontSize(13);
+        doc.text('Individual Evaluation', 14, 46);
+
+        doc.autoTable({
+            startY: 50,
+            head: [['Kriteria', 'Skor', 'Grade']],
+            body: assessmentMetrics.map((m) => [m.criterion, `${m.score}/100`, m.grade]),
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [37, 99, 235] },
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 8;
+        doc.setFontSize(11);
+        doc.text(`Cumulative Average: {{ $cumulativeAverage }}`, 14, finalY);
+        doc.text(`Grade: {{ $cumulativeGrade }}`, 14, finalY + 6);
+        doc.text(`Status: {{ $performanceStatus }}`, 14, finalY + 12);
+        doc.save('individual-evaluation-report.pdf');
+        return;
+    }
+
+    doc.setFontSize(13);
+    doc.text('Group Evaluation', 14, 46);
+    doc.setFontSize(11);
+    doc.text(`Nilai Kelompok: ${groupSummary.overall_score}`, 14, 54);
+    doc.text(`Grade: ${groupSummary.grade}`, 14, 60);
+    doc.text(`Status: ${groupSummary.status}`, 14, 66);
+    doc.text(`Evaluator: ${groupSummary.evaluator}`, 14, 72);
+
+    doc.autoTable({
+        startY: 78,
+        head: [['Komponen', 'Bobot', 'Nilai']],
+        body: groupComponents.map((c) => [c.component, c.weight, c.score]),
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 8,
+        head: [['Anggota', 'Nilai']],
+        body: groupMembers.map((m) => [m.name, m.score]),
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [30, 64, 175] },
+    });
+
+    const noteY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(11);
+    doc.text('Catatan Dosen:', 14, noteY);
+    const wrapped = doc.splitTextToSize(groupNote, 180);
+    doc.text(wrapped, 14, noteY + 6);
+    doc.save('group-evaluation-report.pdf');
+}
+</script>
+@endpush

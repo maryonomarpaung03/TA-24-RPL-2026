@@ -8,7 +8,7 @@
     </div>
 
     <nav class="flex-1 px-4 space-y-2">
-        <a href="{{ !empty($selected_project) ? route('dashboard', ['project_id' => $selected_project['id']]) : route('dashboard') }}" class="flex items-center gap-3 p-3 rounded-xl transition {{ Request::routeIs('dashboard') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100' }}">
+        <a href="{{ !empty($selected_project) ? route('dashboard', ['project_id' => $selected_project['id']]) : route('dashboard') }}" class="flex items-center gap-3 p-3 rounded-xl transition {{ Request::routeIs('dashboard') || Request::routeIs('home') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100' }}">
             <i class="fas fa-th-large w-6 text-center"></i>
             <span x-show="sidebarOpen" class="font-semibold">Dashboard</span>
         </a>
@@ -18,6 +18,19 @@
         </a>
 
         @if(!empty($selected_project))
+        @php
+            $wfIdentification = Request::routeIs('dashboard') || Request::routeIs('home');
+            $wfDecomposition = Request::routeIs('dekomposisi');
+            $wfPlanning = Request::routeIs('penyusunan') || Request::routeIs('tambah-tugas');
+            $wfExecution = Request::routeIs('pelaksanaan') || Request::routeIs('waktu-progres');
+            $wfAssessment = Request::routeIs('penilaian-individu')
+                || Request::routeIs('penilaian-kelompok')
+                || Request::routeIs('penilaian-dosen-status')
+                || Request::routeIs('nilai-dari-dosen');
+            $wfChat = Request::routeIs('project-chat');
+            $wfActive = 'flex items-center gap-3 rounded-3xl border border-blue-200 bg-blue-50 px-3 py-3 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition';
+            $wfIdle = 'flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition';
+        @endphp
         <div class="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
             <p x-show="sidebarOpen" class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-3">Selected Project</p>
             <div class="space-y-3">
@@ -25,25 +38,29 @@
                     <p x-show="sidebarOpen" class="text-sm font-semibold text-slate-900">{{ $selected_project['name'] }}</p>
                     <p x-show="sidebarOpen" class="text-[10px] text-slate-500 mt-1">{{ $selected_project['description'] }}</p>
                 </div>
-                <a href="{{ route('dashboard', ['project_id' => $selected_project['id']]) }}" class="flex items-center gap-3 rounded-3xl border border-blue-200 bg-white px-3 py-3 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-50 transition">
+                <a href="{{ route('dashboard', ['project_id' => $selected_project['id'], 'mode' => 'view']) }}" class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
                     <i class="fas fa-search text-lg w-5"></i>
                     <span x-show="sidebarOpen">Problem Identification</span>
                 </a>
-                <a href="{{ route('dekomposisi', $selected_project['id']) }}" class="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+                <a href="{{ route('dekomposisi', $selected_project['id']) }}" class="{{ $wfDecomposition ? $wfActive : $wfIdle }}">
                     <i class="fas fa-project-diagram text-lg w-5"></i>
                     <span x-show="sidebarOpen">Problem Decomposition</span>
                 </a>
-                <a href="{{ route('penyusunan', $selected_project['id']) }}" class="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+                <a href="{{ route('penyusunan', $selected_project['id']) }}" class="{{ $wfPlanning ? $wfActive : $wfIdle }}">
                     <i class="fas fa-tasks text-lg w-5"></i>
                     <span x-show="sidebarOpen">Project Planning</span>
                 </a>
-                <a href="{{ route('pelaksanaan', $selected_project['id']) }}" class="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+                <a href="{{ route('pelaksanaan', $selected_project['id']) }}" class="{{ $wfExecution ? $wfActive : $wfIdle }}">
                     <i class="fas fa-play text-lg w-5"></i>
                     <span x-show="sidebarOpen">Execution & Evaluation</span>
                 </a>
-                <a href="{{ route('penilaian-individu', $selected_project['id']) }}" class="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+                <a href="{{ route('penilaian-individu', $selected_project['id']) }}" class="{{ $wfAssessment ? $wfActive : $wfIdle }}">
                     <i class="fas fa-clipboard-check text-lg w-5"></i>
                     <span x-show="sidebarOpen">Assessment & Reflection</span>
+                </a>
+                <a href="{{ route('project-chat', $selected_project['id']) }}" class="{{ $wfChat ? $wfActive : $wfIdle }}">
+                    <i class="fas fa-comments text-lg w-5"></i>
+                    <span x-show="sidebarOpen">Project Chat</span>
                 </a>
                 <a href="{{ route('projek-saya') }}" class="mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-slate-200 bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
                     <i class="fas fa-exchange-alt text-lg w-5"></i>

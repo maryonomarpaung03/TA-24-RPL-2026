@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+
 class DekomposisiController extends Controller
 {
     public function index($id)
@@ -14,7 +16,7 @@ class DekomposisiController extends Controller
         ];
 
         $namaProjek = $projekList[$id] ?? 'Projek Unknown';
-        $diagramSeed = [
+        $defaultSeed = [
             'nodes' => [
                 [
                     'key' => 'root',
@@ -23,6 +25,8 @@ class DekomposisiController extends Controller
                     'color' => '#dbeafe',
                     'x' => 420,
                     'y' => 250,
+                    'createdBy' => $user['name'],
+                    'createdAt' => now()->toDateString(),
                 ],
                 [
                     'key' => 'n1',
@@ -31,6 +35,8 @@ class DekomposisiController extends Controller
                     'color' => '#fef3c7',
                     'x' => 120,
                     'y' => 140,
+                    'createdBy' => $user['name'],
+                    'createdAt' => now()->toDateString(),
                 ],
             ],
             'connections' => [
@@ -40,7 +46,24 @@ class DekomposisiController extends Controller
                 ['author' => 'NT', 'text' => 'Bagian validasi real-time sudah saya tambahkan ya teman-teman.'],
             ],
         ];
+        $diagramSeed = session('diagram_seed_' . $id, $defaultSeed);
 
         return view('Dekomposisi', compact('user', 'namaProjek', 'id', 'diagramSeed'));
+    }
+
+    public function sync(Request $request, $id)
+    {
+        $payload = $request->validate([
+            'nodes' => 'required|array',
+            'connections' => 'nullable|array',
+        ]);
+
+        session(['diagram_seed_' . $id => [
+            'nodes' => $payload['nodes'],
+            'connections' => $payload['connections'] ?? [],
+            'comments' => session('diagram_seed_' . $id . '.comments', []),
+        ]]);
+
+        return response()->json(['ok' => true]);
     }
 }

@@ -12,7 +12,7 @@
 
             @if(!empty($selected_project))
             <div class="space-y-6" x-data="{
-                editMode: true,
+                editMode: @js($initialEditMode ?? false),
                 problemStatement: '',
                 contextBg: '',
                 observations: ['Inefficiency in current data processing workflows.', 'High cognitive load for first-year researchers.']
@@ -29,10 +29,10 @@
                                 <button type="button" @click="editMode = false" :class="editMode ? 'text-slate-500 hover:text-slate-700' : 'bg-white text-blue-700 shadow-sm'" class="rounded-full px-4 py-2 text-xs font-bold transition">Tampilan</button>
                                 <button type="button" @click="editMode = true" :class="editMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="rounded-full px-4 py-2 text-xs font-bold transition">Edit</button>
                             </div>
-                            <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-                                <i class="fas fa-search"></i>
-                                Identifikasi Masalah
-                            </div>
+                            <button type="button" class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">
+                                <i class="fas fa-save"></i>
+                                Simpan
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -88,10 +88,7 @@
                                 </div>
                             </div>
 
-                            <div x-show="editMode" x-cloak class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Save Draft</button>
-                                <button type="button" class="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Submit Phase 1</button>
-                            </div>
+                            
                         </div>
                     </div>
 

@@ -36,7 +36,7 @@
                     <!-- 6. TABEL PENYUSUNAN -->
                     <div class="flex-1 bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
                         <div class="flex justify-end mb-4">
-                            <button class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition">Tambah Tugas</button>
+                            <button type="button" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition">Tambah Tugas</button>
                         </div>
                         
                         <div class="overflow-x-auto">

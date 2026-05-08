@@ -49,6 +49,32 @@ class PenyusunanController extends Controller
                 'pj' => 'Rehan',
             ],
         ];
+        $diagramSeed = session('diagram_seed_' . $id, []);
+        $topicNodes = collect($diagramSeed['nodes'] ?? [])
+            ->filter(fn ($n) => ($n['key'] ?? null) !== 'root')
+            ->values()
+            ->all();
+
+        $topicTasks = collect($topicNodes)->map(function ($node) use ($user) {
+            $title = $node['title'] ?? null;
+            if (!$title) {
+                return null;
+            }
+            $createdAt = $node['createdAt'] ?? $node['created_at'] ?? now()->toDateString();
+            return [
+                'judul' => $title,
+                'deskripsi' => '-',
+                'mulai' => $createdAt,
+                'selesai' => '-',
+                'pj' => $user['name'],
+            ];
+        })->filter()->values()->all();
+
+        $tasks = array_merge($topicTasks, $tasks);
+        $tasks = collect($tasks)->values()->map(function ($task, $index) {
+            $task['no'] = $index + 1;
+            return $task;
+        })->all();
 
         return view('Penyusunan', compact('user', 'namaProjek', 'tasks', 'id'));
     }
