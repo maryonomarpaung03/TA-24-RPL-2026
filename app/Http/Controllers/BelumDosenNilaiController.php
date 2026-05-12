@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Http\Controllers; 
-use Illuminate\Http\Request; 
+namespace App\Http\Controllers;
+
+use App\Support\ProjectCatalog;
+use Illuminate\Http\Request;
+
 class BelumDosenNilaiController extends Controller 
 {
     public function index($id) 
@@ -13,12 +16,7 @@ class BelumDosenNilaiController extends Controller
             'notif_count' => 1
         ];
         
-        $projekList = [
-            1 => 'Aplikasi Absensi Online Berbasis QR Code',
-            2 => 'Sistem Rekomendasi Film Menggunakan Machine Learning',
-        ];
-
-        $namaProjek = $projekList[$id] ?? "Projek Tidak Ditemukan";
+        $namaProjek = ProjectCatalog::name($id);
 
         return view('BelumDosenNilai', compact('user', 'namaProjek', 'id'));
     }

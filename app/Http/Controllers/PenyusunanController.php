@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 
 class PenyusunanController extends Controller
@@ -15,12 +16,7 @@ class PenyusunanController extends Controller
             'notif_count' => 1
         ];
 
-        $projekList = [
-            1 => 'Aplikasi Absensi Online Berbasis QR Code',
-            2 => 'Sistem Rekomendasi Film Menggunakan Machine Learning',
-        ];
-
-        $namaProjek = $projekList[$id] ?? 'Projek Tidak Ditemukan';
+        $namaProjek = ProjectCatalog::name($id);
 
         // 7. Simulasi Data Tabel
         $tasks = [

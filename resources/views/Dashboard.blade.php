@@ -13,9 +13,100 @@
             @if(!empty($selected_project))
             <div class="space-y-6" x-data="{
                 editMode: @js($initialEditMode ?? false),
-                problemStatement: '',
-                contextBg: '',
-                observations: ['Inefficiency in current data processing workflows.', 'High cognitive load for first-year researchers.']
+                form: {
+                    title: '',
+                    description: '',
+                    category: 'Teknis',
+                    priority: 'Sedang',
+                    attachment: ''
+                },
+                board: {
+                    ide: [
+                        { title: 'Input data absensi masih manual', category: 'Teknis', priority: 'Tinggi', checklist: '2/4', attachment: 'alur-absensi.png' },
+                        { title: 'Validasi lokasi belum otomatis', category: 'Kebutuhan Proyek', priority: 'Sedang', checklist: '1/3', attachment: '-' }
+                    ],
+                    voting: [
+                        { key: 'vote-1', title: 'Input data absensi masih manual', votes: 8, category: 'Teknis', priority: 'Tinggi' },
+                        { key: 'vote-2', title: 'Antrian verifikasi dosen terlalu lama', votes: 5, category: 'Diskusi', priority: 'Sedang' }
+                    ],
+                    diajukan: [
+                        { title: 'Input data absensi masih manual', status: 'Menunggu Persetujuan Dosen', category: 'Teknis', priority: 'Tinggi' }
+                    ],
+                    perbaiki: [
+                        { title: 'Rubrik kebutuhan kurang detail', note: 'Lengkapi bukti pendukung', category: 'Etika', priority: 'Rendah' }
+                    ],
+                    selesai: [
+                        { title: 'Masalah utama disepakati tim', date: '08 Mei 2026' }
+                    ]
+                },
+                comments: [
+                    { from: 'NT', target: 'Input data absensi masih manual', text: 'Setuju. Ini paling berdampak ke error rekap.', time: '10:15' },
+                    { from: 'DS', target: 'Input data absensi masih manual', text: 'Saya sudah lampirkan bukti screenshot proses saat ini.', time: '10:27' },
+                    { from: 'Dosen', target: 'Rubrik kebutuhan kurang detail', text: 'Tolong perjelas kriteria sebelum diajukan ulang.', time: '11:02' }
+                ],
+                votingOpen: true,
+                participantCount: 12,
+                myVoteKey: null,
+                totalVotes() {
+                    return this.board.voting.reduce((sum, c) => sum + Number(c.votes || 0), 0);
+                },
+                votedCount() {
+                    return this.totalVotes();
+                },
+                unvotedCount() {
+                    const remaining = this.participantCount - this.votedCount();
+                    return remaining > 0 ? remaining : 0;
+                },
+                sortedVotingCards() {
+                    return [...this.board.voting].sort((a, b) => Number(b.votes || 0) - Number(a.votes || 0));
+                },
+                isMyVote(card) {
+                    return this.myVoteKey === card.key;
+                },
+                toggleVote(card) {
+                    if (!this.votingOpen) return;
+                    const current = this.board.voting.find((item) => item.key === card.key);
+                    if (!current) return;
+                    if (this.myVoteKey === card.key) {
+                        current.votes = Math.max(0, Number(current.votes || 0) - 1);
+                        this.myVoteKey = null;
+                        return;
+                    }
+                    if (this.myVoteKey) {
+                        const previous = this.board.voting.find((item) => item.key === this.myVoteKey);
+                        if (previous) previous.votes = Math.max(0, Number(previous.votes || 0) - 1);
+                    }
+                    current.votes = Number(current.votes || 0) + 1;
+                    this.myVoteKey = card.key;
+                },
+                topVotingCard() {
+                    const sorted = this.sortedVotingCards();
+                    return sorted.length ? sorted[0] : null;
+                },
+                submitTopToLecturer() {
+                    const top = this.topVotingCard();
+                    if (!top) return;
+                    this.board.diajukan.unshift({
+                        title: top.title,
+                        status: 'Menunggu Persetujuan Dosen',
+                        category: top.category,
+                        priority: top.priority
+                    });
+                    this.votingOpen = false;
+                },
+                addIdeaCard() {
+                    if (!this.form.title.trim()) return;
+                    this.board.ide.unshift({
+                        title: this.form.title.trim(),
+                        category: this.form.category,
+                        priority: this.form.priority,
+                        checklist: '0/3',
+                        attachment: this.form.attachment.trim() || '-'
+                    });
+                    this.form.title = '';
+                    this.form.description = '';
+                    this.form.attachment = '';
+                }
             }">
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -41,54 +132,115 @@
                     <div class="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm">
                         <div class="space-y-5">
                             <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-                                <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Problem Statement</h3>
-                                <p class="text-base text-slate-800">What is the central issue you aim to solve?</p>
-                                <div class="mt-5" x-show="editMode" x-cloak>
-                                    <textarea x-model="problemStatement" rows="4" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Tuliskan pernyataan masalah inti proyek Anda..."></textarea>
-                                </div>
-                                <div class="mt-5 rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 min-h-[6rem]" x-show="!editMode" x-cloak>
-                                    <p class="whitespace-pre-wrap" x-text="problemStatement.trim() ? problemStatement : 'Belum ada pernyataan masalah.'"></p>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-                                    <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Context & Background</h3>
-                                    <textarea x-show="editMode" x-cloak x-model="contextBg" rows="5" class="w-full rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Jelaskan lingkungan, pemangku kepentingan, dan mengapa masalah ini penting..."></textarea>
-                                    <div class="rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-800 min-h-[7.5rem]" x-show="!editMode" x-cloak>
-                                        <p class="whitespace-pre-wrap" x-text="contextBg.trim() ? contextBg : 'Belum ada konteks & latar belakang.'"></p>
+                                <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-4">Form Input Tugas/Masalah</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="md:col-span-2">
+                                        <label class="text-xs font-semibold text-slate-500">Judul Masalah (Card)</label>
+                                        <input x-model="form.title" x-bind:disabled="!editMode" type="text" class="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400" placeholder="Contoh: Input data absensi masih manual">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-xs font-semibold text-slate-500">Deskripsi</label>
+                                        <textarea x-model="form.description" x-bind:disabled="!editMode" rows="3" class="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400" placeholder="Detail masalah / konteks singkat..."></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-500">Custom Field (Kategori)</label>
+                                        <select x-model="form.category" x-bind:disabled="!editMode" class="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
+                                            <option>Teknis</option>
+                                            <option>Diskusi</option>
+                                            <option>Etika</option>
+                                            <option>Kebutuhan Proyek</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-500">Prioritas</label>
+                                        <select x-model="form.priority" x-bind:disabled="!editMode" class="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400">
+                                            <option>Tinggi</option>
+                                            <option>Sedang</option>
+                                            <option>Rendah</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-xs font-semibold text-slate-500">Attachments (nama file/link)</label>
+                                        <input x-model="form.attachment" x-bind:disabled="!editMode" type="text" class="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-400" placeholder="mis. bukti-error.pdf">
                                     </div>
                                 </div>
-                                <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-                                    <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Initial Observations</h3>
-                                    <div class="space-y-3 text-sm text-slate-700">
-                                        <template x-for="(obs, idx) in observations" :key="idx">
-                                            <div class="rounded-3xl bg-white border border-slate-200 p-4">
-                                                <input type="text" x-show="editMode" x-model="observations[idx]" class="w-full bg-transparent outline-none text-slate-800">
-                                                <span x-show="!editMode" x-text="obs"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <button type="button" x-show="editMode" @click="observations.push('')" class="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"><i class="fas fa-plus"></i> Add observation</button>
+                                <div class="mt-4">
+                                    <button x-show="editMode" x-cloak type="button" @click="addIdeaCard()" class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition">
+                                        <i class="fas fa-plus"></i> Tambah ke Board
+                                    </button>
                                 </div>
                             </div>
 
                             <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-                                <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold mb-3">Upload Supporting Evidence</h3>
-                                <div x-show="editMode" x-cloak class="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
-                                    <p class="mb-4">Drag and drop research papers, data charts, or stakeholder interview transcripts.</p>
-                                    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                                        <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Browse Files</button>
-                                        <button type="button" class="rounded-full border border-blue-600 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">Import from Drive</button>
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold">Kanban Board (Problem Flow)</h3>
+                                    <span class="text-xs text-slate-500">Drag & drop visual (mockup)</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 text-sm">
+                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+                                        <p class="font-bold text-slate-700 mb-2">Ide Masalah</p>
+                                        <template x-for="(card, idx) in board.ide" :key="'ide-' + idx">
+                                            <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
+                                                <p class="text-[11px] text-slate-500 mt-1">Label: <span x-text="card.category"></span> • <span x-text="card.priority"></span></p>
+                                                <p class="text-[11px] text-slate-500">Checklist: <span x-text="card.checklist"></span></p>
+                                                <p class="text-[11px] text-slate-500">Lampiran: <span x-text="card.attachment"></span></p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+                                        <div class="mb-2 flex items-center justify-between gap-2">
+                                            <p class="font-bold text-slate-700">Voting</p>
+                                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="votingOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'" x-text="votingOpen ? 'Dibuka' : 'Ditutup'"></span>
+                                        </div>
+                                        <div class="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600">
+                                            <p>Peserta: <span class="font-semibold" x-text="participantCount"></span></p>
+                                            <p>Sudah voting: <span class="font-semibold" x-text="votedCount()"></span></p>
+                                            <p>Belum voting: <span class="font-semibold" x-text="unvotedCount()"></span></p>
+                                        </div>
+                                        <template x-for="(card, idx) in sortedVotingCards()" :key="card.key || ('vote-' + idx)">
+                                            <div class="mb-2 rounded-xl border p-2" :class="isMyVote(card) ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-slate-50'">
+                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
+                                                <p class="text-[11px] text-slate-500 mt-1">Suara: <span class="font-semibold" x-text="card.votes"></span></p>
+                                                <button type="button" @click="toggleVote(card)" class="mt-2 w-full rounded-lg px-2 py-1 text-[11px] font-semibold transition"
+                                                    :class="isMyVote(card) ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'"
+                                                    x-text="isMyVote(card) ? 'Unvote' : 'Vote'">
+                                                </button>
+                                            </div>
+                                        </template>
+                                        <button type="button" @click="submitTopToLecturer()" class="mt-2 w-full rounded-lg bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-600 transition">
+                                            Ajukan Pemenang ke Dosen
+                                        </button>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+                                        <p class="font-bold text-slate-700 mb-2">Diajukan ke Dosen</p>
+                                        <template x-for="(card, idx) in board.diajukan" :key="'aju-' + idx">
+                                            <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
+                                                <p class="text-[11px] text-amber-600 mt-1" x-text="card.status"></p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+                                        <p class="font-bold text-slate-700 mb-2">Perbaiki</p>
+                                        <template x-for="(card, idx) in board.perbaiki" :key="'fix-' + idx">
+                                            <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
+                                                <p class="text-[11px] text-red-600 mt-1" x-text="card.note"></p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
+                                        <p class="font-bold text-slate-700 mb-2">Selesai</p>
+                                        <template x-for="(card, idx) in board.selesai" :key="'done-' + idx">
+                                            <div class="mb-2 rounded-xl border border-emerald-200 bg-emerald-50 p-2">
+                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
+                                                <p class="text-[11px] text-emerald-700 mt-1">Final: <span x-text="card.date"></span></p>
+                                            </div>
+                                        </template>
                                     </div>
                                 </div>
-                                <div x-show="!editMode" x-cloak class="rounded-[1.5rem] border border-slate-200 bg-white px-5 py-6 text-sm text-slate-600">
-                                    <p class="font-semibold text-slate-800 mb-1">Lampiran</p>
-                                    <p>Mode tampilan: unggah dokumen dinonaktifkan. Aktifkan mode <span class="font-semibold text-blue-700">Edit</span> untuk menambah bukti pendukung.</p>
-                                </div>
                             </div>
-
-                            
                         </div>
                     </div>
 
@@ -115,29 +267,30 @@
                         </div>
 
                         <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
-                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Identification Guide</h3>
-                            <div class="space-y-4 text-sm text-slate-700">
-                                <div class="rounded-3xl bg-slate-50 p-4">
-                                    <p class="font-semibold text-slate-900">Define the core challenge</p>
-                                    <p class="mt-2 text-slate-600">Identify clear problem statements, understand the context, and gather evidence.</p>
-                                </div>
-                                <div class="rounded-3xl bg-slate-50 p-4">
-                                    <p class="font-semibold text-slate-900">Break down problems</p>
-                                    <p class="mt-2 text-slate-600">Use decomposition to make large problems manageable.</p>
-                                </div>
+                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Assigned Comments</h3>
+                            <div class="space-y-3 text-sm text-slate-700">
+                                <template x-for="(comment, idx) in comments" :key="'c-' + idx">
+                                    <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">
+                                        <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                            <span class="font-semibold" x-text="comment.from"></span>
+                                            <span x-text="comment.time"></span>
+                                        </div>
+                                        <p class="mt-1 text-[11px] text-blue-700">Card: <span x-text="comment.target"></span></p>
+                                        <p class="mt-1 text-sm text-slate-700" x-text="comment.text"></p>
+                                    </div>
+                                </template>
                             </div>
-                            <button type="button" class="mt-6 w-full rounded-full border border-blue-600 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">View CT Framework</button>
                         </div>
 
                         <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
-                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Phase Progress</h3>
-                            <p class="text-sm font-semibold text-slate-900 mb-3">Draft Problem Statement</p>
-                            <div class="h-3 rounded-full bg-slate-100 overflow-hidden mb-4"><div class="h-full w-4/5 bg-blue-600"></div></div>
-                            <div class="space-y-3 text-sm text-slate-600">
-                                <p>Draft Problem Statement</p>
-                                <p>Define Stakeholders</p>
-                                <p>Upload Data Evidence</p>
-                            </div>
+                            <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Flow Persetujuan (Sesuai Alur)</h3>
+                            <ol class="space-y-2 text-sm text-slate-700 list-decimal pl-4">
+                                <li>Setiap mahasiswa mengajukan ide masalah.</li>
+                                <li>Mahasiswa melakukan voting masalah paling cocok.</li>
+                                <li>Masalah hasil voting diajukan ke dosen.</li>
+                                <li>Dosen menyetujui? Jika tidak, masuk kolom <span class="font-semibold text-red-600">Perbaiki</span>.</li>
+                                <li>Jika ya, masalah dipindah ke kolom <span class="font-semibold text-emerald-600">Selesai</span>.</li>
+                            </ol>
                         </div>
                     </aside>
                 </div>
