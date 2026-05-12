@@ -1,37 +1,20 @@
 @php
-    /*
-    sementara pakai user Maryono (id = 2)
-    nanti tinggal ganti ke Auth::id()
-    */
-    $loggedUser = \Illuminate\Support\Facades\DB::table('users')
-        ->where('id', 2)
-        ->first();
+    $u = auth()->user();
+    $displayName = $u
+        ? (trim($u->displayName()) !== '' ? $u->displayName() : ($u->email ?? 'User'))
+        : 'User';
 
-    /*
-    notif sementara
-    */
     $notifCount = 1;
 
-    /*
-    generate initials
-    */
     $initials = 'U';
-
-    if ($loggedUser && !empty($loggedUser->full_name)) {
-
-        $words = explode(
-            ' ',
-            trim($loggedUser->full_name)
-        );
-
-        $initials = strtoupper(
-            substr($words[0], 0, 1) .
-            (
-                isset($words[1])
-                ? substr($words[1], 0, 1)
-                : ''
-            )
-        );
+    if ($u) {
+        $src = trim($u->displayName()) !== '' ? $u->displayName() : (string) ($u->email ?? '');
+        $words = preg_split('/\s+/', trim($src), -1, PREG_SPLIT_NO_EMPTY);
+        if (count($words) >= 2) {
+            $initials = strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+        } elseif (count($words) === 1) {
+            $initials = strtoupper(substr($words[0], 0, 2));
+        }
     }
 @endphp
 
@@ -44,7 +27,7 @@
         </p>
 
         <h3 class="font-bold text-gray-800 text-sm">
-            {{ $loggedUser->full_name ?? 'User' }}
+            {{ $displayName }}
         </h3>
     </div>
 

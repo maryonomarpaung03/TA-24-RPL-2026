@@ -56,8 +56,7 @@ class BuatProjekController extends Controller
                 ]);
             }
 
-            // Jika belum ada auth login
-            $userId = Auth::id() ?? 2;
+            $userId = Auth::id();
 
             // Simpan project
             Project::create([

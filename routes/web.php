@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjekSayaController;
 use App\Http\Controllers\BuatProjekController;
@@ -21,136 +23,157 @@ use App\Http\Controllers\ProjectChatController;
 
 /*
 |--------------------------------------------------------------------------
-| Home & Dashboard
+| Login (tamu)
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', [DashboardController::class, 'index'])
-    ->name('home');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store']);
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->name('dashboard');
+    Route::get('/register', [RegisterController::class, 'create'])->name('register');
+    Route::post('/register', [RegisterController::class, 'store']);
+});
 
 /*
 |--------------------------------------------------------------------------
-| Project Management
+| Aplikasi (wajib login)
 |--------------------------------------------------------------------------
 */
 
-Route::get('/projek-saya', [ProjekSayaController::class, 'index'])
-    ->name('projek-saya');
+Route::middleware('auth')->group(function () {
 
-Route::get('/buat-projek', [BuatProjekController::class, 'index'])
-    ->name('buat-projek');
+    /*
+    |--------------------------------------------------------------------------
+    | Home & Dashboard
+    |--------------------------------------------------------------------------
+    */
 
-Route::post('/simpan-projek', [BuatProjekController::class, 'store'])
-    ->name('simpan-projek');
+    Route::get('/', [DashboardController::class, 'index'])
+        ->name('home');
 
-/*
-|--------------------------------------------------------------------------
-| Project Detail
-|--------------------------------------------------------------------------
-*/
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
 
-Route::prefix('projek/{id}')
-    ->group(function () {
+    /*
+    |--------------------------------------------------------------------------
+    | Project Management
+    |--------------------------------------------------------------------------
+    */
 
-        Route::get(
-            '/dekomposisi',
-            [\App\Http\Controllers\DekomposisiController::class, 'index']
-        )->name('dekomposisi');
+    Route::get('/projek-saya', [ProjekSayaController::class, 'index'])
+        ->name('projek-saya');
 
-        Route::post(
-            '/dekomposisi/sync',
-            [\App\Http\Controllers\DekomposisiController::class, 'sync']
-        )->name('dekomposisi.sync');
+    Route::get('/buat-projek', [BuatProjekController::class, 'index'])
+        ->name('buat-projek');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Penyusunan
-        |--------------------------------------------------------------------------
-        */
+    Route::post('/simpan-projek', [BuatProjekController::class, 'store'])
+        ->name('simpan-projek');
 
-        Route::get(
-            '/penyusunan',
-            [\App\Http\Controllers\PenyusunanController::class, 'index']
-        )->name('penyusunan');
+    /*
+    |--------------------------------------------------------------------------
+    | Project Detail
+    |--------------------------------------------------------------------------
+    */
 
-        Route::post(
-            '/penyusunan/tambah-tugas',
-            [\App\Http\Controllers\PenyusunanController::class, 'tambahTugas']
-        )->name('penyusunan.tambah-tugas');
+    Route::prefix('projek/{id}')
+        ->group(function () {
 
-        Route::post(
-            '/penyusunan/edit-tugas',
-            [\App\Http\Controllers\PenyusunanController::class, 'editTugas']
-        )->name('penyusunan.edit-tugas');
+            Route::get(
+                '/dekomposisi',
+                [\App\Http\Controllers\DekomposisiController::class, 'index']
+            )->name('dekomposisi');
 
-        Route::post(
-            '/penyusunan/hapus-tugas',
-            [\App\Http\Controllers\PenyusunanController::class, 'hapusTugas']
-        )->name('penyusunan.hapus-tugas');
+            Route::post(
+                '/dekomposisi/sync',
+                [\App\Http\Controllers\DekomposisiController::class, 'sync']
+            )->name('dekomposisi.sync');
 
-        Route::post(
-            '/penyusunan/komentar-tugas',
-            [\App\Http\Controllers\PenyusunanController::class, 'komentarTugas']
-        )->name('penyusunan.komentar-tugas');
+            /*
+            |--------------------------------------------------------------------------
+            | Penyusunan
+            |--------------------------------------------------------------------------
+            */
 
-        Route::get(
-            '/waktu-progres',
-            [WaktuProgresController::class, 'index']
-        )->name('waktu-progres');
+            Route::get(
+                '/penyusunan',
+                [\App\Http\Controllers\PenyusunanController::class, 'index']
+            )->name('penyusunan');
 
-        Route::get(
-            '/pelaksanaan',
-            [PelaksanaanController::class, 'index']
-        )->name('pelaksanaan');
+            Route::post(
+                '/penyusunan/tambah-tugas',
+                [\App\Http\Controllers\PenyusunanController::class, 'tambahTugas']
+            )->name('penyusunan.tambah-tugas');
 
-        Route::get(
-            '/penilaian-kelompok',
-            [NilaiKelompokController::class, 'index']
-        )->name('penilaian-kelompok');
+            Route::post(
+                '/penyusunan/edit-tugas',
+                [\App\Http\Controllers\PenyusunanController::class, 'editTugas']
+            )->name('penyusunan.edit-tugas');
 
-        Route::get(
-            '/penilaian-individu',
-            [NilaiIndividuController::class, 'index']
-        )->name('penilaian-individu');
+            Route::post(
+                '/penyusunan/hapus-tugas',
+                [\App\Http\Controllers\PenyusunanController::class, 'hapusTugas']
+            )->name('penyusunan.hapus-tugas');
 
-        Route::get(
-            '/penilaian-dosen-status',
-            [BelumDosenNilaiController::class, 'index']
-        )->name('penilaian-dosen-status');
+            Route::post(
+                '/penyusunan/komentar-tugas',
+                [\App\Http\Controllers\PenyusunanController::class, 'komentarTugas']
+            )->name('penyusunan.komentar-tugas');
 
-        Route::get(
-            '/nilai-dari-dosen',
-            [NilaiDariDosenController::class, 'index']
-        )->name('nilai-dari-dosen');
+            Route::get(
+                '/waktu-progres',
+                [WaktuProgresController::class, 'index']
+            )->name('waktu-progres');
 
-        Route::get(
-            '/chat',
-            [ProjectChatController::class, 'index']
-        )->name('project-chat');
+            Route::get(
+                '/pelaksanaan',
+                [PelaksanaanController::class, 'index']
+            )->name('pelaksanaan');
 
-        Route::post(
-            '/chat',
-            [ProjectChatController::class, 'send']
-        )->name('project-chat.send');
-    });
+            Route::get(
+                '/penilaian-kelompok',
+                [NilaiKelompokController::class, 'index']
+            )->name('penilaian-kelompok');
 
-/*
-|--------------------------------------------------------------------------
-| Other Routes
-|--------------------------------------------------------------------------
-*/
+            Route::get(
+                '/penilaian-individu',
+                [NilaiIndividuController::class, 'index']
+            )->name('penilaian-individu');
 
-Route::get('/notifikasi', function () {
-    return 'Notifikasi';
-})->name('notifikasi');
+            Route::get(
+                '/penilaian-dosen-status',
+                [BelumDosenNilaiController::class, 'index']
+            )->name('penilaian-dosen-status');
 
-Route::get('/profil', function () {
-    return 'Profil';
-})->name('profil');
+            Route::get(
+                '/nilai-dari-dosen',
+                [NilaiDariDosenController::class, 'index']
+            )->name('nilai-dari-dosen');
 
-Route::post('/logout', function () {
-    return 'Logout';
-})->name('logout');
+            Route::get(
+                '/chat',
+                [ProjectChatController::class, 'index']
+            )->name('project-chat');
+
+            Route::post(
+                '/chat',
+                [ProjectChatController::class, 'send']
+            )->name('project-chat.send');
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Other Routes
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/notifikasi', function () {
+        return 'Notifikasi';
+    })->name('notifikasi');
+
+    Route::get('/profil', function () {
+        return 'Profil';
+    })->name('profil');
+
+    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+});

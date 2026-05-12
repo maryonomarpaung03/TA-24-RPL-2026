@@ -1,29 +1,14 @@
 @php
-    /*
-    sementara pakai user Maryono (id = 2)
-    nanti tinggal ganti ke Auth::id()
-    */
-    $loggedUser = \Illuminate\Support\Facades\DB::table('users')
-        ->where('id', 2)
-        ->first();
-
+    $u = auth()->user();
     $initials = 'U';
-
-    if ($loggedUser && !empty($loggedUser->full_name)) {
-
-        $words = explode(
-            ' ',
-            $loggedUser->full_name
-        );
-
-        $initials = strtoupper(
-            substr($words[0], 0, 1) .
-            (
-                isset($words[1])
-                ? substr($words[1], 0, 1)
-                : ''
-            )
-        );
+    if ($u) {
+        $src = trim($u->displayName()) !== '' ? $u->displayName() : (string) ($u->email ?? '');
+        $words = preg_split('/\s+/', trim($src), -1, PREG_SPLIT_NO_EMPTY);
+        if (count($words) >= 2) {
+            $initials = strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+        } elseif (count($words) === 1) {
+            $initials = strtoupper(substr($words[0], 0, 2));
+        }
     }
 @endphp
 
@@ -233,13 +218,15 @@
         @endif
     </nav>
 
-    <!-- Create Project -->
-    <div class="px-4 py-4">
-        <a href="{{ route('buat-projek') }}"
-           class="block rounded-3xl bg-blue-600 px-4 py-3 text-center text-white font-semibold shadow-md hover:bg-blue-700 transition">
-            + New Project
-        </a>
-    </div>
+    @if (!Request::routeIs('projek-saya'))
+        <!-- Create Project -->
+        <div class="px-4 py-4">
+            <a href="{{ route('buat-projek') }}"
+               class="block rounded-3xl bg-blue-600 px-4 py-3 text-center text-white font-semibold shadow-md hover:bg-blue-700 transition">
+                + New Project
+            </a>
+        </div>
+    @endif
 
     <!-- Bottom Menu -->
     <div class="mt-auto px-4 pb-5 space-y-2">

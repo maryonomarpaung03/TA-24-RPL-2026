@@ -4,17 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Project;
 use Carbon\Carbon;
 
 class PenyusunanController extends Controller
 {
-    /*
-    sementara pakai akun Maryono
-    nanti tinggal Auth::id()
-    */
-    private $currentUserId = 2;
+    private int $currentUserId;
+
+    public function __construct()
+    {
+        $this->currentUserId = (int) Auth::user()->id;
+    }
 
     /*
     ==========================================
