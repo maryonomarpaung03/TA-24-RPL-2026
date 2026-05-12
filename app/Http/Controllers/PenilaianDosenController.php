@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Http\Controllers; 
-use Illuminate\Http\Request; 
+namespace App\Http\Controllers;
+
+use App\Support\ProjectCatalog;
+use Illuminate\Http\Request;
+
 class PenilaianDosenController extends Controller 
 {
     /**
@@ -19,13 +22,7 @@ class PenilaianDosenController extends Controller
             'notif_count' => 1
         ];
 
-        // Simulasi judul projek berdasarkan ID
-        $projekList = [
-            1 => "Aplikasi Absensi Online Berbasis QR Code",
-            2 => "Sistem Rekomendasi Film Menggunakan Machine Learning",
-        ];
-
-        $namaProjek = $projekList[$id] ?? "Projek Tidak Ditemukan";
+        $namaProjek = ProjectCatalog::name($id);
 
         // Simulasi data hasil penilaian yang diberikan oleh dosen
         $nilaiDosen = [

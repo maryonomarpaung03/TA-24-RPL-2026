@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 
 class ProjectChatController extends Controller
@@ -10,11 +11,7 @@ class ProjectChatController extends Controller
     {
         $user = ['name' => 'Daniati Simatupang', 'role' => 'Mahasiswa', 'initials' => 'DS', 'notif_count' => 1];
 
-        $projekList = [
-            1 => 'Aplikasi Absensi Online Berbasis QR Code',
-            2 => 'Sistem Rekomendasi Film Menggunakan Machine Learning',
-        ];
-        $namaProjek = $projekList[$id] ?? 'Projek Tidak Ditemukan';
+        $namaProjek = ProjectCatalog::name($id);
 
         $memberMap = [
             1 => ['Daniati Simatupang', 'Niko Tarigan', 'Rehan Hutabarat'],

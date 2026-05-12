@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Project;
@@ -27,13 +28,13 @@ class PenyusunanController extends Controller
             ->where('created_by', $this->currentUserId)
             ->first();
 
-        if (!$project) {
-            return redirect()
-                ->route('projek-saya')
-                ->with('error', 'Projek tidak ditemukan');
-        }
+if (!$project) {
+    return redirect()
+        ->route('projek-saya')
+        ->with('error', 'Projek tidak ditemukan');
+}
 
-       
+$namaProjek = ProjectCatalog::name($id);
 
         /*
         ambil task dari database

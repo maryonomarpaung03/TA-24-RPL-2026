@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -16,12 +17,7 @@ class WaktuProgresController extends Controller
             'notif_count' => 1,
         ];
 
-        $projekList = [
-            1 => 'Aplikasi Absensi Online Berbasis QR Code',
-            2 => 'Sistem Rekomendasi Film Menggunakan Machine Learning',
-        ];
-
-        $namaProjek = $projekList[$id] ?? 'Projek Tidak Ditemukan';
+        $namaProjek = ProjectCatalog::name($id);
 
         $selectedMonth = $request->get('month', 2);
         $selectedYear = 2026;

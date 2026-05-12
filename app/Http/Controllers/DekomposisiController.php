@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 
 class DekomposisiController extends Controller
@@ -16,6 +17,7 @@ class DekomposisiController extends Controller
                 'role' => 'Mahasiswa',
                 'initials' => 'MM',
                 'notif_count' => 1
+       
             ],
             'diagramSeed' => [
                 'nodes' => [],

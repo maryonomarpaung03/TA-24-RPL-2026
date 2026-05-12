@@ -18,6 +18,10 @@
                 @include('partials.topbar')
             @endif
 
+            @if(!empty($selected_project))
+                @include('partials.project-workflow-tabs')
+            @endif
+
             @yield('content')
         </main>
     </div>
