@@ -9,9 +9,9 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = [
-            'name' => 'Daniati Simatupang',
+            'name' => 'Maryono Marpaung',
             'role' => 'Mahasiswa',
-            'initials' => 'DS',
+            'initials' => 'MM',
             'notif_count' => 3
         ];
 

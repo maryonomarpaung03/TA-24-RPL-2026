@@ -3,63 +3,166 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Project;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ProjekSayaController extends Controller
 {
     public function index()
     {
-        $user = ['name' => 'Daniati Simatupang', 'role' => 'Mahasiswa', 'initials' => 'DS', 'notif_count' => 1];
-        
-        $searchHistory = ['Absensi QR', 'Machine Learning', 'Laravel Dashboard'];
+        /*
+        sementara pakai akun Maryono
+        nanti diganti Auth::id()
+        */
+        $currentUserId = 2;
 
-        $projects = [
-            [
-                'id' => 1,
-                'name' => 'Aplikasi Absensi Online Berbasis QR Code',
-                'status' => 'In Progress',
-                'label' => 'In Progress',
-                'progress' => 68,
-                'description' => 'Eksperimen integrasi Computational Thinking dalam kurikulum SMK melalui proyek nyata pembangunan smart garden berbasis sensor IoT.',
-                'created_at' => '17/06/2026',
-                'member_count' => 6,
-                'members' => ['DS', 'TB', 'CH', '+2'],
-                'featured' => true
-            ],
-            [
-                'id' => 2,
-                'name' => 'Abstraksi Aljabar Digital',
-                'status' => 'Planning',
-                'label' => 'Planning',
-                'progress' => 15,
-                'description' => 'Penerapan konsep abstraksi CT untuk mempermudah pemahaman konsep aljabar dalam visualisasi.',
-                'created_at' => '24/06/2026',
-                'member_count' => 2,
-                'members' => ['AS', 'BK']
-            ],
-            [
-                'id' => 3,
-                'name' => 'Visualisasi Algoritma Kota',
-                'status' => 'In Progress',
-                'label' => 'Active',
-                'progress' => 42,
-                'description' => 'Proyek kolaborasi teknik sipil dan informatika untuk memvisualisasikan jalur optimal kota.',
-                'created_at' => '19/06/2026',
-                'member_count' => 4,
-                'members' => ['HS', 'JC', '+2']
-            ],
-            [
-                'id' => 4,
-                'name' => 'Robotika Berbasis Pola',
-                'status' => 'Done',
-                'label' => 'Done',
-                'progress' => 100,
-                'description' => 'Analisis pengenalan pola gerakan motorik pada robot edukasi berbasis CT.',
-                'created_at' => '12/06/2026',
-                'member_count' => 1,
-                'members' => ['RK']
-            ]
-        ];
+        $searchHistory = [];
 
-        return view('ProjekSaya', compact('user', 'projects', 'searchHistory'));
+        // Ambil hanya project milik user
+        $projectData = Project::where(
+                'created_by',
+                $currentUserId
+            )
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Transform data ke format blade
+        $projects = $projectData->map(
+            function ($project, $index) {
+
+                // Mapping status DB -> UI
+                $statusMap = [
+                    'draft' => 'Planning',
+                    'pending_approval' => 'Planning',
+                    'active' => 'In Progress',
+                    'completed' => 'Done',
+                    'rejected' => 'Rejected',
+                    'archived' => 'Archived',
+                ];
+
+                $uiStatus =
+                    $statusMap[$project->status]
+                    ?? 'Planning';
+
+                /*
+                Hitung jumlah member
+                */
+                $memberCount = DB::table(
+                        'project_members'
+                    )
+                    ->where(
+                        'project_id',
+                        $project->id
+                    )
+                    ->count();
+
+                /*
+                Ambil inisial member
+                */
+                $members = DB::table(
+                        'project_members'
+                    )
+                    ->join(
+                        'users',
+                        'project_members.user_id',
+                        '=',
+                        'users.id'
+                    )
+                    ->where(
+                        'project_members.project_id',
+                        $project->id
+                    )
+                    ->select(
+                        'users.full_name'
+                    )
+                    ->limit(3)
+                    ->get()
+                    ->map(function ($member) {
+
+                        $words = explode(
+                            ' ',
+                            $member->full_name
+                        );
+
+                        return strtoupper(
+                            substr(
+                                $words[0],
+                                0,
+                                1
+                            ) .
+                            (
+                                isset($words[1])
+                                ? substr(
+                                    $words[1],
+                                    0,
+                                    1
+                                )
+                                : ''
+                            )
+                        );
+                    })
+                    ->toArray();
+
+                return [
+
+                    'id' => $project->id,
+
+                    'name' =>
+                        $project->title,
+
+                    'status' =>
+                        $uiStatus,
+
+                    'label' =>
+                        $uiStatus,
+
+                    /*
+                    Progress sementara
+                    */
+                    'progress' => match (
+                        $project->status
+                    ) {
+                        'draft' => 10,
+                        'pending_approval' => 25,
+                        'active' => 60,
+                        'completed' => 100,
+                        default => 0
+                    },
+
+                    'description' =>
+                        $project->description
+                        ?? 'Belum ada deskripsi proyek.',
+
+                    'created_at' =>
+                        Carbon::parse(
+                            $project->created_at
+                        )->format('d/m/Y'),
+
+                    'member_count' =>
+                        $memberCount,
+
+                    'members' =>
+                        $members,
+
+                    /*
+                    project terbaru featured
+                    */
+                    'featured' =>
+                        $index === 0,
+
+                    'logo' =>
+                        $project->logo
+                ];
+            }
+        )->toArray();
+
+        return view(
+            'ProjekSaya',
+            compact(
+                'projects',
+                'searchHistory'
+            )
+        );
     }
 }

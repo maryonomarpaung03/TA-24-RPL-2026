@@ -1,91 +1,280 @@
-<aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="bg-white shadow-md h-screen sticky top-0 transition-all duration-300 flex flex-col">
+@php
+    /*
+    sementara pakai user Maryono (id = 2)
+    nanti tinggal ganti ke Auth::id()
+    */
+    $loggedUser = \Illuminate\Support\Facades\DB::table('users')
+        ->where('id', 2)
+        ->first();
+
+    $initials = 'U';
+
+    if ($loggedUser && !empty($loggedUser->full_name)) {
+
+        $words = explode(
+            ' ',
+            $loggedUser->full_name
+        );
+
+        $initials = strtoupper(
+            substr($words[0], 0, 1) .
+            (
+                isset($words[1])
+                ? substr($words[1], 0, 1)
+                : ''
+            )
+        );
+    }
+@endphp
+
+<aside
+    :class="sidebarOpen ? 'w-64' : 'w-20'"
+    class="bg-white shadow-md h-screen sticky top-0 transition-all duration-300 flex flex-col"
+>
+
+    <!-- Logo + User Initial -->
     <div class="p-6 text-center">
-        <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center flex-col gap-1">
-            <div class="flex items-center justify-center mx-auto h-12 w-12 rounded-3xl bg-blue-600 text-white text-xl font-bold">D</div>
-            <h1 class="text-xl font-bold text-blue-600">DELPRO</h1>
-            <p x-show="sidebarOpen" class="text-gray-400 text-[10px] uppercase font-bold">Academic Collaboration</p>
+        <a href="{{ route('dashboard') }}"
+           class="inline-flex items-center justify-center flex-col gap-1">
+
+            <!-- Avatar -->
+            <div class="flex items-center justify-center mx-auto h-12 w-12 rounded-3xl bg-blue-600 text-white text-xl font-bold">
+                {{ $initials }}
+            </div>
+
+            <h1 class="text-xl font-bold text-blue-600">
+                DELPRO
+            </h1>
+
+            <p
+                x-show="sidebarOpen"
+                class="text-gray-400 text-[10px] uppercase font-bold"
+            >
+                Academic Collaboration
+            </p>
         </a>
     </div>
 
+    <!-- Navigation -->
     <nav class="flex-1 px-4 space-y-2">
-        <a href="{{ !empty($selected_project) ? route('dashboard', ['project_id' => $selected_project['id']]) : route('dashboard') }}" class="flex items-center gap-3 p-3 rounded-xl transition {{ Request::routeIs('dashboard') || Request::routeIs('home') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100' }}">
+
+        <!-- Dashboard -->
+        <a href="{{ !empty($selected_project)
+                ? route('dashboard', ['project_id' => $selected_project['id']])
+                : route('dashboard') }}"
+           class="flex items-center gap-3 p-3 rounded-xl transition
+           {{ Request::routeIs('dashboard') || Request::routeIs('home')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+
             <i class="fas fa-th-large w-6 text-center"></i>
-            <span x-show="sidebarOpen" class="font-semibold">Dashboard</span>
+
+            <span
+                x-show="sidebarOpen"
+                class="font-semibold"
+            >
+                Dashboard
+            </span>
         </a>
-        <a href="{{ route('projek-saya') }}" class="flex items-center gap-3 p-3 rounded-xl transition {{ Request::routeIs('projek-saya') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100' }}">
+
+        <!-- Projects -->
+        <a href="{{ route('projek-saya') }}"
+           class="flex items-center gap-3 p-3 rounded-xl transition
+           {{ Request::routeIs('projek-saya')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+
             <i class="fas fa-project-diagram w-6 text-center"></i>
-            <span x-show="sidebarOpen" class="font-semibold">Projects</span>
+
+            <span
+                x-show="sidebarOpen"
+                class="font-semibold"
+            >
+                Projects
+            </span>
         </a>
 
         @if(!empty($selected_project))
+
         @php
-            $wfIdentification = Request::routeIs('dashboard') || Request::routeIs('home');
-            $wfDecomposition = Request::routeIs('dekomposisi');
-            $wfPlanning = Request::routeIs('penyusunan') || Request::routeIs('tambah-tugas');
-            $wfExecution = Request::routeIs('pelaksanaan') || Request::routeIs('waktu-progres');
-            $wfAssessment = Request::routeIs('penilaian-individu')
+            $wfIdentification =
+                Request::routeIs('dashboard')
+                || Request::routeIs('home');
+
+            $wfDecomposition =
+                Request::routeIs('dekomposisi');
+
+            $wfPlanning =
+                Request::routeIs('penyusunan')
+                || Request::routeIs('tambah-tugas');
+
+            $wfExecution =
+                Request::routeIs('pelaksanaan')
+                || Request::routeIs('waktu-progres');
+
+            $wfAssessment =
+                Request::routeIs('penilaian-individu')
                 || Request::routeIs('penilaian-kelompok')
                 || Request::routeIs('penilaian-dosen-status')
                 || Request::routeIs('nilai-dari-dosen');
-            $wfChat = Request::routeIs('project-chat');
-            $wfActive = 'flex items-center gap-3 rounded-3xl border border-blue-200 bg-blue-50 px-3 py-3 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition';
-            $wfIdle = 'flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition';
+
+            $wfChat =
+                Request::routeIs('project-chat');
+
+            $wfActive =
+                'flex items-center gap-3 rounded-3xl border border-blue-200 bg-blue-50 px-3 py-3 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition';
+
+            $wfIdle =
+                'flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition';
         @endphp
+
+        <!-- Selected Project -->
         <div class="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <p x-show="sidebarOpen" class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-3">Selected Project</p>
+
+            <p
+                x-show="sidebarOpen"
+                class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-3"
+            >
+                Selected Project
+            </p>
+
             <div class="space-y-3">
+
                 <div class="rounded-3xl bg-white p-3 shadow-sm">
-                    <p x-show="sidebarOpen" class="text-sm font-semibold text-slate-900">{{ $selected_project['name'] }}</p>
-                    <p x-show="sidebarOpen" class="text-[10px] text-slate-500 mt-1">{{ $selected_project['description'] }}</p>
+                    <p
+                        x-show="sidebarOpen"
+                        class="text-sm font-semibold text-slate-900"
+                    >
+                        {{ $selected_project['name'] }}
+                    </p>
+
+                    <p
+                        x-show="sidebarOpen"
+                        class="text-[10px] text-slate-500 mt-1"
+                    >
+                        {{ $selected_project['description'] }}
+                    </p>
                 </div>
-                <a href="{{ route('dashboard', ['project_id' => $selected_project['id'], 'mode' => 'view']) }}" class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
+
+                <a href="{{ route('dashboard', [
+                        'project_id' => $selected_project['id'],
+                        'mode' => 'view'
+                    ]) }}"
+                   class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
+
                     <i class="fas fa-search text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Problem Identification</span>
+                    <span x-show="sidebarOpen">
+                        Problem Identification
+                    </span>
                 </a>
-                <a href="{{ route('dekomposisi', $selected_project['id']) }}" class="{{ $wfDecomposition ? $wfActive : $wfIdle }}">
+
+                <a href="{{ route('dekomposisi', $selected_project['id']) }}"
+                   class="{{ $wfDecomposition ? $wfActive : $wfIdle }}">
+
                     <i class="fas fa-project-diagram text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Problem Decomposition</span>
+
+                    <span x-show="sidebarOpen">
+                        Problem Decomposition
+                    </span>
                 </a>
-                <a href="{{ route('penyusunan', $selected_project['id']) }}" class="{{ $wfPlanning ? $wfActive : $wfIdle }}">
+
+                <a href="{{ route('penyusunan', $selected_project['id']) }}"
+                   class="{{ $wfPlanning ? $wfActive : $wfIdle }}">
+
                     <i class="fas fa-tasks text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Project Planning</span>
+
+                    <span x-show="sidebarOpen">
+                        Project Planning
+                    </span>
                 </a>
-                <a href="{{ route('pelaksanaan', $selected_project['id']) }}" class="{{ $wfExecution ? $wfActive : $wfIdle }}">
+
+                <a href="{{ route('pelaksanaan', $selected_project['id']) }}"
+                   class="{{ $wfExecution ? $wfActive : $wfIdle }}">
+
                     <i class="fas fa-play text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Execution & Evaluation</span>
+
+                    <span x-show="sidebarOpen">
+                        Execution & Evaluation
+                    </span>
                 </a>
-                <a href="{{ route('penilaian-individu', $selected_project['id']) }}" class="{{ $wfAssessment ? $wfActive : $wfIdle }}">
+
+                <a href="{{ route('penilaian-individu', $selected_project['id']) }}"
+                   class="{{ $wfAssessment ? $wfActive : $wfIdle }}">
+
                     <i class="fas fa-clipboard-check text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Assessment & Reflection</span>
+
+                    <span x-show="sidebarOpen">
+                        Assessment & Reflection
+                    </span>
                 </a>
-                <a href="{{ route('project-chat', $selected_project['id']) }}" class="{{ $wfChat ? $wfActive : $wfIdle }}">
+
+                <a href="{{ route('project-chat', $selected_project['id']) }}"
+                   class="{{ $wfChat ? $wfActive : $wfIdle }}">
+
                     <i class="fas fa-comments text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Project Chat</span>
+
+                    <span x-show="sidebarOpen">
+                        Project Chat
+                    </span>
                 </a>
-                <a href="{{ route('projek-saya') }}" class="mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-slate-200 bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+
+                <a href="{{ route('projek-saya') }}"
+                   class="mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-slate-200 bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+
                     <i class="fas fa-exchange-alt text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Change Project</span>
+
+                    <span x-show="sidebarOpen">
+                        Change Project
+                    </span>
                 </a>
+
             </div>
         </div>
         @endif
     </nav>
 
+    <!-- Create Project -->
     <div class="px-4 py-4">
-        <a href="{{ route('buat-projek') }}" class="block rounded-3xl bg-blue-600 px-4 py-3 text-center text-white font-semibold shadow-md hover:bg-blue-700 transition">+ New Project</a>
+        <a href="{{ route('buat-projek') }}"
+           class="block rounded-3xl bg-blue-600 px-4 py-3 text-center text-white font-semibold shadow-md hover:bg-blue-700 transition">
+            + New Project
+        </a>
     </div>
 
+    <!-- Bottom Menu -->
     <div class="mt-auto px-4 pb-5 space-y-2">
-        <a href="{{ route('profil') }}" class="flex items-center gap-3 rounded-3xl px-4 py-3 text-gray-600 hover:bg-gray-100 transition">
+
+        <a href="{{ route('profil') }}"
+           class="flex items-center gap-3 rounded-3xl px-4 py-3 text-gray-600 hover:bg-gray-100 transition">
+
             <i class="fas fa-cog w-5 text-center"></i>
-            <span x-show="sidebarOpen" class="font-semibold">Settings</span>
+
+            <span
+                x-show="sidebarOpen"
+                class="font-semibold"
+            >
+                Settings
+            </span>
         </a>
-        <form action="{{ route('logout') }}" method="POST" class="flex">
+
+        <form action="{{ route('logout') }}"
+              method="POST"
+              class="flex">
             @csrf
-            <button type="submit" class="flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-gray-600 hover:bg-gray-100 transition">
+
+            <button type="submit"
+                    class="flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-gray-600 hover:bg-gray-100 transition">
+
                 <i class="fas fa-sign-out-alt w-5 text-center"></i>
-                <span x-show="sidebarOpen" class="font-semibold">Logout</span>
+
+                <span
+                    x-show="sidebarOpen"
+                    class="font-semibold"
+                >
+                    Logout
+                </span>
             </button>
         </form>
+
     </div>
 </aside>
