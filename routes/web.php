@@ -40,6 +40,58 @@ Route::middleware('guest')->group(function () {
 | Aplikasi (wajib login)
 |--------------------------------------------------------------------------
 */
+Route::get(
+    '/login',
+    [LoginController::class, 'create']
+)->name('login');
+
+Route::post(
+    '/login',
+    [LoginController::class, 'store']
+)->name('login.store');
+
+Route::post(
+    '/logout',
+    [LoginController::class, 'destroy']
+)->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/login',
+    [LoginController::class, 'create']
+)->name('login');
+
+Route::post(
+    '/login',
+    [LoginController::class, 'store']
+)->name('login.store');
+
+Route::post(
+    '/logout',
+    [LoginController::class, 'destroy']
+)->name('logout');
+
+
+/*
+|--------------------------------------------------------------------------
+| Register
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/register',
+    [RegisterController::class, 'create']
+)->name('register');
+
+Route::post(
+    '/register',
+    [RegisterController::class, 'store']
+)->name('register.store');
 
 Route::middleware('auth')->group(function () {
 
@@ -52,8 +104,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])
         ->name('home');
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+    Route::middleware('auth')
+    ->group(function () {
+
+        Route::get('/dashboard',
+            [DashboardController::class, 'index']
+        )->name('dashboard');
+
+        Route::get('/projek-saya',
+            [ProjekSayaController::class, 'index']
+        )->name('projek-saya');
+
+});
 
     /*
     |--------------------------------------------------------------------------

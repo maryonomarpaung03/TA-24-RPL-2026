@@ -21,7 +21,7 @@
             </div>
         @endif
 
-        <form method="post" action="{{ route('register') }}" class="space-y-4">
+        <form method="post" action="{{ route('register.store') }}" class="space-y-4">
             @csrf
 
             <div>
