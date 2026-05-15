@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -10,31 +9,64 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'full_name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable([
+    'full_name',
+    'username',
+    'email',
+    'password',
+    'role',
+    'nim',
+    'nidn',
+    'faculty_id',
+    'study_program_id',
+    'batch_year',
+    'profile_photo',
+    'created_at'
+])]
+
+#[Hidden([
+    'password',
+    'remember_token'
+])]
+
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    /*
+    pakai tabel users custom
+    */
+    protected $table = 'users';
+
+    /*
+    primary key
+    */
+    protected $primaryKey = 'id';
+
+    /*
+    karena tidak ada updated_at
+    */
+    public $timestamps = false;
+
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Casts
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
 
     /**
-     * Nama tampilan: mendukung kolom full_name (skema kustom) atau name (default Laravel).
+     * Nama tampilan
      */
     public function displayName(): string
     {
-        return (string) ($this->full_name ?? $this->name ?? '');
+        return (string) (
+            $this->full_name
+            ?? ''
+        );
     }
 }

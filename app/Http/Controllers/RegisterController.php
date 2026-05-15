@@ -5,48 +5,154 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
 {
+    /*
+    =====================================
+    HALAMAN REGISTER
+    =====================================
+    */
     public function create()
     {
+        /*
+        kalau sudah login
+        redirect dashboard
+        */
+        if (Auth::check()) {
+            return redirect()
+                ->route('dashboard');
+        }
+
         return view('auth.register');
     }
 
-    public function store(Request $request)
+    /*
+    =====================================
+    PROSES REGISTER
+    =====================================
+    */
+    public function store(
+        Request $request
+    )
     {
-        $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
+        $validated =
+            $request->validate([
 
-        if (! Schema::hasColumn('users', 'name') && ! Schema::hasColumn('users', 'full_name')) {
-            abort(500, 'Tabel users harus memiliki kolom name atau full_name.');
+                'full_name' => [
+                    'required',
+                    'string',
+                    'max:255'
+                ],
+
+                'email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                    Rule::unique(
+                        'users',
+                        'email'
+                    )
+                ],
+
+                'password' => [
+                    'required',
+                    'confirmed',
+                    Password::min(6)
+                ]
+            ]);
+
+        /*
+        generate username
+        dari nama lengkap
+        */
+        $username =
+            strtolower(
+                str_replace(
+                    ' ',
+                    '',
+                    $validated[
+                        'full_name'
+                    ]
+                )
+            );
+
+        /*
+        kalau username sama
+        tambah random angka
+        */
+        if (
+            User::where(
+                'username',
+                $username
+            )->exists()
+        ) {
+
+            $username .= rand(
+                100,
+                999
+            );
         }
 
-        $data = [
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-        ];
+        /*
+        simpan user
+        ke tapjblct.users
+        */
+        $user =
+            User::create([
 
-        if (Schema::hasColumn('users', 'name')) {
-            $data['name'] = $validated['full_name'];
-        }
+                'full_name' =>
+                    $validated[
+                        'full_name'
+                    ],
 
-        if (Schema::hasColumn('users', 'full_name')) {
-            $data['full_name'] = $validated['full_name'];
-        }
+                'username' =>
+                    $username,
 
-        $user = User::create($data);
+                'email' =>
+                    $validated[
+                        'email'
+                    ],
 
-        Auth::login($user);
+                'password' =>
+                    Hash::make(
+                        $validated[
+                            'password'
+                        ]
+                    ),
 
-        $request->session()->regenerate();
+                /*
+                default role
+                */
+                'role' =>
+                    'student',
 
-        return redirect()->route('dashboard');
+                /*
+                sementara null
+                */
+                'nim' => null,
+                'nidn' => null,
+                'faculty_id' => null,
+                'study_program_id' => null,
+                'batch_year' => null,
+                'profile_photo' => null,
+
+                'created_at' =>
+                    now()
+            ]);
+
+        /*
+        auto login
+        setelah daftar
+        */
+        return redirect()
+    ->route('login')
+    ->with(
+        'success',
+        'Akun berhasil dibuat. Silakan login.'
+    );
     }
 }

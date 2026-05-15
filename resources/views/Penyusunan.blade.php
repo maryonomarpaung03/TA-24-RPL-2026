@@ -1,6 +1,3 @@
-# Full Replacement `resources/views/Penyusunan.blade.php`
-
-```blade
 @extends('layouts.app')
 
 @section('title', 'Penyusunan Rencana - DELPRO')
@@ -221,4 +218,3 @@ x-data="{
 
 </div>
 @endsection
-```
