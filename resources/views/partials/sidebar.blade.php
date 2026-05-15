@@ -62,6 +62,19 @@
             </span>
         </a>
 
+        @if(auth()->user()->role === 'lecturer')
+        <!-- Persetujuan Dosen -->
+        <a href="{{ route('dosen.persetujuan') }}"
+           class="flex items-center gap-3 p-3 rounded-xl transition
+           {{ Request::routeIs('dosen.persetujuan*')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+            <i class="fas fa-user-check w-6 text-center"></i>
+            <span x-show="sidebarOpen" class="font-semibold">Persetujuan Proyek</span>
+        </a>
+        @endif
+
+        @if(auth()->user()->role !== 'lecturer')
         <!-- Projects -->
         <a href="{{ route('projek-saya') }}"
            class="flex items-center gap-3 p-3 rounded-xl transition
@@ -82,6 +95,7 @@
         @if(!empty($selected_project))
 
         @php
+            $pjblUnlocked = $selected_project['can_access_pjbl'] ?? false;
             $wfIdentification =
                 Request::routeIs('dashboard')
                 || Request::routeIs('home');
@@ -135,12 +149,27 @@
 
                     <p
                         x-show="sidebarOpen"
-                        class="text-[10px] text-slate-500 mt-1"
+                        class="text-[10px] text-slate-500 mt-1 line-clamp-2"
                     >
-                        {{ $selected_project['description'] }}
+                        @if($pjblUnlocked)
+                            {{ $selected_project['description'] }}
+                        @elseif($selected_project['is_under_review'] ?? false)
+                            In Review — menunggu dosen
+                        @elseif($selected_project['is_draft'] ?? false)
+                            Draft — belum diajukan
+                        @else
+                            PjBL belum tersedia
+                        @endif
                     </p>
                 </div>
 
+                @if(!$pjblUnlocked)
+                <a href="{{ route('dashboard', ['project_id' => $selected_project['id']]) }}"
+                   class="{{ Request::routeIs('dashboard') || Request::routeIs('home') ? $wfActive : $wfIdle }}">
+                    <i class="fas fa-hourglass-half text-lg w-5"></i>
+                    <span x-show="sidebarOpen">Status Proyek</span>
+                </a>
+                @else
                 <a href="{{ route('dashboard', [
                         'project_id' => $selected_project['id'],
                         'mode' => 'view'
@@ -202,6 +231,7 @@
                         Project Chat
                     </span>
                 </a>
+                @endif
 
                 <a href="{{ route('projek-saya') }}"
                    class="mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-slate-200 bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
@@ -216,9 +246,10 @@
             </div>
         </div>
         @endif
+        @endif
     </nav>
 
-    @if (!Request::routeIs('projek-saya'))
+    @if (auth()->user()->role !== 'lecturer' && !Request::routeIs('projek-saya'))
         <!-- Create Project -->
         <div class="px-4 py-4">
             <a href="{{ route('buat-projek') }}"

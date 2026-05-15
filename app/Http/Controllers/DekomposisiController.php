@@ -2,23 +2,37 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DekomposisiController extends Controller
 {
     public function index($id)
     {
+        $selected = ProjectCatalog::find($id);
+
+        if (! $selected) {
+            return redirect()
+                ->route('projek-saya')
+                ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+
+        $user = Auth::user();
+        $displayName = $user?->full_name ?? $user?->name ?? 'User';
+        $initials = ProjectAccess::initialsFromName($displayName);
+
         return view('Dekomposisi', [
             'id' => $id,
-            'namaProjek' => 'Test Project',
+            'namaProjek' => $selected['name'],
             'user' => [
-                'name' => 'Maryono Marpaung',
-                'role' => 'Mahasiswa',
-                'initials' => 'MM',
-                'notif_count' => 1
-       
+                'name' => $displayName,
+                'role' => $user?->role ?? 'student',
+                'initials' => $initials,
+                'notif_count' => 1,
             ],
+            'selected_project' => $selected,
             'diagramSeed' => [
                 'nodes' => [],
                 'connections' => [],

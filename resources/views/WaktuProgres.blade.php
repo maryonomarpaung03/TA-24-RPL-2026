@@ -98,6 +98,9 @@
 
                                 <!-- Bar Tugas -->
                                 <div class="relative pt-4 space-y-4">
+                                    @if(empty($tasks))
+                                    <p class="text-sm text-slate-400 italic text-center py-16">Belum ada jadwal tugas.</p>
+                                    @endif
                                     @foreach($tasks as $task)
                                     @php
                                         // Menghitung posisi kolom (grid-column: start / end)
@@ -120,9 +123,11 @@
                         <!-- 6c. Anggota Aktif di Pojok Kanan Atas Tabel -->
                         <div class="flex justify-end -mt-[580px] pr-4 relative z-20">
                             <div class="flex -space-x-2">
-                                @foreach(['DS', 'NT', 'RH'] as $av)
+                                @forelse(collect($team ?? [])->pluck('initials') as $av)
                                 <div class="w-7 h-7 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-blue-600 shadow-sm">{{ $av }}</div>
-                                @endforeach
+                                @empty
+                                <span class="text-[10px] text-slate-400 italic">-</span>
+                                @endforelse
                             </div>
                         </div>
                     </div>

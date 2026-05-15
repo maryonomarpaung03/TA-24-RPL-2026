@@ -74,14 +74,18 @@
                                                 <th class="p-3 text-left font-bold border-r border-gray-400 uppercase w-2/3">Nama</th>
                                                 <th class="p-3 text-left font-bold uppercase">Nilai</th>
                                             </tr>
-                                            @foreach($anggotaList as $nama)
+                                            @forelse($anggotaList as $nama)
                                             <tr class="border-b border-gray-400 last:border-b-0">
                                                 <td class="p-3 border-r border-gray-400 font-medium">{{ $nama }}</td>
                                                 <td class="p-1">
                                                     <input type="number" min="10" max="100" class="w-full p-2 outline-none text-center bg-transparent">
                                                 </td>
                                             </tr>
-                                            @endforeach
+                                            @empty
+                                            <tr>
+                                                <td colspan="2" class="p-4 text-center text-slate-400 text-xs italic">Belum ada anggota tim.</td>
+                                            </tr>
+                                            @endforelse
                                         </table>
                                     </div>
                                 </div>

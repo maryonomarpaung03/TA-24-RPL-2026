@@ -96,15 +96,16 @@
         </form>
 
         <!-- Register Link -->
-        <p class="mt-6 text-center text-sm text-slate-600">
-            Belum punya akun?
-            <a
-                href="{{ route('register') }}"
-                class="font-semibold text-blue-600 hover:text-blue-700"
-            >
-                Daftar
-            </a>
-        </p>
+        <div class="mt-6 space-y-2 text-center text-sm text-slate-600">
+            <p>
+                Mahasiswa:
+                <a href="{{ route('register') }}" class="font-semibold text-blue-600 hover:text-blue-700">Daftar akun</a>
+            </p>
+            <p>
+                Dosen:
+                <a href="{{ route('register.dosen') }}" class="font-semibold text-slate-800 hover:text-slate-900">Daftar akun dosen</a>
+            </p>
+        </div>
 
     </div>
 </div>

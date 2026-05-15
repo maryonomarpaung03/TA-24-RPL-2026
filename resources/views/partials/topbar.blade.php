@@ -4,7 +4,7 @@
         ? (trim($u->displayName()) !== '' ? $u->displayName() : ($u->email ?? 'User'))
         : 'User';
 
-    $notifCount = 1;
+    $notifCount = (int) ($notif_count ?? 0);
 
     $initials = 'U';
     if ($u) {

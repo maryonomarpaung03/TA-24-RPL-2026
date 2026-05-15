@@ -66,8 +66,13 @@ class LoginController extends Controller
         ->session()
         ->regenerate();
 
-    return redirect()
-        ->route('dashboard');
+    $user = Auth::user();
+
+    if ($user && $user->role === 'lecturer') {
+        return redirect()->route('dosen.persetujuan');
+    }
+
+    return redirect()->route('dashboard');
 }
 
 

@@ -2,22 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PjblContext;
 use App\Support\ProjectCatalog;
-use Illuminate\Http\Request;
 
-class BelumDosenNilaiController extends Controller 
+class BelumDosenNilaiController extends Controller
 {
-    public function index($id) 
+    public function index($id)
     {
-        $user = [
-            'name' => 'Daniati Simatupang', 
-            'role' => 'Mahasiswa', 
-            'initials' => 'DS', 
-            'notif_count' => 1
-        ];
-        
-        $namaProjek = ProjectCatalog::name($id);
+        $selected = ProjectCatalog::find($id);
 
-        return view('BelumDosenNilai', compact('user', 'namaProjek', 'id'));
+        if (! $selected) {
+            return redirect()
+                ->route('projek-saya')
+                ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+
+        return view('BelumDosenNilai', [
+            'user' => PjblContext::viewer(),
+            'namaProjek' => $selected['name'],
+            'id' => (int) $id,
+        ]);
     }
 }

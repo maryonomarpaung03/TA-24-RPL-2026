@@ -2,46 +2,57 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PjblContext;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectChatController extends Controller
 {
     public function index($id)
     {
-        $user = ['name' => 'Daniati Simatupang', 'role' => 'Mahasiswa', 'initials' => 'DS', 'notif_count' => 1];
+        $selected = ProjectCatalog::find($id);
 
-        $namaProjek = ProjectCatalog::name($id);
+        if (! $selected) {
+            return redirect()
+                ->route('projek-saya')
+                ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
+        }
 
-        $memberMap = [
-            1 => ['Daniati Simatupang', 'Niko Tarigan', 'Rehan Hutabarat'],
-            2 => ['Daniati Simatupang', 'Niko Tarigan'],
-        ];
-        $members = $memberMap[$id] ?? [$user['name']];
+        $user = PjblContext::viewer();
+        $members = PjblContext::memberNames((int) $id);
+        $messages = session('project_chat_'.$id, []);
 
-        $defaultMessages = [
-            ['author' => 'Niko Tarigan', 'text' => 'Aku lanjutkan bagian UI planning ya.', 'time' => '09:10'],
-            ['author' => 'Rehan Hutabarat', 'text' => 'Siap, aku bantu backend endpoint.', 'time' => '09:12'],
-        ];
-        $messages = session('project_chat_' . $id, $defaultMessages);
-
-        return view('ProjectChat', compact('id', 'user', 'namaProjek', 'members', 'messages'));
+        return view('ProjectChat', [
+            'id' => (int) $id,
+            'user' => $user,
+            'namaProjek' => $selected['name'],
+            'members' => $members,
+            'messages' => $messages,
+        ]);
     }
 
     public function send(Request $request, $id)
     {
+        $selected = ProjectCatalog::find($id);
+
+        if (! $selected) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'message' => 'required|string|max:500',
         ]);
 
-        $messages = session('project_chat_' . $id, []);
+        $viewer = PjblContext::viewer();
+        $messages = session('project_chat_'.$id, []);
         $messages[] = [
-            'author' => 'Daniati Simatupang',
+            'author' => $viewer['name'],
             'text' => trim($validated['message']),
             'time' => now()->format('H:i'),
         ];
 
-        session(['project_chat_' . $id => $messages]);
+        session(['project_chat_'.$id => $messages]);
 
         return redirect()->route('project-chat', $id);
     }

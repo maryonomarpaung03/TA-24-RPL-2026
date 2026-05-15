@@ -10,7 +10,9 @@
 @section('content')
 <div class="flex-1 p-6 overflow-y-auto">
 
-            @if(!empty($selected_project))
+            @if(!empty($selected_project) && !($selected_project['can_access_pjbl'] ?? false))
+            @include('partials.project-pjbl-gate')
+            @elseif(!empty($selected_project))
             <div class="space-y-6" x-data="{
                 editMode: @js($initialEditMode ?? false),
                 form: {
@@ -20,32 +22,10 @@
                     priority: 'Sedang',
                     attachment: ''
                 },
-                board: {
-                    ide: [
-                        { title: 'Input data absensi masih manual', category: 'Teknis', priority: 'Tinggi', checklist: '2/4', attachment: 'alur-absensi.png' },
-                        { title: 'Validasi lokasi belum otomatis', category: 'Kebutuhan Proyek', priority: 'Sedang', checklist: '1/3', attachment: '-' }
-                    ],
-                    voting: [
-                        { key: 'vote-1', title: 'Input data absensi masih manual', votes: 8, category: 'Teknis', priority: 'Tinggi' },
-                        { key: 'vote-2', title: 'Antrian verifikasi dosen terlalu lama', votes: 5, category: 'Diskusi', priority: 'Sedang' }
-                    ],
-                    diajukan: [
-                        { title: 'Input data absensi masih manual', status: 'Menunggu Persetujuan Dosen', category: 'Teknis', priority: 'Tinggi' }
-                    ],
-                    perbaiki: [
-                        { title: 'Rubrik kebutuhan kurang detail', note: 'Lengkapi bukti pendukung', category: 'Etika', priority: 'Rendah' }
-                    ],
-                    selesai: [
-                        { title: 'Masalah utama disepakati tim', date: '08 Mei 2026' }
-                    ]
-                },
-                comments: [
-                    { from: 'NT', target: 'Input data absensi masih manual', text: 'Setuju. Ini paling berdampak ke error rekap.', time: '10:15' },
-                    { from: 'DS', target: 'Input data absensi masih manual', text: 'Saya sudah lampirkan bukti screenshot proses saat ini.', time: '10:27' },
-                    { from: 'Dosen', target: 'Rubrik kebutuhan kurang detail', text: 'Tolong perjelas kriteria sebelum diajukan ulang.', time: '11:02' }
-                ],
-                votingOpen: true,
-                participantCount: 12,
+                board: @js($problemBoard ?? ['ide' => [], 'voting' => [], 'diajukan' => [], 'perbaiki' => [], 'selesai' => []]),
+                comments: @js($problemComments ?? []),
+                votingOpen: false,
+                participantCount: @js($participantCount ?? 1),
                 myVoteKey: null,
                 totalVotes() {
                     return this.board.voting.reduce((sum, c) => sum + Number(c.votes || 0), 0);
@@ -117,16 +97,41 @@
                         </div>
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                             <div class="inline-flex rounded-full bg-slate-100 p-1 border border-slate-200">
-                                <button type="button" @click="editMode = false" :class="editMode ? 'text-slate-500 hover:text-slate-700' : 'bg-white text-blue-700 shadow-sm'" class="rounded-full px-4 py-2 text-xs font-bold transition">Tampilan</button>
+                                <button type="button" @click="editMode = false" :class="editMode ? 'text-slate-500 hover:text-slate-700' : 'bg-white text-blue-700 shadow-sm'" class="rounded-full px-4 py-2 text-xs font-bold transition">Lihat</button>
                                 <button type="button" @click="editMode = true" :class="editMode ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="rounded-full px-4 py-2 text-xs font-bold transition">Edit</button>
                             </div>
-                            <button type="button" class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">
+                            <button type="button" x-show="editMode" x-cloak class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">
                                 <i class="fas fa-save"></i>
                                 Simpan
                             </button>
+                            @if(($selected_project['is_draft'] ?? false) && (int) auth()->id() === (int) ($selected_project['created_by'] ?? 0))
+                            <form method="POST" action="{{ route('projek.submit', $selected_project['id']) }}" class="inline">
+                                @csrf
+                                <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Ajukan ke Dosen
+                                </button>
+                            </form>
+                            @endif
                         </div>
                     </div>
                 </div>
+
+                @if($selected_project['is_pending'] ?? false)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Proyek sudah diajukan ke dosen (<strong>{{ $selected_project['lecturer_email'] }}</strong>) dan menunggu persetujuan.
+                </div>
+                @endif
+
+                @if(session('success'))
+                <div class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>
+                @endif
+                @if(session('info'))
+                <div class="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ session('info') }}</div>
+                @endif
+                @if(session('error'))
+                <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+                @endif
 
                 <div class="grid grid-cols-1 xl:grid-cols-[1.9fr_1fr] gap-6">
                     <div class="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm">
@@ -179,6 +184,7 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 text-sm">
                                     <div class="rounded-2xl border border-slate-200 bg-white p-3">
                                         <p class="font-bold text-slate-700 mb-2">Ide Masalah</p>
+                                        <p x-show="board.ide.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada ide masalah.</p>
                                         <template x-for="(card, idx) in board.ide" :key="'ide-' + idx">
                                             <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
                                                 <p class="font-semibold text-slate-800" x-text="card.title"></p>
@@ -198,6 +204,7 @@
                                             <p>Sudah voting: <span class="font-semibold" x-text="votedCount()"></span></p>
                                             <p>Belum voting: <span class="font-semibold" x-text="unvotedCount()"></span></p>
                                         </div>
+                                        <p x-show="board.voting.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada voting.</p>
                                         <template x-for="(card, idx) in sortedVotingCards()" :key="card.key || ('vote-' + idx)">
                                             <div class="mb-2 rounded-xl border p-2" :class="isMyVote(card) ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-slate-50'">
                                                 <p class="font-semibold text-slate-800" x-text="card.title"></p>
@@ -208,12 +215,13 @@
                                                 </button>
                                             </div>
                                         </template>
-                                        <button type="button" @click="submitTopToLecturer()" class="mt-2 w-full rounded-lg bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-600 transition">
+                                        <button type="button" x-show="board.voting.length > 0" @click="submitTopToLecturer()" class="mt-2 w-full rounded-lg bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-600 transition">
                                             Ajukan Pemenang ke Dosen
                                         </button>
                                     </div>
                                     <div class="rounded-2xl border border-slate-200 bg-white p-3">
                                         <p class="font-bold text-slate-700 mb-2">Diajukan ke Dosen</p>
+                                        <p x-show="board.diajukan.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada pengajuan.</p>
                                         <template x-for="(card, idx) in board.diajukan" :key="'aju-' + idx">
                                             <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
                                                 <p class="font-semibold text-slate-800" x-text="card.title"></p>
@@ -223,6 +231,7 @@
                                     </div>
                                     <div class="rounded-2xl border border-slate-200 bg-white p-3">
                                         <p class="font-bold text-slate-700 mb-2">Perbaiki</p>
+                                        <p x-show="board.perbaiki.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada perbaikan.</p>
                                         <template x-for="(card, idx) in board.perbaiki" :key="'fix-' + idx">
                                             <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
                                                 <p class="font-semibold text-slate-800" x-text="card.title"></p>
@@ -232,6 +241,7 @@
                                     </div>
                                     <div class="rounded-2xl border border-slate-200 bg-white p-3">
                                         <p class="font-bold text-slate-700 mb-2">Selesai</p>
+                                        <p x-show="board.selesai.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada masalah final.</p>
                                         <template x-for="(card, idx) in board.selesai" :key="'done-' + idx">
                                             <div class="mb-2 rounded-xl border border-emerald-200 bg-emerald-50 p-2">
                                                 <p class="font-semibold text-slate-800" x-text="card.title"></p>
@@ -248,20 +258,17 @@
                         <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
                             <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Project Team</h3>
                             <div class="space-y-4">
+                                @forelse($teamMembers ?? [] as $member)
                                 <div class="flex items-center gap-3 rounded-3xl bg-slate-50 p-4">
-                                    <div class="h-11 w-11 rounded-full bg-blue-600 text-white grid place-items-center font-bold">AS</div>
+                                    <div class="h-11 w-11 rounded-full bg-blue-600 text-white grid place-items-center font-bold text-sm">{{ $member['initials'] }}</div>
                                     <div>
-                                        <p class="font-semibold text-slate-900">Anisa Safri</p>
-                                        <p class="text-xs text-slate-500">Team Lead</p>
+                                        <p class="font-semibold text-slate-900">{{ $member['name'] }}</p>
+                                        <p class="text-xs text-slate-500">{{ $member['role'] }}</p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-3 rounded-3xl bg-slate-50 p-4">
-                                    <div class="h-11 w-11 rounded-full bg-slate-200 text-slate-700 grid place-items-center font-bold">BK</div>
-                                    <div>
-                                        <p class="font-semibold text-slate-900">Budi Kusuma</p>
-                                        <p class="text-xs text-slate-500">Data Analyst</p>
-                                    </div>
-                                </div>
+                                @empty
+                                <p class="text-sm text-slate-400 text-center py-4">Belum ada anggota tim.</p>
+                                @endforelse
                             </div>
                             <button type="button" x-show="editMode" class="mt-6 w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition">Manage Team</button>
                         </div>
@@ -269,6 +276,7 @@
                         <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
                             <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Assigned Comments</h3>
                             <div class="space-y-3 text-sm text-slate-700">
+                                <p x-show="comments.length === 0" class="text-sm text-slate-400 text-center py-4">Belum ada komentar.</p>
                                 <template x-for="(comment, idx) in comments" :key="'c-' + idx">
                                     <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">
                                         <div class="flex items-center justify-between text-[11px] text-slate-500">

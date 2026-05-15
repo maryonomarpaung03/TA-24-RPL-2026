@@ -18,7 +18,7 @@
                 @include('partials.topbar')
             @endif
 
-            @if(!empty($selected_project))
+            @if(!empty($selected_project) && ($selected_project['can_access_pjbl'] ?? false))
                 @include('partials.project-workflow-tabs')
             @endif
 

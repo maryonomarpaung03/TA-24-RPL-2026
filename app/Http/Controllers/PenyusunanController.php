@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,15 +27,13 @@ class PenyusunanController extends Controller
     public function index($id)
     {
         // Pastikan project milik Maryono
-        $project = Project::where('id', $id)
-            ->where('created_by', $this->currentUserId)
-            ->first();
+        $project = Project::query()->find($id);
 
-if (!$project) {
-    return redirect()
-        ->route('projek-saya')
-        ->with('error', 'Projek tidak ditemukan');
-}
+        if (! $project || ! ProjectAccess::userCanAccess($this->currentUserId, $project)) {
+            return redirect()
+                ->route('projek-saya')
+                ->with('error', 'Projek tidak ditemukan atau Anda tidak memiliki akses.');
+        }
 
 $namaProjek = ProjectCatalog::name($id);
 

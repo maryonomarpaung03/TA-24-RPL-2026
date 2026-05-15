@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
+    'name',
     'full_name',
     'username',
     'email',
@@ -21,7 +22,14 @@ use Illuminate\Notifications\Notifiable;
     'study_program_id',
     'batch_year',
     'profile_photo',
-    'created_at'
+    'birth_place_date',
+    'address',
+    'phone',
+    'gender',
+    'jurusan',
+    'fakultas',
+    'created_at',
+    'updated_at',
 ])]
 
 #[Hidden([

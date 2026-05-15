@@ -28,7 +28,19 @@ class AppServiceProvider extends ServiceProvider
             $projectId = $request->query('project_id') ?: $request->route('id');
             $selected_project = ProjectCatalog::find($projectId);
 
-            $view->with('selected_project', $selected_project);
+            $notifCount = 0;
+            if (auth()->check()) {
+                $email = strtolower(trim((string) auth()->user()->email));
+                $notifCount = \Illuminate\Support\Facades\DB::table('project_notifications')
+                    ->where('recipient_email', $email)
+                    ->whereNull('read_at')
+                    ->count();
+            }
+
+            $view->with([
+                'selected_project' => $selected_project,
+                'notif_count' => $notifCount,
+            ]);
         });
     }
 }

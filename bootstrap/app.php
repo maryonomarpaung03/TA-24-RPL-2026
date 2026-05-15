@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
+        $middleware->alias([
+            'project.pjbl' => \App\Http\Middleware\EnsureProjectPjblAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

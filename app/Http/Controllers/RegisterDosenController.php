@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
-class RegisterController extends Controller
+class RegisterDosenController extends Controller
 {
     public function create()
     {
@@ -17,36 +17,20 @@ class RegisterController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return view('auth.register');
+        return view('auth.register-dosen');
     }
 
     public function store(Request $request)
     {
-        $facultyPrograms = config('faculties.programs', []);
-
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
-            'nim' => ['required', 'string', 'max:32', Rule::unique('users', 'nim')],
+            'nidn' => ['required', 'string', 'max:32', Rule::unique('users', 'nidn')],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', Password::min(6)],
             'birth_place_date' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:1000'],
             'phone' => ['required', 'string', 'max:32'],
             'gender' => ['required', Rule::in(['Laki-laki', 'Perempuan'])],
-            'fakultas' => ['required', 'string', Rule::in(array_keys($facultyPrograms))],
-            'jurusan' => [
-                'required',
-                'string',
-                function (string $attribute, mixed $value, \Closure $fail) use ($request, $facultyPrograms): void {
-                    $fakultas = $request->input('fakultas');
-                    $programs = $facultyPrograms[$fakultas] ?? [];
-
-                    if (! in_array($value, $programs, true)) {
-                        $fail('Jurusan tidak valid untuk fakultas yang dipilih.');
-                    }
-                },
-            ],
-            'batch_year' => ['required', 'integer', 'min:2000', 'max:' . (date('Y') + 1)],
         ]);
 
         $username = strtolower(str_replace(' ', '', $validated['full_name']));
@@ -61,18 +45,18 @@ class RegisterController extends Controller
             'username' => $username,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => 'student',
-            'nim' => $validated['nim'],
+            'role' => 'lecturer',
+            'nidn' => $validated['nidn'],
+            'nim' => null,
             'birth_place_date' => $validated['birth_place_date'],
             'address' => $validated['address'],
             'phone' => $validated['phone'],
             'gender' => $validated['gender'],
-            'jurusan' => $validated['jurusan'],
-            'fakultas' => $validated['fakultas'],
-            'nidn' => null,
+            'jurusan' => null,
+            'fakultas' => null,
             'faculty_id' => null,
             'study_program_id' => null,
-            'batch_year' => $validated['batch_year'],
+            'batch_year' => null,
             'profile_photo' => null,
             'created_at' => now(),
             'updated_at' => now(),
@@ -80,6 +64,6 @@ class RegisterController extends Controller
 
         return redirect()
             ->route('login')
-            ->with('success', 'Akun mahasiswa berhasil dibuat. Silakan login.');
+            ->with('success', 'Akun dosen berhasil dibuat. Silakan login.');
     }
 }

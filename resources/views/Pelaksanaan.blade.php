@@ -23,9 +23,11 @@
                         <!-- Anggota Aktif -->
                         <div class="flex justify-end mb-4">
                             <div class="flex -space-x-2">
-                                @foreach(['DS', 'NT', 'RH'] as $av)
+                                @forelse($teamInitials ?? [] as $av)
                                 <div class="w-7 h-7 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-blue-600 shadow-sm">{{ $av }}</div>
-                                @endforeach
+                                @empty
+                                <span class="text-[10px] text-gray-400 italic">Belum ada anggota</span>
+                                @endforelse
                             </div>
                         </div>
 
@@ -38,6 +40,9 @@
                                 </div>
 
                                 <div class="flex-1 space-y-4 overflow-y-auto">
+                                    @if(empty($kanban[$col['key']]))
+                                    <p class="text-[11px] text-gray-400 italic text-center py-8">Belum ada tugas.</p>
+                                    @endif
                                     @foreach($kanban[$col['key']] as $task)
                                     <div class="bg-white rounded-2xl p-4 shadow-sm relative group transition hover:shadow-md">
                                         <div class="flex justify-between items-start mb-2">

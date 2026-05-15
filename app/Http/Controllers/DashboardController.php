@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -304,16 +305,28 @@ class DashboardController extends Controller
                 'mode'
             ) === 'edit';
 
-        if (
-            $projectId !== null
-            &&
-            $projectId !== ''
-        ) {
+        $problemBoard = [
+            'ide' => [],
+            'voting' => [],
+            'diajukan' => [],
+            'perbaiki' => [],
+            'selesai' => [],
+        ];
+        $problemComments = [];
+        $teamMembers = [];
+        $participantCount = 1;
 
-            $selected_project =
-                ProjectCatalog::find(
-                    $projectId
-                );
+        if ($projectId !== null && $projectId !== '') {
+            $selected_project = ProjectCatalog::find($projectId);
+
+            if (! $selected_project) {
+                return redirect()
+                    ->route('projek-saya')
+                    ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
+            }
+
+            $teamMembers = ProjectAccess::teamMembersForProject((int) $selected_project['id']);
+            $participantCount = max(1, count($teamMembers));
         }
 
         return view(
@@ -326,7 +339,11 @@ class DashboardController extends Controller
                 'ongoing_projects',
                 'deadlines',
                 'selected_project',
-                'initialEditMode'
+                'initialEditMode',
+                'problemBoard',
+                'problemComments',
+                'teamMembers',
+                'participantCount'
             )
         );
     }

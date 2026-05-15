@@ -26,7 +26,9 @@
                         <button @click="openStatus = !openStatus" class="bg-gray-50 px-6 py-3 rounded-full text-sm font-bold text-gray-700 border flex items-center space-x-2 hover:bg-gray-100"><span>Status</span><i class="fas fa-chevron-down text-[10px]"></i></button>
                         <div x-show="openStatus" @click.outside="openStatus = false" class="absolute right-0 mt-2 w-48 bg-white border rounded-2xl shadow-xl z-50">
                             <button @click="statusFilter = 'all'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">Semua</button>
+                            <button @click="statusFilter = 'draft'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">Draft</button>
                             <button @click="statusFilter = 'in_progress'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">On Progress</button>
+                            <button @click="statusFilter = 'on_review'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">In Review</button>
                             <button @click="statusFilter = 'planning'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">Planning</button>
                             <button @click="statusFilter = 'done'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50">Selesai</button>
                         </div>
@@ -35,7 +37,7 @@
 
                 @if($featuredProject)
                 <section
-                    x-show="statusFilter === 'all' || statusFilter === '{{ strtolower(str_replace(' ', '_', $featuredProject['status'])) }}'"
+                    x-show="statusFilter === 'all' || statusFilter === '{{ $featuredProject['filter_key'] }}'"
                     class="bg-white rounded-[2rem] border p-6 shadow-sm mb-8"
                 >
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -52,7 +54,7 @@
                         </div>
 
                         <div class="flex flex-col">
-                            <span class="text-xs font-bold text-orange-500 uppercase mb-2">{{ $featuredProject['status'] }}</span>
+                            <span class="text-xs font-bold uppercase mb-2 {{ $featuredProject['status'] === 'Draft' ? 'text-slate-500' : ($featuredProject['status'] === 'In Review' ? 'text-amber-600' : ($featuredProject['status'] === 'Done' ? 'text-orange-500' : ($featuredProject['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $featuredProject['status'] }}</span>
                             <a href="{{ route('dashboard', ['project_id' => $featuredProject['id'], 'mode' => 'view']) }}" class="text-3xl font-bold text-gray-900 leading-tight hover:text-blue-600 transition">{{ $featuredProject['name'] }}</a>
                             <p class="text-gray-500 text-sm mt-3 mb-6">{{ $featuredProject['description'] }}</p>
 
@@ -81,7 +83,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     @foreach($otherProjects as $p)
                     <article
-                        x-show="statusFilter === 'all' || statusFilter === '{{ strtolower(str_replace(' ', '_', $p['status'])) }}'"
+                        x-show="statusFilter === 'all' || statusFilter === '{{ $p['filter_key'] }}'"
                         class="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition"
                     >
                         <div class="bg-[#e7f1e7] rounded-lg border border-[#b8d2b8] h-32 mb-4 p-2">
@@ -91,7 +93,7 @@
                                 <div class="bg-white/80 rounded"></div>
                             </div>
                         </div>
-                        <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Done' ? 'text-orange-500' : ($p['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600') }}">{{ $p['label'] }}</div>
+                        <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Draft' ? 'text-slate-500' : ($p['status'] === 'In Review' ? 'text-amber-600' : ($p['status'] === 'Done' ? 'text-orange-500' : ($p['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $p['label'] }}</div>
                         <a href="{{ route('dashboard', ['project_id' => $p['id'], 'mode' => 'view']) }}" class="font-bold text-gray-900 hover:text-blue-600 transition">{{ $p['name'] }}</a>
                         <p class="text-xs text-gray-500 mt-2 mb-4 line-clamp-2">{{ $p['description'] }}</p>
                         <div class="text-[10px] font-black text-gray-400 uppercase mb-2">Progress</div>

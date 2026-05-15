@@ -1,12 +1,10 @@
 @extends('layouts.guest')
 
-@section('title', 'Daftar - DELPRO')
+@section('title', 'Daftar Dosen - DELPRO')
 
 @php
     $inputClass = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
-    $selectClass = $inputClass . ' appearance-none bg-white text-slate-700';
     $passwordClass = $inputClass . ' pr-11';
-    $facultyPrograms = config('faculties.programs', []);
 @endphp
 
 @section('content')
@@ -14,8 +12,8 @@
     <div class="w-full max-w-4xl rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
         <div class="mb-8 text-center">
             <p class="text-xs font-semibold uppercase tracking-widest text-blue-600">DELPRO</p>
-            <h1 class="mt-1 text-xl font-bold text-slate-900">Daftar Akun Mahasiswa</h1>
-            <p class="mt-1 text-sm text-slate-500">Gunakan NIM untuk pendaftaran mahasiswa.</p>
+            <h1 class="mt-1 text-xl font-bold text-slate-900">Daftar Akun Dosen</h1>
+            <p class="mt-1 text-sm text-slate-500">Gunakan NIDN untuk pendaftaran dosen pengampu.</p>
         </div>
 
         @if ($errors->any())
@@ -28,7 +26,7 @@
             </div>
         @endif
 
-        <form method="post" action="{{ route('register.store') }}" class="space-y-5">
+        <form method="post" action="{{ route('register.dosen.store') }}" class="space-y-5">
             @csrf
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -39,30 +37,12 @@
                            autocomplete="name" placeholder="Nama Lengkap" class="{{ $inputClass }}">
                 </div>
                 <div>
-                    <label for="nim" class="sr-only">NIM</label>
-                    <input id="nim" name="nim" type="text" value="{{ old('nim') }}" required
-                           placeholder="NIM" class="{{ $inputClass }}">
+                    <label for="nidn" class="sr-only">NIDN</label>
+                    <input id="nidn" name="nidn" type="text" value="{{ old('nidn') }}" required
+                           inputmode="numeric" placeholder="NIDN" class="{{ $inputClass }}">
                 </div>
 
-                {{-- Baris 2: Fakultas (kiri) → Jurusan (kanan, tergantung fakultas) --}}
-                <div>
-                    <label for="fakultas" class="sr-only">Fakultas</label>
-                    <select id="fakultas" name="fakultas" required class="{{ $selectClass }}">
-                        <option value="" disabled {{ old('fakultas') ? '' : 'selected' }}>Pilih Fakultas</option>
-                        @foreach (array_keys($facultyPrograms) as $fakultasName)
-                            <option value="{{ $fakultasName }}" @selected(old('fakultas') === $fakultasName)>{{ $fakultasName }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label for="jurusan" class="sr-only">Jurusan</label>
-                    <select id="jurusan" name="jurusan" required disabled
-                            class="{{ $selectClass }} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400">
-                        <option value="" disabled selected>Pilih Jurusan</option>
-                    </select>
-                </div>
-
-                {{-- Baris 3 --}}
+                {{-- Baris 2 --}}
                 <div>
                     <label for="phone" class="sr-only">No. HP / WA</label>
                     <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required
@@ -74,7 +54,7 @@
                            autocomplete="email" placeholder="Email" class="{{ $inputClass }}">
                 </div>
 
-                {{-- Baris 4 --}}
+                {{-- Baris 3 --}}
                 <div>
                     <label for="birth_place_date" class="sr-only">Tempat / tanggal lahir</label>
                     <input id="birth_place_date" name="birth_place_date" type="text" value="{{ old('birth_place_date') }}" required
@@ -90,20 +70,14 @@
                     </select>
                 </div>
 
-                {{-- Baris 5 --}}
-                <div>
-                    <label for="batch_year" class="sr-only">Angkatan</label>
-                    <input id="batch_year" name="batch_year" type="number" value="{{ old('batch_year') }}" required
-                           min="2000" max="{{ date('Y') + 1 }}" step="1" placeholder="Angkatan"
-                           class="{{ $inputClass }}">
-                </div>
-                <div>
+                {{-- Baris 4 --}}
+                <div class="sm:col-span-2">
                     <label for="address" class="sr-only">Alamat</label>
                     <input id="address" name="address" type="text" value="{{ old('address') }}" required
                            placeholder="Alamat" class="{{ $inputClass }}">
                 </div>
 
-                {{-- Baris 6 --}}
+                {{-- Baris 5 --}}
                 <div class="relative">
                     <label for="password" class="sr-only">Kata sandi</label>
                     <input id="password" name="password" type="password" required autocomplete="new-password"
@@ -134,14 +108,14 @@
             </div>
 
             <button type="submit"
-                    class="w-full rounded-full bg-blue-500 py-3.5 text-base font-bold text-slate-900 shadow-sm transition hover:bg-blue-600 hover:text-white">
+                    class="w-full rounded-full bg-slate-900 py-3.5 text-base font-bold text-white shadow-sm transition hover:bg-slate-800">
                 Daftar
             </button>
         </form>
 
         <p class="mt-6 text-center text-sm text-slate-600">
-            Dosen?
-            <a href="{{ route('register.dosen') }}" class="font-semibold text-slate-800 hover:text-slate-900">Daftar di sini</a>
+            Mahasiswa?
+            <a href="{{ route('register') }}" class="font-semibold text-blue-600 hover:text-blue-700">Daftar di sini</a>
             · Sudah punya akun?
             <a href="{{ route('login') }}" class="font-semibold text-blue-600 hover:text-blue-700">Masuk</a>
         </p>
@@ -149,68 +123,12 @@
 </div>
 
 <script>
-    (function () {
-        var programsByFaculty = @json($facultyPrograms);
-        var oldFakultas = @json(old('fakultas'));
-        var oldJurusan = @json(old('jurusan'));
-
-        var fakultasSelect = document.getElementById('fakultas');
-        var jurusanSelect = document.getElementById('jurusan');
-
-        function fillJurusan(fakultas, selectedJurusan) {
-            jurusanSelect.innerHTML = '';
-
-            var placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.disabled = true;
-            placeholder.selected = !selectedJurusan;
-            placeholder.textContent = fakultas ? 'Pilih Jurusan' : 'Pilih fakultas terlebih dahulu';
-            jurusanSelect.appendChild(placeholder);
-
-            if (!fakultas || !programsByFaculty[fakultas]) {
-                jurusanSelect.disabled = true;
-                return;
-            }
-
-            (programsByFaculty[fakultas] || []).forEach(function (program) {
-                var option = document.createElement('option');
-                option.value = program;
-                option.textContent = program;
-                if (selectedJurusan && selectedJurusan === program) {
-                    option.selected = true;
-                    placeholder.selected = false;
-                }
-                jurusanSelect.appendChild(option);
-            });
-
-            jurusanSelect.disabled = false;
-        }
-
-        fakultasSelect.addEventListener('change', function () {
-            fillJurusan(fakultasSelect.value, null);
+    document.querySelectorAll('[data-toggle-password]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var input = document.getElementById(btn.getAttribute('data-toggle-password'));
+            if (!input) return;
+            input.type = input.type === 'password' ? 'text' : 'password';
         });
-
-        if (oldFakultas) {
-            fakultasSelect.value = oldFakultas;
-            fillJurusan(oldFakultas, oldJurusan);
-        }
-
-        var form = fakultasSelect.closest('form');
-        if (form) {
-            form.addEventListener('submit', function () {
-                if (fakultasSelect.value) {
-                    jurusanSelect.disabled = false;
-                }
-            });
-        }
-
-        document.querySelectorAll('[data-toggle-password]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var input = document.getElementById(btn.getAttribute('data-toggle-password'));
-                if (!input) return;
-                input.type = input.type === 'password' ? 'text' : 'password';
-            });
-        });
-    })();
+    });
 </script>
 @endsection

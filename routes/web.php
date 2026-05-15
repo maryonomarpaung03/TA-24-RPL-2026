@@ -93,6 +93,16 @@ Route::post(
     [RegisterController::class, 'store']
 )->name('register.store');
 
+Route::get(
+    '/register/dosen',
+    [\App\Http\Controllers\RegisterDosenController::class, 'create']
+)->name('register.dosen');
+
+Route::post(
+    '/register/dosen',
+    [\App\Http\Controllers\RegisterDosenController::class, 'store']
+)->name('register.dosen.store');
+
 Route::middleware('auth')->group(function () {
 
     /*
@@ -132,6 +142,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/simpan-projek', [BuatProjekController::class, 'store'])
         ->name('simpan-projek');
 
+    Route::get('/projek/{id}/edit', [BuatProjekController::class, 'edit'])
+        ->name('projek.edit');
+
+    Route::put('/projek/{id}', [BuatProjekController::class, 'update'])
+        ->name('projek.update');
+
+    Route::get('/dosen/persetujuan-proyek', [\App\Http\Controllers\DosenApprovalController::class, 'index'])
+        ->name('dosen.persetujuan');
+
+    Route::get('/dosen/persetujuan-proyek/{id}', [\App\Http\Controllers\DosenApprovalController::class, 'show'])
+        ->name('dosen.persetujuan.show');
+
+    Route::post('/dosen/persetujuan-proyek/{id}/approve', [\App\Http\Controllers\DosenApprovalController::class, 'approve'])
+        ->name('dosen.persetujuan.approve');
+
     /*
     |--------------------------------------------------------------------------
     | Project Detail
@@ -139,6 +164,17 @@ Route::middleware('auth')->group(function () {
     */
 
     Route::prefix('projek/{id}')
+        ->group(function () {
+
+            Route::post(
+                '/ajukan-dosen',
+                [\App\Http\Controllers\ProjectSubmissionController::class, 'submit']
+            )->name('projek.submit');
+
+        });
+
+    Route::prefix('projek/{id}')
+        ->middleware('project.pjbl')
         ->group(function () {
 
             Route::get(
@@ -229,9 +265,8 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/notifikasi', function () {
-        return 'Notifikasi';
-    })->name('notifikasi');
+    Route::get('/notifikasi', [\App\Http\Controllers\NotifikasiController::class, 'index'])
+        ->name('notifikasi');
 
     Route::get('/profil', function () {
         return 'Profil';
