@@ -8,18 +8,32 @@ class Project extends Model
 {
     protected $table = 'projects';
 
-    public $timestamps = false;
-
     protected $fillable = [
-        'team_id',
-        'created_by',
-        'title',
+        'name',
         'description',
-        'problem_definition',
-        'logo',
         'status',
         'start_date',
         'end_date',
-        'created_at'
+        'created_by',
     ];
+
+    /**
+     * Kode blade/controller lama memakai ->title; di DB kolomnya adalah name.
+     */
+    public function getTitleAttribute(): string
+    {
+        return (string) ($this->attributes['name'] ?? '');
+    }
+
+    /**
+     * Kolom logo belum ada di skema standar migrasi; hindari error saat diakses.
+     */
+    public function getLogoAttribute(): ?string
+    {
+        if (! array_key_exists('logo', $this->attributes)) {
+            return null;
+        }
+
+        return $this->attributes['logo'];
+    }
 }

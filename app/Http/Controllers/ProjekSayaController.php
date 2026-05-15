@@ -43,63 +43,57 @@ class ProjekSayaController extends Controller
                     ?? 'Planning';
 
                 /*
-                Hitung jumlah member
+                Member lewat skema DB: project_groups → group_members (bukan project_members).
                 */
-                $memberCount = DB::table(
-                        'project_members'
+                $memberCount = (int) DB::table('group_members')
+                    ->join(
+                        'project_groups',
+                        'group_members.group_id',
+                        '=',
+                        'project_groups.id'
                     )
-                    ->where(
-                        'project_id',
-                        $project->id
+                    ->where('project_groups.project_id', $project->id)
+                    ->selectRaw('COUNT(DISTINCT group_members.user_id) as aggregate')
+                    ->value('aggregate');
+
+                $memberRows = DB::table('group_members')
+                    ->join(
+                        'project_groups',
+                        'group_members.group_id',
+                        '=',
+                        'project_groups.id'
                     )
-                    ->count();
+                    ->join('users', 'group_members.user_id', '=', 'users.id')
+                    ->where('project_groups.project_id', $project->id)
+                    ->select(
+                        'group_members.user_id',
+                        'users.full_name',
+                        'users.name'
+                    )
+                    ->orderBy('group_members.user_id')
+                    ->get()
+                    ->unique('user_id')
+                    ->take(3)
+                    ->values();
+
+                $members = $memberRows
+                    ->map(fn ($row) => $this->initialsFromUserRow($row))
+                    ->toArray();
 
                 /*
-                Ambil inisial member
+                Belum ada grup/anggota: tampilkan pembuat proyek sebagai satu anggota.
                 */
-                $members = DB::table(
-                        'project_members'
-                    )
-                    ->join(
-                        'users',
-                        'project_members.user_id',
-                        '=',
-                        'users.id'
-                    )
-                    ->where(
-                        'project_members.project_id',
-                        $project->id
-                    )
-                    ->select(
-                        'users.full_name'
-                    )
-                    ->limit(3)
-                    ->get()
-                    ->map(function ($member) {
+                if ($memberCount === 0 && $project->created_by) {
+                    $creator = DB::table('users')
+                        ->where('id', $project->created_by)
+                        ->select('full_name', 'name')
+                        ->first();
 
-                        $words = explode(
-                            ' ',
-                            $member->full_name
-                        );
-
-                        return strtoupper(
-                            substr(
-                                $words[0],
-                                0,
-                                1
-                            ) .
-                            (
-                                isset($words[1])
-                                ? substr(
-                                    $words[1],
-                                    0,
-                                    1
-                                )
-                                : ''
-                            )
-                        );
-                    })
-                    ->toArray();
+                    if ($creator) {
+                        $memberCount = 1;
+                        $members = [$this->initialsFromUserRow($creator)];
+                    }
+                }
 
                 return [
 
@@ -161,5 +155,22 @@ class ProjekSayaController extends Controller
                 'searchHistory'
             )
         );
+    }
+
+    private function initialsFromUserRow(object $row): string
+    {
+        $display = trim((string) (($row->full_name ?? null) ?: ($row->name ?? '')));
+
+        $words = preg_split('/\s+/', $display, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (count($words) >= 2) {
+            return strtoupper(substr($words[0], 0, 1).substr($words[1], 0, 1));
+        }
+
+        if (count($words) === 1) {
+            return strtoupper(substr($words[0], 0, 2));
+        }
+
+        return 'U';
     }
 }

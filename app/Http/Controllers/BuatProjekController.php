@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Project;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class BuatProjekController extends Controller
 {
@@ -16,73 +16,54 @@ class BuatProjekController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi
         $request->validate([
-            'judul' => 'required|string|max:200',
-            'masalah' => 'required|string',
-            'deskripsi' => 'required|string',
+            'judul' => ['required', 'string', 'max:200'],
+            'masalah' => ['required', 'string'],
+            'deskripsi' => ['required', 'string'],
 
-            'lampiran' => 'nullable|array',
-            'lampiran.*' => 'file|max:10240|mimes:pdf,jpg,jpeg,png,gif,doc,docx',
+            'lampiran' => ['nullable', 'array'],
+            'lampiran.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,gif,doc,docx'],
         ]);
 
         try {
+            $description = trim($request->deskripsi);
+            $description .= "\n\n--- Masalah utama ---\n".trim($request->masalah);
 
-            // Default logo null
-            $logoPath = null;
-
-            // Upload file jika ada
             if ($request->hasFile('lampiran')) {
-
                 $files = $request->file('lampiran');
-
-                if (!empty($files)) {
-                    $logoPath = $files[0]->store(
-                        'project_logos',
-                        'public'
-                    );
+                if (! empty($files)) {
+                    $path = $files[0]->store('project_logos', 'public');
+                    $description .= "\n\n[Lampiran: ".Storage::disk('public')->url($path).']';
                 }
             }
 
             /*
-            sementara ambil team pertama
-            karena team_id wajib
+            Skema projects di DB: name, description, status, start_date, end_date, created_by (+ timestamps).
+            Kolom end_date pada migrasi awal NOT NULL — isi default jangka proyek.
             */
-            $team = DB::table('teams')->first();
+            $startDate = now()->toDateString();
+            $endDate = now()->addMonths(6)->toDateString();
 
-            if (!$team) {
-                return back()->withErrors([
-                    'error' => 'Belum ada team pada database.'
-                ]);
-            }
-
-            $userId = Auth::id();
-
-            // Simpan project
             Project::create([
-                'team_id' => $team->id,
-                'created_by' => $userId,
-                'title' => $request->judul,
-                'description' => $request->deskripsi,
-                'problem_definition' => $request->masalah,
-                'logo' => $logoPath,
+                'name' => $request->judul,
+                'description' => $description,
                 'status' => 'draft',
-                'start_date' => now()->toDateString(),
-                'end_date' => null,
-                'created_at' => now()
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'created_by' => Auth::id(),
             ]);
 
             return redirect()
                 ->route('projek-saya')
                 ->with('success', 'Projek berhasil dibuat');
-
         } catch (\Exception $e) {
-
-            dd($e->getMessage());
+            report($e);
 
             return back()->withErrors([
-                'error' => $e->getMessage()
-            ]);
+                'error' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Gagal menyimpan proyek. Periksa koneksi database dan struktur tabel.',
+            ])->withInput();
         }
     }
 }
