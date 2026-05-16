@@ -29,25 +29,25 @@ class ProjectSubmissionController extends Controller
         if ($project->status !== 'draft') {
             if ($project->status === 'pending_approval') {
                 return redirect()
-                    ->route('dashboard', ['project_id' => $project->id])
+                    ->route('problem-identification', $project->id)
                     ->with('info', 'Proyek sudah diajukan dan menunggu persetujuan dosen.');
             }
 
             if ($project->status === 'active') {
                 return redirect()
-                    ->route('dashboard', ['project_id' => $project->id])
+                    ->route('problem-identification', $project->id)
                     ->with('info', 'Proyek sudah disetujui dosen.');
             }
 
             return redirect()
-                ->route('dashboard', ['project_id' => $project->id])
+                ->route('problem-identification', $project->id)
                 ->with('error', 'Proyek tidak dapat diajukan pada status saat ini.');
         }
 
         $this->workspace->submitToLecturer($project->fresh());
 
         return redirect()
-            ->route('dashboard', ['project_id' => $project->id])
+            ->route('problem-identification', $project->id)
             ->with(
                 'success',
                 'Proyek berhasil diajukan ke dosen ('.$project->lecturer_email.'). Status proyek: In Review.'

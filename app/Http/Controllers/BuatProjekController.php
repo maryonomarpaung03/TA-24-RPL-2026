@@ -34,13 +34,13 @@ class BuatProjekController extends Controller
 
         if ($project->status !== 'draft') {
             return redirect()
-                ->route('dashboard', ['project_id' => $project->id])
+                ->route('problem-identification', $project->id)
                 ->with('info', 'Hanya proyek berstatus draft yang dapat diedit.');
         }
 
         if ((int) $project->created_by !== (int) Auth::id()) {
             return redirect()
-                ->route('dashboard', ['project_id' => $project->id])
+                ->route('problem-identification', $project->id)
                 ->with('error', 'Hanya pembuat proyek yang dapat mengedit draft.');
         }
 
@@ -185,14 +185,14 @@ class BuatProjekController extends Controller
 
             if ($project->status !== 'draft') {
                 return redirect()
-                    ->route('dashboard', ['project_id' => $project->id])
+                    ->route('problem-identification', $project->id)
                     ->with('info', 'Proyek sudah diajukan dan berstatus In Review.');
             }
 
             $this->workspace->submitToLecturer($project);
 
             return redirect()
-                ->route('dashboard', ['project_id' => $project->id])
+                ->route('problem-identification', $project->id)
                 ->with('success', 'Proyek berhasil diajukan ke dosen. Status proyek: In Review.');
         }
 
@@ -201,7 +201,7 @@ class BuatProjekController extends Controller
             : 'Perubahan draft berhasil disimpan.';
 
         return redirect()
-            ->route('dashboard', ['project_id' => $project->id])
+            ->route('problem-identification', $project->id)
             ->with('success', $message);
     }
 

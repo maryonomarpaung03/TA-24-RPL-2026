@@ -128,7 +128,7 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-                    <a href="{{ route('projek-saya') }}"
+                    <a href="{{ route('my-project') }}"
                        class="text-center bg-gray-200 text-gray-700 px-8 py-2.5 rounded-full font-bold text-sm hover:bg-gray-300 transition">
                         Batal
                     </a>

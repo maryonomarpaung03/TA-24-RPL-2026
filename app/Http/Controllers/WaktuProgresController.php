@@ -15,7 +15,7 @@ class WaktuProgresController extends Controller
 
         if (! $selected) {
             return redirect()
-                ->route('projek-saya')
+                ->route('my-project')
                 ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
         }
 

@@ -19,7 +19,7 @@
                     <div>
                         <h2 class="text-2xl font-bold text-gray-900">{{ $namaProjek }}</h2>
                         <nav class="text-[10px] text-gray-400 mt-1 font-bold uppercase">
-                            <a href="{{ route('projek-saya') }}" class="hover:text-blue-500">projek saya</a> / 
+                            <a href="{{ route('my-project') }}" class="hover:text-blue-500">projek saya</a> / 
                             <span class="text-blue-500">waktu progres</span>
                         </nav>
                     </div>
@@ -28,7 +28,7 @@
                         <div x-show="openGear" @click.outside="openGear = false" class="absolute right-0 mt-2 w-48 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden">
                             <a href="#" class="block px-4 py-3 text-sm hover:bg-gray-50 border-b">Detail Projek</a>
                             <a href="#" class="block px-4 py-3 text-sm hover:bg-gray-50 border-b">Edit Projek</a>
-                            <a href="{{ route('projek-saya') }}" class="block px-4 py-3 text-sm text-red-500 hover:bg-red-50">Keluar</a>
+                            <a href="{{ route('my-project') }}" class="block px-4 py-3 text-sm text-red-500 hover:bg-red-50">Keluar</a>
                         </div>
                     </div>
                 </div>

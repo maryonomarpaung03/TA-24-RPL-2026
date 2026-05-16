@@ -22,7 +22,7 @@ class EnsureProjectPjblAccess
 
         if (! $project) {
             return redirect()
-                ->route('projek-saya')
+                ->route('my-project')
                 ->with('error', 'Proyek tidak ditemukan.');
         }
 
@@ -41,7 +41,7 @@ class EnsureProjectPjblAccess
             : 'Proyek belum dapat dilanjutkan karena sedang dalam review oleh dosen.';
 
         return redirect()
-            ->route('dashboard', ['project_id' => $project->id])
+            ->route('problem-identification', $project->id)
             ->with('pjbl_locked', $message);
     }
 }
