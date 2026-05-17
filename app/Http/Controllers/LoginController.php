@@ -20,9 +20,11 @@ class LoginController extends Controller
         langsung dashboard
         */
         if (Auth::check()) {
-            return redirect()->route(
-                'dashboard'
-            );
+            if (Auth::user()->role === 'lecturer') {
+                return redirect()->route('dosen.dashboard');
+            }
+
+            return redirect()->route('dashboard');
         }
 
         return view('auth.login');
@@ -69,7 +71,7 @@ class LoginController extends Controller
     $user = Auth::user();
 
     if ($user && $user->role === 'lecturer') {
-        return redirect()->route('dosen.persetujuan');
+        return redirect()->route('dosen.dashboard');
     }
 
     return redirect()->route('dashboard');

@@ -31,7 +31,7 @@ class PenyusunanController extends Controller
 
         if (! $project || ! ProjectAccess::userCanAccess($this->currentUserId, $project)) {
             return redirect()
-                ->route('projek-saya')
+                ->route('my-project')
                 ->with('error', 'Projek tidak ditemukan atau Anda tidak memiliki akses.');
         }
 

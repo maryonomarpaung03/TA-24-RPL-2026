@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer('*', function ($view) {
             $request = request();
 
-            $projectId = $request->query('project_id') ?: $request->route('id');
+            $projectId = $request->route('id');
             $selected_project = ProjectCatalog::find($projectId);
 
             $notifCount = 0;

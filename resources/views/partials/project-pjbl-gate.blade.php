@@ -73,7 +73,7 @@
             <p class="text-slate-600 text-sm">Proyek belum dapat mengakses tahap PjBL pada status saat ini.</p>
         @endif
 
-        <a href="{{ route('projek-saya') }}" class="inline-block mt-8 text-sm font-semibold text-blue-600 hover:text-blue-700">
+        <a href="{{ route('my-project') }}" class="inline-block mt-8 text-sm font-semibold text-blue-600 hover:text-blue-700">
             ← Kembali ke Projek Saya
         </a>
     </div>

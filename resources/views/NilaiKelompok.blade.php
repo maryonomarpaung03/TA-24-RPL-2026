@@ -14,7 +14,7 @@
                     <div>
                         <h2 class="text-3xl font-bold text-gray-900 leading-tight">{{ $projectTitle }}</h2>
                         <nav class="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-tight">
-                            <a href="{{ route('projek-saya') }}" class="hover:text-blue-500">projek saya</a> / 
+                            <a href="{{ route('my-project') }}" class="hover:text-blue-500">projek saya</a> / 
                             <span class="text-gray-400">Pelaksanaan dan evaluasi</span>
                         </nav>
                     </div>

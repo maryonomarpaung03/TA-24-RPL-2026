@@ -55,7 +55,7 @@
 
                         <div class="flex flex-col">
                             <span class="text-xs font-bold uppercase mb-2 {{ $featuredProject['status'] === 'Draft' ? 'text-slate-500' : ($featuredProject['status'] === 'In Review' ? 'text-amber-600' : ($featuredProject['status'] === 'Done' ? 'text-orange-500' : ($featuredProject['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $featuredProject['status'] }}</span>
-                            <a href="{{ route('dashboard', ['project_id' => $featuredProject['id'], 'mode' => 'view']) }}" class="text-3xl font-bold text-gray-900 leading-tight hover:text-blue-600 transition">{{ $featuredProject['name'] }}</a>
+                            <a href="{{ route('problem-identification', $featuredProject['id']) }}" class="text-3xl font-bold text-gray-900 leading-tight hover:text-blue-600 transition">{{ $featuredProject['name'] }}</a>
                             <p class="text-gray-500 text-sm mt-3 mb-6">{{ $featuredProject['description'] }}</p>
 
                             <div class="mt-auto">
@@ -72,7 +72,7 @@
                                             <div class="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-600">{{ $m }}</div>
                                         @endforeach
                                     </div>
-                                    <a href="{{ route('dashboard', ['project_id' => $featuredProject['id'], 'mode' => 'view']) }}" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition">View Details <i class="fas fa-arrow-right text-[11px] ml-1"></i></a>
+                                    <a href="{{ route('problem-identification', $featuredProject['id']) }}" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition">View Details <i class="fas fa-arrow-right text-[11px] ml-1"></i></a>
                                 </div>
                             </div>
                         </div>
@@ -94,7 +94,7 @@
                             </div>
                         </div>
                         <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Draft' ? 'text-slate-500' : ($p['status'] === 'In Review' ? 'text-amber-600' : ($p['status'] === 'Done' ? 'text-orange-500' : ($p['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $p['label'] }}</div>
-                        <a href="{{ route('dashboard', ['project_id' => $p['id'], 'mode' => 'view']) }}" class="font-bold text-gray-900 hover:text-blue-600 transition">{{ $p['name'] }}</a>
+                        <a href="{{ route('problem-identification', $p['id']) }}" class="font-bold text-gray-900 hover:text-blue-600 transition">{{ $p['name'] }}</a>
                         <p class="text-xs text-gray-500 mt-2 mb-4 line-clamp-2">{{ $p['description'] }}</p>
                         <div class="text-[10px] font-black text-gray-400 uppercase mb-2">Progress</div>
                         <div class="w-full bg-gray-100 h-1.5 rounded-full mb-4">
@@ -106,7 +106,7 @@
                                     <div class="w-7 h-7 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-600">{{ $m }}</div>
                                 @endforeach
                             </div>
-                            <a href="{{ route('dashboard', ['project_id' => $p['id'], 'mode' => 'view']) }}" class="text-sm font-bold text-blue-600 hover:text-blue-700">Details <i class="fas fa-chevron-right text-[10px]"></i></a>
+                            <a href="{{ route('problem-identification', $p['id']) }}" class="text-sm font-bold text-blue-600 hover:text-blue-700">Details <i class="fas fa-chevron-right text-[10px]"></i></a>
                         </div>
                     </article>
                     @endforeach

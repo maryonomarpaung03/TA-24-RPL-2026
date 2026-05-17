@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ProjekSayaController;
 use App\Http\Controllers\BuatProjekController;
 use App\Http\Controllers\WaktuProgresController;
@@ -20,7 +21,6 @@ use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
 use App\Http\Controllers\NilaiDariDosenController;
 use App\Http\Controllers\ProjectChatController;
-use App\Http\Controllers\DekomposisiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -123,10 +123,6 @@ Route::middleware('auth')->group(function () {
             [DashboardController::class, 'index']
         )->name('dashboard');
 
-        Route::get('/projek-saya',
-            [ProjekSayaController::class, 'index']
-        )->name('projek-saya');
-
 });
 
     /*
@@ -135,8 +131,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/projek-saya', [ProjekSayaController::class, 'index'])
-        ->name('projek-saya');
+    Route::get('/my-project', [ProjekSayaController::class, 'index'])
+        ->name('my-project');
+
+    Route::redirect('/projek-saya', '/my-project');
 
     Route::get('/buat-projek', [BuatProjekController::class, 'index'])
         ->name('buat-projek');
@@ -149,6 +147,9 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/projek/{id}', [BuatProjekController::class, 'update'])
         ->name('projek.update');
+
+    Route::get('/dosen/dashboard', [\App\Http\Controllers\DosenDashboardController::class, 'index'])
+        ->name('dosen.dashboard');
 
     Route::get('/dosen/persetujuan-proyek', [\App\Http\Controllers\DosenApprovalController::class, 'index'])
         ->name('dosen.persetujuan');
@@ -167,6 +168,11 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('projek/{id}')
         ->group(function () {
+
+            Route::get(
+                '/problem-identification',
+                [DashboardController::class, 'problemIdentification']
+            )->name('problem-identification');
 
             Route::post(
                 '/ajukan-dosen',
@@ -272,9 +278,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifikasi', [\App\Http\Controllers\NotifikasiController::class, 'index'])
         ->name('notifikasi');
 
-    Route::get('/profil', function () {
-        return 'Profil';
-    })->name('profil');
+    Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
+    Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    Route::post('/classes/join', [StudentClassController::class, 'join'])->name('classes.join');
+    Route::post('/dosen/classes', [LecturerClassController::class, 'store'])->name('dosen.classes.store');
+
+    Route::redirect('/profil', '/settings')->name('profil');
 
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 });

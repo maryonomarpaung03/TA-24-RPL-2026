@@ -19,7 +19,7 @@
 
     <!-- Logo + User Initial -->
     <div class="p-6 text-center">
-        <a href="{{ route('dashboard') }}"
+        <a href="{{ auth()->user()->role === 'lecturer' ? route('dosen.dashboard') : route('dashboard') }}"
            class="inline-flex items-center justify-center flex-col gap-1">
 
             
@@ -40,42 +40,45 @@
     <!-- Navigation -->
     <nav class="flex-1 px-4 space-y-2 overflow-y-auto overflow-x-hidden min-h-0 pb-6">
 
-        <!-- Dashboard -->
-        <a href="{{ !empty($selected_project)
-                ? route('dashboard', ['project_id' => $selected_project['id']])
-                : route('dashboard') }}"
+        @if(auth()->user()->role === 'lecturer')
+        {{-- Menu dosen: Kelas (+), Dashboard, Approval Project --}}
+        @include('partials.dosen-class-menu')
+
+        <a href="{{ route('dosen.dashboard') }}"
            class="flex items-center gap-3 p-3 rounded-xl transition
-           {{ Request::routeIs('dashboard') || Request::routeIs('home')
+           {{ Request::routeIs('dosen.dashboard')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
-
             <i class="fas fa-th-large w-6 text-center"></i>
-
-            <span
-                x-show="sidebarOpen"
-                class="font-semibold"
-            >
-                Dashboard
-            </span>
+            <span x-show="sidebarOpen" class="font-semibold">Dashboard</span>
         </a>
 
-        @if(auth()->user()->role === 'lecturer')
-        <!-- Persetujuan Dosen -->
         <a href="{{ route('dosen.persetujuan') }}"
            class="flex items-center gap-3 p-3 rounded-xl transition
            {{ Request::routeIs('dosen.persetujuan*')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
             <i class="fas fa-user-check w-6 text-center"></i>
-            <span x-show="sidebarOpen" class="font-semibold">Persetujuan Proyek</span>
+            <span x-show="sidebarOpen" class="font-semibold">Approval Project</span>
         </a>
-        @endif
 
-        @if(auth()->user()->role !== 'lecturer')
-        <!-- Projects -->
-        <a href="{{ route('projek-saya') }}"
+        @else
+        {{-- Menu mahasiswa --}}
+        @include('partials.student-class-join')
+
+        <a href="{{ route('dashboard') }}"
            class="flex items-center gap-3 p-3 rounded-xl transition
-           {{ Request::routeIs('projek-saya')
+           {{ Request::routeIs('dashboard') || Request::routeIs('home')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+            <i class="fas fa-th-large w-6 text-center"></i>
+            <span x-show="sidebarOpen" class="font-semibold">Dashboard</span>
+        </a>
+
+        <!-- Projects -->
+        <a href="{{ route('my-project') }}"
+           class="flex items-center gap-3 p-3 rounded-xl transition
+           {{ Request::routeIs('my-project')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
 
@@ -93,9 +96,7 @@
 
         @php
             $pjblUnlocked = $selected_project['can_access_pjbl'] ?? false;
-            $wfIdentification =
-                Request::routeIs('dashboard')
-                || Request::routeIs('home');
+            $wfIdentification = Request::routeIs('problem-identification');
 
             $wfDecomposition =
                 Request::routeIs('dekomposisi');
@@ -161,16 +162,13 @@
                 </div>
 
                 @if(!$pjblUnlocked)
-                <a href="{{ route('dashboard', ['project_id' => $selected_project['id']]) }}"
-                   class="{{ Request::routeIs('dashboard') || Request::routeIs('home') ? $wfActive : $wfIdle }}">
+                <a href="{{ route('problem-identification', $selected_project['id']) }}"
+                   class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
                     <i class="fas fa-hourglass-half text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Status Proyek</span>
+                    <span x-show="sidebarOpen">Project Status</span>
                 </a>
                 @else
-                <a href="{{ route('dashboard', [
-                        'project_id' => $selected_project['id'],
-                        'mode' => 'view'
-                    ]) }}"
+                <a href="{{ route('problem-identification', $selected_project['id']) }}"
                    class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
 
                     <i class="fas fa-search text-lg w-5"></i>
@@ -230,7 +228,7 @@
                 </a>
                 @endif
 
-                <a href="{{ route('projek-saya') }}"
+                <a href="{{ route('my-project') }}"
                    class="mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-slate-200 bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
 
                     <i class="fas fa-exchange-alt text-lg w-5"></i>
@@ -246,7 +244,7 @@
         @endif
     </nav>
 
-    @if (auth()->user()->role !== 'lecturer' && !Request::routeIs('projek-saya'))
+    @if (auth()->user()->role !== 'lecturer' && !Request::routeIs('my-project'))
         <!-- Create Project -->
         <div class="px-4 py-4">
             <a href="{{ route('buat-projek') }}"
@@ -259,8 +257,9 @@
     <!-- Bottom Menu -->
     <div class="mt-auto px-4 pb-5 space-y-2">
 
-        <a href="{{ route('profil') }}"
-           class="flex items-center gap-3 rounded-3xl px-4 py-3 text-gray-600 hover:bg-gray-100 transition">
+        <a href="{{ route('settings') }}"
+           class="flex items-center gap-3 rounded-3xl px-4 py-3 transition
+           {{ Request::routeIs('settings*') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100' }}">
 
             <i class="fas fa-cog w-5 text-center"></i>
 

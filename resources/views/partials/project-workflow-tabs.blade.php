@@ -1,6 +1,6 @@
 @php
     $pid = $selected_project['id'];
-    $wfIdentification = Request::routeIs('dashboard') || Request::routeIs('home');
+    $wfIdentification = Request::routeIs('problem-identification');
     $wfDecomposition = Request::routeIs('dekomposisi');
     $wfPlanning = Request::routeIs('penyusunan') || Request::routeIs('tambah-tugas');
     $wfExecution = Request::routeIs('pelaksanaan') || Request::routeIs('waktu-progres');
@@ -19,7 +19,7 @@
             <span class="text-sm font-semibold text-slate-900 truncate">{{ $selected_project['name'] }}</span>
         </div>
         <nav class="flex gap-2 overflow-x-auto pb-0.5" aria-label="Alur kerja proyek">
-            <a href="{{ route('dashboard', ['project_id' => $pid, 'mode' => 'view']) }}" class="{{ $wfIdentification ? $tabActive : $tabIdle }}">
+            <a href="{{ route('problem-identification', $pid) }}" class="{{ $wfIdentification ? $tabActive : $tabIdle }}">
                 <i class="fas fa-search text-[11px]"></i>
                 Problem Identification
             </a>

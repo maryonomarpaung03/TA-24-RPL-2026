@@ -19,10 +19,7 @@ class DekomposisiController extends Controller
 
             return redirect()
                 ->route('projek-saya')
-                ->with(
-                    'error',
-                    'Proyek tidak ditemukan atau Anda tidak memiliki akses.'
-                );
+                ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
         }
 
         $user =
