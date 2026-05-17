@@ -48,9 +48,23 @@
         </a>
 
         <!-- Avatar -->
-        <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-sm text-sm">
+        <a
+    href="{{ route('profil') }}"
+    class="block"
+>
+    <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-sm text-sm overflow-hidden">
+
+        @if(!empty($loggedUser?->profile_photo))
+            <img
+                src="{{ asset($loggedUser->profile_photo) }}"
+                class="w-full h-full object-cover"
+            >
+        @else
             {{ $initials }}
-        </div>
+        @endif
+
+    </div>
+</a>
 
     </div>
 

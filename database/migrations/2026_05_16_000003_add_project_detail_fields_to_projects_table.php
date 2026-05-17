@@ -14,7 +14,7 @@ return new class extends Migration
 
         Schema::table('projects', function (Blueprint $table) {
             if (! Schema::hasColumn('projects', 'group_name')) {
-                $table->string('group_name')->nullable()->after('name');
+                $table->string('group_name')->nullable()->after('title');
             }
 
             if (! Schema::hasColumn('projects', 'course_name')) {

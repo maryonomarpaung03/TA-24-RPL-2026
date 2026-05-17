@@ -491,8 +491,17 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
                     });
                 });
             });
-            return { nodes, connections: Array.from(connectionsMap.values()) };
-        },
+            return { nodes,
+
+                connections:
+                    Array.from(
+                        connectionsMap.values()
+                    ),
+
+                comments:
+                    this.comments
+                    || []};
+            },
         async persistDiagram() {
             if (!this.syncUrl || !this.csrfToken) return;
             const payload = this.getPersistPayload();
@@ -560,18 +569,45 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.editTopicId = null;
         },
         removeTopic(topicId) {
-            if (!this.editor) return;
-            this.editor.removeNodeId(`node-${topicId}`);
+
+            if (!this.editor) {
+                return;
+            }
+
+            this.editor.removeNodeId(
+                `node-${topicId}`
+            );
+
             this.syncTopicList();
+
+            this.persistDiagram();
         },
         submitComment() {
-            if (!this.newComment.trim()) return;
+
+            if (
+                !this.newComment.trim()
+            ) {
+                return;
+            }
+
             this.comments.push({
-                id: Date.now(),
-                author: this.userInitials,
-                text: this.newComment.trim()
+
+                id:
+                    Date.now(),
+
+                author:
+                    this.userInitials,
+
+                text:
+                    this.newComment.trim()
             });
+
             this.newComment = '';
+
+            /*
+            autosave
+            */
+            this.persistDiagram();
         },
         addTopic() {
             if (!this.newTopicText.trim() || !this.editor) return;

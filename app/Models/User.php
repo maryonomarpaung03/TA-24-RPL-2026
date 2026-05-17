@@ -28,8 +28,7 @@ use Illuminate\Notifications\Notifiable;
     'gender',
     'jurusan',
     'fakultas',
-    'created_at',
-    'updated_at',
+    'remember_token'
 ])]
 
 #[Hidden([

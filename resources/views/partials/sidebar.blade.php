@@ -14,7 +14,7 @@
 
 <aside
     :class="sidebarOpen ? 'w-64' : 'w-20'"
-    class="bg-white shadow-md h-screen sticky top-0 transition-all duration-300 flex flex-col"
+    class="bg-white shadow-md h-screen sticky top-0 transition-all duration-300 flex flex-col overflow-hidden"
 >
 
     <!-- Logo + User Initial -->
@@ -22,10 +22,7 @@
         <a href="{{ route('dashboard') }}"
            class="inline-flex items-center justify-center flex-col gap-1">
 
-            <!-- Avatar -->
-            <div class="flex items-center justify-center mx-auto h-12 w-12 rounded-3xl bg-blue-600 text-white text-xl font-bold">
-                {{ $initials }}
-            </div>
+            
 
             <h1 class="text-xl font-bold text-blue-600">
                 DELPRO
@@ -41,7 +38,7 @@
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 px-4 space-y-2">
+    <nav class="flex-1 px-4 space-y-2 overflow-y-auto overflow-x-hidden min-h-0 pb-6">
 
         <!-- Dashboard -->
         <a href="{{ !empty($selected_project)

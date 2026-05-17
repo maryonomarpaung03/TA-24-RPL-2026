@@ -80,6 +80,7 @@ class BuatProjekController extends Controller
 
             $project = Project::create([
                 'name' => $validated['judul'],
+                'title' =>$validated['judul'],
                 'group_name' => $validated['group_name'],
                 'course_name' => $validated['course_name'],
                 'description' => $description,

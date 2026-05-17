@@ -181,19 +181,43 @@ class ProjectAccess
      */
     public static function teamMembersForProject(int $projectId): array
     {
-        $members = DB::table('project_members')
-            ->join('users', 'project_members.user_id', '=', 'users.id')
-            ->where('project_members.project_id', $projectId)
-            ->select('users.full_name', 'users.name', 'project_members.role')
-            ->orderBy('project_members.id')
-            ->get()
-            ->map(fn ($row) => [
-                'initials' => self::initialsFromName($row->full_name ?: $row->name),
-                'name' => $row->full_name ?: $row->name ?: 'Anggota',
-                'role' => $row->role === 'owner' ? 'Pembuat Proyek' : 'Anggota',
-            ])
-            ->values()
-            ->all();
+       $members = DB::table('project_members')
+    ->join(
+        'users',
+        'project_members.user_id',
+        '=',
+        'users.id'
+    )
+    ->where(
+        'project_members.project_id',
+        $projectId
+    )
+    ->select(
+        'users.full_name',
+        'project_members.project_role'
+    )
+    ->orderBy(
+        'project_members.id'
+    )
+    ->get()
+    ->map(fn ($row) => [
+
+        'initials' =>
+            self::initialsFromName(
+                $row->full_name
+            ),
+
+        'name' =>
+            $row->full_name
+            ?: 'Anggota',
+
+        'role' =>
+            $row->project_role === 'owner'
+                ? 'Pembuat Proyek'
+                : 'Anggota',
+    ])
+    ->values()
+    ->all();
 
         if ($members !== []) {
             return $members;

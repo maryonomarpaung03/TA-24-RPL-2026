@@ -171,74 +171,183 @@ class DashboardController extends Controller
         ];
 
         /*
-        sementara dummy
-        nanti ambil dari tasks
-        */
-        $bar_chart_data = [
-            'To Do' => 4,
-            'In Progress' => 3,
-            'Done' => 1
-        ];
+==================================
+BAR CHART TASK REAL DATABASE
+==================================
+*/
+$taskSummary = DB::table('tasks')
+    ->join(
+        'projects',
+        'tasks.project_id',
+        '=',
+        'projects.id'
+    )
+    ->where(
+        'projects.created_by',
+        $loggedUser->id
+    )
+    ->selectRaw('
+        SUM(
+            CASE
+                WHEN tasks.status = "pending"
+                THEN 1
+                ELSE 0
+            END
+        ) as todo_count,
+
+        SUM(
+            CASE
+                WHEN tasks.status = "in_progress"
+                THEN 1
+                ELSE 0
+            END
+        ) as progress_count,
+
+        SUM(
+            CASE
+                WHEN tasks.status = "completed"
+                THEN 1
+                ELSE 0
+            END
+        ) as done_count
+    ')
+    ->first();
+
+/*
+chart tidak naik
+kalau task kosong
+*/
+$bar_chart_data = [
+
+    'To Do' =>
+        (int) (
+            $taskSummary
+                ->todo_count
+            ?? 0
+        ),
+
+    'In Progress' =>
+        (int) (
+            $taskSummary
+                ->progress_count
+            ?? 0
+        ),
+
+    'Done' =>
+        (int) (
+            $taskSummary
+                ->done_count
+            ?? 0
+        ),
+];
 
         /*
-        project ongoing
+==================================
+PROJECT BERLANGSUNG
+==================================
+*/
+$ongoing_projects =
+    Project::where(
+        'created_by',
+        $loggedUser->id
+    )
+    ->whereIn(
+        'status',
+        [
+            'draft',
+            'pending_approval',
+            'active'
+        ]
+    )
+    ->latest()
+    ->take(5)
+    ->get()
+    ->map(function (
+        $project
+    ) {
+
+        /*
+        progress dari task
         */
-        $ongoing_projects =
-            Project::where(
-                'created_by',
-                $loggedUser->id
+        $taskCount =
+            DB::table('tasks')
+            ->where(
+                'project_id',
+                $project->id
+            )
+            ->count();
+
+        $completedTasks =
+            DB::table('tasks')
+            ->where(
+                'project_id',
+                $project->id
             )
             ->where(
                 'status',
-                'active'
+                'completed'
             )
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(function (
-                $project
-            ) {
+            ->count();
 
-                return [
-                    'name' =>
-                        $project
-                            ->title,
+        $progress =
+            $taskCount > 0
+            ? round(
+                (
+                    $completedTasks
+                    / $taskCount
+                ) * 100
+            )
+            : 0;
 
-                    'deadline' =>
-                        $project
-                            ->end_date
-                        ? \Carbon\Carbon::parse(
-                            $project
-                                ->end_date
-                        )->format(
-                            'd M Y'
-                        )
-                        : '-',
+        return [
 
-                    'progress' =>
-                        60
-                ];
-            })
-            ->toArray();
+            'id' =>
+                $project->id,
+
+            'name' =>
+                $project->title,
+
+            'deadline' =>
+                $project->end_date
+                ? \Carbon\Carbon::parse(
+                    $project
+                        ->end_date
+                )->format(
+                    'd M Y'
+                )
+                : '-',
+
+            'progress' =>
+                $progress
+        ];
+    })
+    ->toArray();
 
         /*
         deadline task <= 7 hari
-        */
-        $deadlines =
-            DB::table('tasks')
-            ->join(
-                'projects',
-                'tasks.project_id',
-                '=',
-                'projects.id'
-            )
-            ->where(
-                'projects.created_by',
-                $loggedUser->id
-            )
-            ->whereNotNull(
-                'tasks.due_date'
-            )
+                */
+                $deadlines =
+                    DB::table('tasks')
+                    ->join(
+                        'projects',
+                        'tasks.project_id',
+                        '=',
+                        'projects.id'
+                    )
+                    ->where(
+                        'projects.created_by',
+                        $loggedUser->id
+                    )
+                    ->whereIn(
+            'tasks.status',
+            [
+                'pending',
+                'in_progress'
+            ]
+        )
+        ->whereNotNull(
+            'tasks.due_date'
+                    )
             ->get()
             ->filter(function (
                 $task

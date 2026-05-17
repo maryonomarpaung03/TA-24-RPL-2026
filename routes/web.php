@@ -20,6 +20,7 @@ use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
 use App\Http\Controllers\NilaiDariDosenController;
 use App\Http\Controllers\ProjectChatController;
+use App\Http\Controllers\DekomposisiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +55,7 @@ Route::post(
     '/logout',
     [LoginController::class, 'destroy']
 )->name('logout');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -258,6 +260,8 @@ Route::middleware('auth')->group(function () {
                 [ProjectChatController::class, 'send']
             )->name('project-chat.send');
         });
+        /*
+
 
     /*
     |--------------------------------------------------------------------------

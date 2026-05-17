@@ -61,29 +61,166 @@ class ProjectWorkspaceService
             ]);
         }
 
-        if (! DB::table('milestones')->where('project_id', $project->id)->exists()) {
-            DB::table('milestones')->insert([
-                'project_id' => $project->id,
-                'name' => 'Tahap awal',
-                'phase' => 'perencanaan',
-                'created_at' => now(),
-                'updated_at' => now(),
+        /*
+====================================
+MILESTONE DEFAULT
+compatible semua schema
+====================================
+*/
+try {
+
+    /*
+    cek apakah schema milestones
+    pakai timeline_id
+    */
+    $hasTimelineId =
+        DB::getSchemaBuilder()
+        ->hasColumn(
+            'milestones',
+            'timeline_id'
+        );
+
+    /*
+    ==================================
+    SCHEMA TAPJBLCT (DB kamu)
+    ==================================
+    */
+    if ($hasTimelineId) {
+
+        /*
+        cari timeline
+        */
+        $timelineId =
+            DB::table(
+                'timelines'
+            )
+            ->where(
+                'project_id',
+                $project->id
+            )
+            ->value('id');
+
+        /*
+        buat timeline jika belum ada
+        */
+        if (!$timelineId) {
+
+            $timelineId =
+                DB::table(
+                    'timelines'
+                )->insertGetId([
+
+                    'project_id' =>
+                        $project->id,
+
+                    'created_at' =>
+                        now(),
+                ]);
+        }
+
+        /*
+        cek milestone
+        */
+        $exists =
+            DB::table(
+                'milestones'
+            )
+            ->where(
+                'timeline_id',
+                $timelineId
+            )
+            ->exists();
+
+        /*
+        buat milestone default
+        */
+        if (!$exists) {
+
+            DB::table(
+                'milestones'
+            )->insert([
+
+                'timeline_id' =>
+                    $timelineId,
+
+                'title' =>
+                    'Tahap awal',
+
+                'description' =>
+                    'Milestone awal proyek',
+
+                'due_date' =>
+                    now()
+                    ->addMonth()
+                    ->toDateString(),
+
+                'status' =>
+                    'pending',
+
+                'progress_percent' =>
+                    0,
+
+                'created_at' =>
+                    now(),
             ]);
         }
 
-        if ($lecturerEmail !== '') {
-            DB::table('project_notifications')->insert([
-                'project_id' => $project->id,
-                'recipient_email' => $lecturerEmail,
-                'type' => 'project_created',
-                'title' => 'Proyek baru menunggu pengajuan',
-                'message' => 'Mahasiswa membuat proyek "'.$project->title.'". Proyek akan muncul untuk persetujuan setelah diajukan.',
-                'created_at' => now(),
-                'updated_at' => now(),
+    }
+
+    /*
+    ==================================
+    SCHEMA BARU GITHUB TIM
+    ==================================
+    */
+    else {
+
+        $exists =
+            DB::table(
+                'milestones'
+            )
+            ->where(
+                'project_id',
+                $project->id
+            )
+            ->exists();
+
+        if (!$exists) {
+
+            DB::table(
+                'milestones'
+            )->insert([
+
+                'project_id' =>
+                    $project->id,
+
+                'name' =>
+                    'Tahap awal',
+
+                'phase' =>
+                    'perencanaan',
+
+                'created_at' =>
+                    now(),
+
+                'updated_at' =>
+                    now(),
             ]);
         }
     }
 
+    } catch (
+            \Throwable $e
+    ) {
+
+    \Log::error(
+        'Milestone init failed',
+            [
+                'error' =>
+                    $e->getMessage()
+            ]
+        );
+    }
+}
     public function submitToLecturer(Project $project): void
     {
         if ($project->status !== 'draft') {
