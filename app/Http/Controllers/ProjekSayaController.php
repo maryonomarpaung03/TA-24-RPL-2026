@@ -51,6 +51,7 @@ class ProjekSayaController extends Controller
             $filterKey = $filterMap[$project->status] ?? 'planning';
             $members = ProjectAccess::memberInitials($project->id);
             $memberCount = max(1, count($members));
+            $media = ProjectAccess::projectMediaPreview($project->logo, $project->description);
 
             return [
                 'id' => $project->id,
@@ -66,12 +67,15 @@ class ProjekSayaController extends Controller
                     'completed' => 100,
                     default => 0,
                 },
-                'description' => $project->description ?? 'Belum ada deskripsi proyek.',
+                'description' => ProjectAccess::shortDescription($project->description),
                 'created_at' => Carbon::parse($project->created_at)->format('d/m/Y'),
                 'member_count' => $memberCount,
                 'members' => $members,
                 'featured' => $index === 0,
-                'logo' => $project->logo,
+                'preview_url' => $media['preview_url'],
+                'attachment_url' => $media['attachment_url'],
+                'attachment_kind' => $media['attachment_kind'],
+                'has_media' => $media['has_media'],
                 'lecturer_email' => $project->lecturer_email,
             ];
         })->toArray();

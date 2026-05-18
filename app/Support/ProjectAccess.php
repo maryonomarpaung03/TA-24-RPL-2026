@@ -6,6 +6,8 @@ use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProjectAccess
 {
@@ -181,43 +183,19 @@ class ProjectAccess
      */
     public static function teamMembersForProject(int $projectId): array
     {
-       $members = DB::table('project_members')
-    ->join(
-        'users',
-        'project_members.user_id',
-        '=',
-        'users.id'
-    )
-    ->where(
-        'project_members.project_id',
-        $projectId
-    )
-    ->select(
-        'users.full_name',
-        'project_members.project_role'
-    )
-    ->orderBy(
-        'project_members.id'
-    )
-    ->get()
-    ->map(fn ($row) => [
-
-        'initials' =>
-            self::initialsFromName(
-                $row->full_name
-            ),
-
-        'name' =>
-            $row->full_name
-            ?: 'Anggota',
-
-        'role' =>
-            $row->project_role === 'owner'
-                ? 'Pembuat Proyek'
-                : 'Anggota',
-    ])
-    ->values()
-    ->all();
+        $members = DB::table('project_members')
+            ->join('users', 'project_members.user_id', '=', 'users.id')
+            ->where('project_members.project_id', $projectId)
+            ->select('users.full_name', 'users.name', 'project_members.role')
+            ->orderBy('project_members.id')
+            ->get()
+            ->map(fn ($row) => [
+                'initials' => self::initialsFromName($row->full_name ?: $row->name),
+                'name' => $row->full_name ?: $row->name ?: 'Anggota',
+                'role' => $row->role === 'owner' ? 'Pembuat Proyek' : 'Anggota',
+            ])
+            ->values()
+            ->all();
 
         if ($members !== []) {
             return $members;
@@ -254,5 +232,93 @@ class ProjectAccess
         }
 
         return 'U';
+    }
+
+    public static function extractAttachmentUrl(?string $description): ?string
+    {
+        if (preg_match('/\[Lampiran: ([^\]]+)\]/', (string) $description, $m)) {
+            return trim($m[1]);
+        }
+
+        return null;
+    }
+
+    public static function resolvePublicUrl(?string $pathOrUrl): ?string
+    {
+        if ($pathOrUrl === null || $pathOrUrl === '') {
+            return null;
+        }
+
+        if (str_starts_with($pathOrUrl, 'http://') || str_starts_with($pathOrUrl, 'https://')) {
+            return $pathOrUrl;
+        }
+
+        return Storage::disk('public')->url(ltrim($pathOrUrl, '/'));
+    }
+
+    public static function isImageUrl(?string $url): bool
+    {
+        if ($url === null || $url === '') {
+            return false;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH) ?? $url;
+
+        return (bool) preg_match('/\.(jpe?g|png|gif|webp|bmp|svg)$/i', $path);
+    }
+
+    /**
+     * @return array{preview_url: ?string, attachment_url: ?string, attachment_kind: ?string, has_media: bool}
+     */
+    public static function projectMediaPreview(?string $logo, ?string $description): array
+    {
+        $attachmentUrl = self::resolvePublicUrl(self::extractAttachmentUrl($description));
+        $logoUrl = self::resolvePublicUrl($logo);
+
+        foreach ([$logoUrl, $attachmentUrl] as $url) {
+            if ($url && self::isImageUrl($url)) {
+                return [
+                    'preview_url' => $url,
+                    'attachment_url' => $attachmentUrl ?? $logoUrl,
+                    'attachment_kind' => 'image',
+                    'has_media' => true,
+                ];
+            }
+        }
+
+        $fileUrl = $attachmentUrl ?? $logoUrl;
+
+        if ($fileUrl) {
+            $path = parse_url($fileUrl, PHP_URL_PATH) ?? $fileUrl;
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+            return [
+                'preview_url' => null,
+                'attachment_url' => $fileUrl,
+                'attachment_kind' => in_array($ext, ['pdf'], true) ? 'pdf' : 'file',
+                'has_media' => true,
+            ];
+        }
+
+        return [
+            'preview_url' => null,
+            'attachment_url' => null,
+            'attachment_kind' => null,
+            'has_media' => false,
+        ];
+    }
+
+    public static function shortDescription(?string $description, int $limit = 120): string
+    {
+        $parsed = self::parseProjectDescription($description);
+        $text = $parsed['deskripsi'] ?: Str::of((string) $description)->before("\n\n--- Masalah utama ---")->toString();
+
+        $text = trim(preg_replace('/\n\n\[Lampiran:[^\]]+\]/', '', $text) ?? $text);
+
+        if ($text === '') {
+            return 'Belum ada deskripsi proyek.';
+        }
+
+        return Str::limit($text, $limit);
     }
 }
