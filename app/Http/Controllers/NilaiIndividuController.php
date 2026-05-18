@@ -21,6 +21,14 @@ class NilaiIndividuController extends Controller
         $user = PjblContext::viewer();
         $authUser = Auth::user();
 
+        $emptyGroupSummary = [
+            'overall_score' => '-',
+            'grade' => '-',
+            'status' => 'BELUM DINILAI',
+            'evaluated_at' => '-',
+            'evaluator' => '-',
+        ];
+
         return view('NilaiIndividu', [
             'user' => $user,
             'namaProjek' => $selected['name'],
@@ -40,12 +48,12 @@ class NilaiIndividuController extends Controller
             'performanceStatus' => 'BELUM DINILAI',
             'skillsMastery' => [],
             'systemInteractions' => [],
-            'lecturerFeedback' => null,
+            'lecturerFeedback' => 'Belum ada umpan balik dari dosen untuk proyek ini.',
             'submittedDate' => null,
-            'groupEvaluationSummary' => null,
+            'groupEvaluationSummary' => $emptyGroupSummary,
             'groupEvaluationComponents' => [],
             'groupMemberScores' => [],
-            'groupLecturerNote' => null,
+            'groupLecturerNote' => 'Belum ada catatan penilaian kelompok dari dosen.',
             'hasEvaluation' => false,
         ]);
     }

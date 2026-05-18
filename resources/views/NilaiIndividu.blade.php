@@ -159,22 +159,27 @@
                         <div class="mb-6 flex items-center justify-between gap-3">
                             <h3 class="text-lg font-bold text-slate-900">Group Evaluation</h3>
                         </div>
+                        @unless($hasEvaluation ?? false)
+                        <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            Penilaian kelompok belum tersedia. Data akan muncul setelah dosen menilai proyek ini.
+                        </div>
+                        @endunless
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                             <div class="rounded-xl bg-blue-50 border border-blue-200 p-4">
                                 <p class="text-[11px] font-bold text-slate-500 uppercase">Nilai Kelompok</p>
-                                <p class="mt-2 text-2xl font-bold text-blue-700">{{ $groupEvaluationSummary['overall_score'] }}</p>
+                                <p class="mt-2 text-2xl font-bold text-blue-700">{{ $groupEvaluationSummary['overall_score'] ?? '-' }}</p>
                             </div>
                             <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
                                 <p class="text-[11px] font-bold text-slate-500 uppercase">Grade</p>
-                                <p class="mt-2 text-2xl font-bold text-slate-900">{{ $groupEvaluationSummary['grade'] }}</p>
+                                <p class="mt-2 text-2xl font-bold text-slate-900">{{ $groupEvaluationSummary['grade'] ?? '-' }}</p>
                             </div>
                             <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
                                 <p class="text-[11px] font-bold text-slate-500 uppercase">Status</p>
-                                <p class="mt-2 text-lg font-bold text-emerald-700">{{ $groupEvaluationSummary['status'] }}</p>
+                                <p class="mt-2 text-lg font-bold text-emerald-700">{{ $groupEvaluationSummary['status'] ?? '-' }}</p>
                             </div>
                             <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
                                 <p class="text-[11px] font-bold text-slate-500 uppercase">Tanggal Nilai</p>
-                                <p class="mt-2 text-sm font-bold text-slate-900">{{ $groupEvaluationSummary['evaluated_at'] }}</p>
+                                <p class="mt-2 text-sm font-bold text-slate-900">{{ $groupEvaluationSummary['evaluated_at'] ?? '-' }}</p>
                             </div>
                         </div>
 
@@ -216,7 +221,7 @@
                         <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                             <h4 class="text-sm font-bold text-slate-900 mb-3">Catatan Dosen</h4>
                             <p class="text-sm leading-relaxed text-slate-600">{{ $groupLecturerNote }}</p>
-                            <p class="mt-4 text-xs font-semibold text-slate-500">Evaluator: {{ $groupEvaluationSummary['evaluator'] }}</p>
+                            <p class="mt-4 text-xs font-semibold text-slate-500">Evaluator: {{ $groupEvaluationSummary['evaluator'] ?? '-' }}</p>
                         </div>
 
                         <div class="flex gap-3">

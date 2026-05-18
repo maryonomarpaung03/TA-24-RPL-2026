@@ -12,7 +12,7 @@
     jurusanList() {
         return this.fakultas && this.programs[this.fakultas] ? this.programs[this.fakultas] : [];
     }
-}" class="space-y-4">
+}" class="{{ $wrapperClass ?? 'space-y-4' }}">
     <div>
         <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Fakultas</label>
         <select name="fakultas" x-model="fakultas" @change="jurusan = ''" required class="{{ $selectClass }}">

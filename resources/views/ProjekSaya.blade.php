@@ -41,22 +41,21 @@
                     class="bg-white rounded-[2rem] border p-6 shadow-sm mb-8"
                 >
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-[#e7f1e7] rounded-xl p-4 border border-[#b8d2b8]">
-                            <div class="bg-blue-600 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase inline-block mb-3">Featured Project</div>
-                            <div class="h-44 rounded-lg border bg-white border-[#c4d8c4] p-3">
-                                <div class="h-full grid grid-cols-4 gap-2">
-                                    <div class="bg-gray-100 rounded"></div>
-                                    <div class="bg-gray-100 rounded"></div>
-                                    <div class="bg-gray-100 rounded"></div>
-                                    <div class="bg-gray-100 rounded"></div>
-                                </div>
-                            </div>
+                        <div>
+                            @include('partials.project-card-media', [
+                                'variant' => 'featured',
+                                'previewUrl' => $featuredProject['preview_url'] ?? null,
+                                'attachmentUrl' => $featuredProject['attachment_url'] ?? null,
+                                'attachmentKind' => $featuredProject['attachment_kind'] ?? null,
+                                'hasMedia' => $featuredProject['has_media'] ?? false,
+                                'projectName' => $featuredProject['name'],
+                            ])
                         </div>
 
                         <div class="flex flex-col">
                             <span class="text-xs font-bold uppercase mb-2 {{ $featuredProject['status'] === 'Draft' ? 'text-slate-500' : ($featuredProject['status'] === 'In Review' ? 'text-amber-600' : ($featuredProject['status'] === 'Done' ? 'text-orange-500' : ($featuredProject['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $featuredProject['status'] }}</span>
                             <a href="{{ route('problem-identification', $featuredProject['id']) }}" class="text-3xl font-bold text-gray-900 leading-tight hover:text-blue-600 transition">{{ $featuredProject['name'] }}</a>
-                            <p class="text-gray-500 text-sm mt-3 mb-6">{{ $featuredProject['description'] }}</p>
+                            <p class="text-gray-500 text-sm mt-3 mb-6 line-clamp-3">{{ $featuredProject['description'] }}</p>
 
                             <div class="mt-auto">
                                 <div class="flex items-center justify-between mb-2">
@@ -86,12 +85,15 @@
                         x-show="statusFilter === 'all' || statusFilter === '{{ $p['filter_key'] }}'"
                         class="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition"
                     >
-                        <div class="bg-[#e7f1e7] rounded-lg border border-[#b8d2b8] h-32 mb-4 p-2">
-                            <div class="grid grid-cols-3 gap-2 h-full">
-                                <div class="bg-white/80 rounded"></div>
-                                <div class="bg-white/80 rounded"></div>
-                                <div class="bg-white/80 rounded"></div>
-                            </div>
+                        <div class="mb-4">
+                            @include('partials.project-card-media', [
+                                'variant' => 'card',
+                                'previewUrl' => $p['preview_url'] ?? null,
+                                'attachmentUrl' => $p['attachment_url'] ?? null,
+                                'attachmentKind' => $p['attachment_kind'] ?? null,
+                                'hasMedia' => $p['has_media'] ?? false,
+                                'projectName' => $p['name'],
+                            ])
                         </div>
                         <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Draft' ? 'text-slate-500' : ($p['status'] === 'In Review' ? 'text-amber-600' : ($p['status'] === 'Done' ? 'text-orange-500' : ($p['status'] === 'Planning' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $p['label'] }}</div>
                         <a href="{{ route('problem-identification', $p['id']) }}" class="font-bold text-gray-900 hover:text-blue-600 transition">{{ $p['name'] }}</a>
