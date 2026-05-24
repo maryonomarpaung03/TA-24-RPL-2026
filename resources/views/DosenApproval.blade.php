@@ -3,7 +3,7 @@
 @section('title', 'Approval Project - DELPRO')
 
 @section('content')
-<div class="flex-1 p-6">
+<div class="w-full">
 
     @include('partials.flash-messages')
 

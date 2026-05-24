@@ -13,7 +13,7 @@
 @endpush
 
 @section('content')
-<div class="p-6 space-y-6 overflow-y-auto">
+<div class="w-full space-y-6">
                 <!-- 2 & 3. Judul & Breadcrumb -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
                     <div>

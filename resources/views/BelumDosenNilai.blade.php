@@ -3,7 +3,7 @@
 @section('title', 'Penilaian Dosen - DELPRO')
 
 @section('content')
-<div class="p-6 space-y-6">
+<div class="w-full space-y-6">
                 <!-- Project Name Header Card -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
                     <div>

@@ -4,7 +4,7 @@
 @section('root_data', "{ sidebarOpen: true }")
 
 @section('content')
-<div class="p-6"
+<div class="w-full"
 x-data="{
     addModal:false,
     commentModal:false,

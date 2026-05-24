@@ -7,7 +7,7 @@
 @endpush
 
 @section('content')
-<div class="flex-1 p-6 overflow-y-auto" x-data="{ editMode: @js($editMode) }">
+<div class="w-full" x-data="{ editMode: @js($editMode) }">
     <div class="w-full space-y-6">
         <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

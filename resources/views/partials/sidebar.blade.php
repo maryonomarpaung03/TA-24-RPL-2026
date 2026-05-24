@@ -62,6 +62,15 @@
             <span x-show="sidebarOpen" class="font-semibold">Approval Project</span>
         </a>
 
+        <a href="{{ route('dosen.proyek-mahasiswa') }}"
+           class="flex items-center gap-3 p-3 rounded-xl transition
+           {{ Request::routeIs('dosen.proyek-mahasiswa*')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+            <i class="fas fa-graduation-cap w-6 text-center"></i>
+            <span x-show="sidebarOpen" class="font-semibold">Proyek Mahasiswa</span>
+        </a>
+
         @else
         {{-- Menu mahasiswa --}}
         @include('partials.student-class-join')
