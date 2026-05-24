@@ -14,7 +14,7 @@ return new class extends Migration
 
         Schema::create('academic_classes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('lecturer_id')->constrained('users')->cascadeOnDelete();
+            $table->bigInteger('lecturer_id');
             $table->string('name');
             $table->string('course_name');
             $table->string('join_code', 12)->unique();

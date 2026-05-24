@@ -36,6 +36,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisterController::class, 'store']);
 });
 
+
+
 /*
 |--------------------------------------------------------------------------
 | Aplikasi (wajib login)
@@ -77,7 +79,18 @@ Route::post(
     '/logout',
     [LoginController::class, 'destroy']
 )->name('logout');
-
+Route::post(
+    '/problem-identification/{id}/store',
+    [DashboardController::class, 'storeProblem']
+)->name(
+    'problem.store'
+);
+Route::post(
+    '/problem/move',
+    [DashboardController::class, 'moveProblem']
+)->name(
+    'problem.move'
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -124,6 +137,14 @@ Route::middleware('auth')->group(function () {
         )->name('dashboard');
 
 });
+
+Route::get(
+    '/problem-identification/{id}',
+    [DashboardController::class,
+    'problemIdentification']
+)->name(
+    'problem-identification'
+);
 
     /*
     |--------------------------------------------------------------------------
@@ -280,10 +301,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
-
+    /*
     Route::post('/classes/join', [StudentClassController::class, 'join'])->name('classes.join');
     Route::post('/dosen/classes', [LecturerClassController::class, 'store'])->name('dosen.classes.store');
-
+    */
     Route::redirect('/profil', '/settings')->name('profil');
 
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
