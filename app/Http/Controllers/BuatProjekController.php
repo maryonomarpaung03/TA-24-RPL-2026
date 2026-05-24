@@ -8,7 +8,6 @@ use App\Support\ProjectAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class BuatProjekController extends Controller
 {
@@ -21,6 +20,7 @@ class BuatProjekController extends Controller
         return view('BuatProjek', [
             'isEdit' => false,
             'project' => null,
+            'attachmentMedia' => ProjectAccess::projectMediaPreview(null, null),
         ]);
     }
 
@@ -28,20 +28,22 @@ class BuatProjekController extends Controller
     {
         $project = Project::query()->findOrFail($id);
 
-        if (! ProjectAccess::userCanAccess(Auth::user(), $project)) {
-            abort(403);
+        if (! ProjectAccess::isProjectManager($project, (int) Auth::id())) {
+            return redirect()
+                ->route('my-project')
+                ->with('error', 'Hanya Project Manager yang dapat mengedit proyek ini.');
         }
 
-        if ($project->status !== 'draft') {
+        if (! in_array($project->status, ProjectAccess::editableStatuses(), true)) {
             return redirect()
-                ->route('problem-identification', $project->id)
-                ->with('info', 'Hanya proyek berstatus draft yang dapat diedit.');
+                ->route('my-project')
+                ->with('error', 'Proyek dengan status ini tidak dapat diedit.');
         }
 
-        if ((int) $project->created_by !== (int) Auth::id()) {
+        if ($project->status === 'pending_approval') {
             return redirect()
                 ->route('problem-identification', $project->id)
-                ->with('error', 'Hanya pembuat proyek yang dapat mengedit draft.');
+                ->with('info', 'Proyek sedang menunggu persetujuan awal dosen. Edit setelah disetujui atau ditolak.');
         }
 
         $parsed = ProjectAccess::parseProjectDescription($project->description);
@@ -55,6 +57,11 @@ class BuatProjekController extends Controller
         return view('BuatProjek', [
             'isEdit' => true,
             'project' => $project,
+            'editMode' => $project->status === 'draft' ? 'draft' : 'revision',
+            'attachmentMedia' => ProjectAccess::projectMediaPreview(
+                $project->logo,
+                $project->description
+            ),
             'formDefaults' => [
                 'judul' => $project->title,
                 'group_name' => $project->group_name,
@@ -71,10 +78,11 @@ class BuatProjekController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $this->validateProjectForm($request);
+        $validated = $this->validateProjectForm($request, 'draft');
 
         try {
-            $description = $this->buildDescription($validated, $request);
+            $description = $this->buildDescription($validated);
+            $logoPath = ProjectAccess::storeProjectAttachment($request);
             $memberEmails = $this->parseMemberEmails($validated['member_emails'] ?? '');
             $months = (int) $validated['planned_months'];
 
@@ -84,6 +92,7 @@ class BuatProjekController extends Controller
                 'group_name' => $validated['group_name'],
                 'course_name' => $validated['course_name'],
                 'description' => $description,
+                'logo' => $logoPath,
                 'status' => 'draft',
                 'start_date' => now()->toDateString(),
                 'end_date' => now()->addMonths($months)->toDateString(),
@@ -93,14 +102,14 @@ class BuatProjekController extends Controller
                 'lecturer_name' => $validated['lecturer_name'],
             ]);
 
-            $this->workspace->initialize(
+            $skippedEmails = $this->workspace->initialize(
                 $project,
                 Auth::user(),
                 $validated['lecturer_email'],
                 $memberEmails
             );
 
-            return $this->redirectAfterSave($project, $validated['action'], true);
+            return $this->redirectAfterSave($project, $validated['action'], true, $skippedEmails);
         } catch (\Exception $e) {
             report($e);
 
@@ -116,32 +125,70 @@ class BuatProjekController extends Controller
     {
         $project = Project::query()->findOrFail($id);
 
-        if ((int) $project->created_by !== (int) Auth::id() || $project->status !== 'draft') {
-            abort(403);
+        if (! ProjectAccess::isProjectManager($project, (int) Auth::id())) {
+            abort(403, 'Hanya Project Manager yang dapat memperbarui proyek ini.');
         }
 
-        $validated = $this->validateProjectForm($request);
+        if (! in_array($project->status, ProjectAccess::editableStatuses(), true)) {
+            abort(403, 'Proyek dengan status ini tidak dapat diperbarui.');
+        }
+
+        $validated = $this->validateProjectForm($request, $project->status);
         $months = (int) $validated['planned_months'];
+
+        $logoPath = ProjectAccess::storeProjectAttachment($request, $project->logo);
 
         $project->update([
             'name' => $validated['judul'],
             'group_name' => $validated['group_name'],
             'course_name' => $validated['course_name'],
-            'description' => $this->buildDescription($validated, $request, $project->description),
+            'description' => $this->buildDescription($validated),
+            'logo' => $logoPath,
             'end_date' => now()->addMonths($months)->toDateString(),
             'planned_months' => $months,
             'lecturer_email' => strtolower($validated['lecturer_email']),
             'lecturer_name' => $validated['lecturer_name'],
         ]);
 
-        return $this->redirectAfterSave($project->fresh(), $validated['action'], false);
+        $memberEmails = $this->parseMemberEmails($validated['member_emails'] ?? '');
+        $skippedEmails = $this->workspace->syncProjectMembers(
+            $project->fresh(),
+            Auth::user(),
+            $memberEmails
+        );
+
+        return $this->redirectAfterSave(
+            $project->fresh(),
+            $validated['action'],
+            false,
+            $skippedEmails
+        );
+    }
+
+    public function destroy(int $id)
+    {
+        $project = Project::query()->findOrFail($id);
+
+        if (! ProjectAccess::isProjectManager($project, (int) Auth::id())) {
+            abort(403, 'Hanya Project Manager yang dapat menghapus proyek ini.');
+        }
+
+        $project->delete();
+
+        return redirect()
+            ->route('my-project')
+            ->with('success', 'Proyek "'.$project->title.'" berhasil dihapus.');
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function validateProjectForm(Request $request): array
+    private function validateProjectForm(Request $request, ?string $projectStatus = 'draft'): array
     {
+        $actions = $projectStatus === 'draft'
+            ? 'draft,submit'
+            : 'submit_revision';
+
         return $request->validate([
             'judul' => ['required', 'string', 'max:200'],
             'group_name' => ['required', 'string', 'max:150'],
@@ -152,7 +199,7 @@ class BuatProjekController extends Controller
             'lecturer_email' => ['required', 'email', 'max:255'],
             'planned_months' => ['required', 'integer', 'min:1', 'max:36'],
             'member_emails' => ['nullable', 'string'],
-            'action' => ['required', 'in:draft,submit'],
+            'action' => ['required', 'in:'.$actions],
             'lampiran' => ['nullable', 'array'],
             'lampiran.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,gif,doc,docx'],
         ]);
@@ -161,26 +208,34 @@ class BuatProjekController extends Controller
     /**
      * @param  array<string, mixed>  $validated
      */
-    private function buildDescription(array $validated, Request $request, ?string $existing = null): string
+    private function buildDescription(array $validated): string
     {
-        $description = trim($validated['deskripsi']);
-        $description .= "\n\n--- Masalah utama ---\n".trim($validated['masalah']);
-
-        if ($request->hasFile('lampiran')) {
-            $files = $request->file('lampiran');
-            if (! empty($files)) {
-                $path = $files[0]->store('project_logos', 'public');
-                $description .= "\n\n[Lampiran: ".Storage::disk('public')->url($path).']';
-            }
-        } elseif ($existing && preg_match('/\n\n\[Lampiran: [^\]]+\]/', $existing, $m)) {
-            $description .= "\n\n".$m[0];
-        }
-
-        return $description;
+        return ProjectAccess::formatStoredDescription(
+            (string) ($validated['deskripsi'] ?? ''),
+            (string) ($validated['masalah'] ?? '')
+        );
     }
 
-    private function redirectAfterSave(Project $project, string $action, bool $isNew): \Illuminate\Http\RedirectResponse
-    {
+    /**
+     * @param  list<string>  $skippedEmails
+     */
+    private function redirectAfterSave(
+        Project $project,
+        string $action,
+        bool $isNew,
+        array $skippedEmails = []
+    ): \Illuminate\Http\RedirectResponse {
+        $memberNotice = $this->skippedMemberNotice($skippedEmails);
+
+        if ($action === 'submit_revision') {
+            $this->workspace->submitRevisionToLecturer($project->fresh());
+
+            return redirect()
+                ->route('problem-identification', $project->id)
+                ->with('success', 'Perubahan diajukan ke dosen untuk disetujui kembali. Proyek tetap dapat diakses tim.')
+                ->with('info', $memberNotice);
+        }
+
         if ($action === 'submit') {
             $project = $project->fresh();
 
@@ -194,7 +249,8 @@ class BuatProjekController extends Controller
 
             return redirect()
                 ->route('problem-identification', $project->id)
-                ->with('success', 'Proyek berhasil diajukan ke dosen. Status proyek: In Review.');
+                ->with('success', 'Proyek berhasil diajukan ke dosen. Status proyek: In Review.')
+                ->with('info', $memberNotice);
         }
 
         $message = $isNew
@@ -203,7 +259,21 @@ class BuatProjekController extends Controller
 
         return redirect()
             ->route('problem-identification', $project->id)
-            ->with('success', $message);
+            ->with('success', $message)
+            ->with('info', $memberNotice);
+    }
+
+    /**
+     * @param  list<string>  $skippedEmails
+     */
+    private function skippedMemberNotice(array $skippedEmails): ?string
+    {
+        if ($skippedEmails === []) {
+            return null;
+        }
+
+        return 'Email berikut belum terdaftar di DELPRO sehingga belum ditambahkan ke tim: '
+            .implode(', ', $skippedEmails);
     }
 
     /**
@@ -213,6 +283,13 @@ class BuatProjekController extends Controller
     {
         $parts = preg_split('/[\s,;]+/', $raw, -1, PREG_SPLIT_NO_EMPTY);
 
-        return is_array($parts) ? array_values($parts) : [];
+        if (! is_array($parts)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (string $email) => strtolower(trim($email)),
+            $parts
+        )));
     }
 }

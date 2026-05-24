@@ -28,10 +28,11 @@ class ProjekSayaController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $projects = $projectData->map(function ($project, $index) {
+        $projects = $projectData->map(function ($project) use ($currentUserId) {
             $statusMap = [
                 'draft' => 'Draft',
                 'pending_approval' => 'In Review',
+                'pending_revision' => 'Review Perubahan',
                 'active' => 'In Progress',
                 'completed' => 'Done',
                 'rejected' => 'Rejected',
@@ -41,6 +42,7 @@ class ProjekSayaController extends Controller
             $filterMap = [
                 'draft' => 'draft',
                 'pending_approval' => 'on_review',
+                'pending_revision' => 'on_review',
                 'active' => 'in_progress',
                 'completed' => 'done',
                 'rejected' => 'planning',
@@ -51,7 +53,6 @@ class ProjekSayaController extends Controller
             $filterKey = $filterMap[$project->status] ?? 'planning';
             $members = ProjectAccess::memberInitials($project->id);
             $memberCount = max(1, count($members));
-            $media = ProjectAccess::projectMediaPreview($project->logo, $project->description);
 
             return [
                 'id' => $project->id,
@@ -63,19 +64,16 @@ class ProjekSayaController extends Controller
                 'progress' => match ($project->status) {
                     'draft' => 10,
                     'pending_approval' => 25,
+                    'pending_revision' => 55,
                     'active' => 60,
                     'completed' => 100,
                     default => 0,
                 },
+                'can_manage' => (int) $project->created_by === $currentUserId,
                 'description' => ProjectAccess::shortDescription($project->description),
                 'created_at' => Carbon::parse($project->created_at)->format('d/m/Y'),
                 'member_count' => $memberCount,
                 'members' => $members,
-                'featured' => $index === 0,
-                'preview_url' => $media['preview_url'],
-                'attachment_url' => $media['attachment_url'],
-                'attachment_kind' => $media['attachment_kind'],
-                'has_media' => $media['has_media'],
                 'lecturer_email' => $project->lecturer_email,
             ];
         })->toArray();

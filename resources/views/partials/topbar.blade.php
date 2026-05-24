@@ -4,8 +4,6 @@
         ? (trim($u->displayName()) !== '' ? $u->displayName() : ($u->email ?? 'User'))
         : 'User';
 
-    $notifCount = (int) ($notif_count ?? 0);
-
     $initials = 'U';
     if ($u) {
         $src = trim($u->displayName()) !== '' ? $u->displayName() : (string) ($u->email ?? '');
@@ -34,18 +32,7 @@
     <!-- Right Menu -->
     <div class="flex items-center space-x-6">
 
-        <!-- Notification -->
-        <a href="{{ route('notifikasi') }}"
-           class="relative p-2">
-
-            <i class="fas fa-bell text-gray-300 text-2xl"></i>
-
-            @if($notifCount > 0)
-                <span class="absolute top-1 right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center border-2 border-white font-bold">
-                    {{ $notifCount }}
-                </span>
-            @endif
-        </a>
+        @include('partials.notification-dropdown')
 
         <!-- Avatar -->
         <a

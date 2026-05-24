@@ -3,7 +3,7 @@
 @section('title', 'Detail Proyek - DELPRO')
 
 @section('content')
-<div class="flex-1 p-6">
+<div class="w-full">
 
     <a href="{{ route('dosen.persetujuan') }}" class="text-blue-500 text-xs font-bold hover:underline mb-4 inline-block">
         &larr; Kembali ke daftar persetujuan
@@ -13,7 +13,9 @@
 
     <div class="bg-white p-5 rounded shadow">
         <div class="mb-4 border-b pb-4">
-            <p class="text-[10px] font-bold text-amber-600 uppercase mb-1">Menunggu Persetujuan</p>
+            <p class="text-[10px] font-bold text-amber-600 uppercase mb-1">
+                {{ $project['status'] === 'pending_revision' ? 'Review Perubahan Proyek' : 'Menunggu Persetujuan' }}
+            </p>
             <h1 class="text-xl font-bold text-gray-800">{{ $project['name'] }}</h1>
             <p class="text-[10px] text-gray-400 mt-2">
                 Diajukan {{ $project['submitted_at'] ?? '-' }}
@@ -79,7 +81,14 @@
             <p class="mt-1"><span class="font-bold text-gray-600">Email:</span> {{ $project['lecturer_email'] }}</p>
         </div>
 
-        @if($project['status'] === 'pending_approval')
+        @if(in_array($project['status'], ['pending_approval', 'pending_revision'], true))
+        <div class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 mb-4">
+            @if($project['status'] === 'pending_revision')
+            Tim mengajukan <strong>perubahan data proyek</strong>. Proyek tetap berjalan; setujui agar perubahan resmi tercatat.
+            @else
+            Pengajuan proyek baru menunggu persetujuan Anda.
+            @endif
+        </div>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <a href="{{ route('dosen.persetujuan') }}"
                class="text-center border border-gray-300 bg-white px-5 py-2 rounded text-xs font-bold text-gray-700 hover:bg-gray-50 transition">
@@ -89,13 +98,17 @@
                 @csrf
                 <button type="submit"
                         class="w-full sm:w-auto bg-emerald-600 text-white px-6 py-2 rounded text-xs font-bold hover:bg-emerald-700 transition">
-                    Setujui Proyek
+                    {{ $project['status'] === 'pending_revision' ? 'Setujui Perubahan' : 'Setujui Proyek' }}
                 </button>
             </form>
         </div>
-        @elseif($project['status'] === 'active')
-        <div class="pt-4 border-t border-gray-100 text-sm text-emerald-700 font-bold">
-            Proyek ini sudah disetujui.
+        @elseif(in_array($project['status'], ['active', 'completed'], true))
+        <div class="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <p class="text-sm text-emerald-700 font-bold">Proyek ini sudah disetujui.</p>
+            <a href="{{ route('dosen.proyek-mahasiswa.show', $project['id']) }}"
+               class="text-center bg-blue-600 text-white px-5 py-2 rounded text-xs font-bold hover:bg-blue-700 transition">
+                Kelola di Proyek Mahasiswa &rarr;
+            </a>
         </div>
         @endif
     </div>

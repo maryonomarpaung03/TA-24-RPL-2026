@@ -3,7 +3,7 @@
 @section('title', 'Penilaian Dosen - DELPRO')
 
 @section('content')
-<div class="p-6 space-y-6">
+<div class="w-full space-y-6">
     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
         <div>
             <h2 class="text-3xl font-bold text-gray-900 leading-tight">{{ $namaProjek }}</h2>
@@ -44,7 +44,7 @@
                 <span class="text-blue-600 border-b-2 border-blue-600 pb-2">Penilaian Dosen</span>
             </div>
 
-            <div class="bg-white rounded-[2rem] p-10 shadow-sm border max-w-2xl">
+            <div class="bg-white rounded-[2rem] p-10 shadow-sm border w-full">
                 <div class="space-y-6">
                     <div>
                         <h4 class="text-xs font-bold text-gray-400 uppercase">Nilai dari Dosen</h4>

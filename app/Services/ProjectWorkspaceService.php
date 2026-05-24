@@ -13,8 +13,9 @@ class ProjectWorkspaceService
      * Setup grup, anggota, milestone, dan notifikasi dosen untuk proyek baru.
      *
      * @param  list<string>  $memberEmails
+     * @return list<string> Email anggota yang tidak ditemukan di sistem
      */
-    public function initialize(Project $project, User $creator, string $lecturerEmail, array $memberEmails): void
+    public function initialize(Project $project, User $creator, string $lecturerEmail, array $memberEmails): array
     {
         $lecturerEmail = strtolower(trim($lecturerEmail));
 
@@ -22,44 +23,7 @@ class ProjectWorkspaceService
             'lecturer_email' => $lecturerEmail,
         ]);
 
-        $this->addMember($project, $creator, 'owner');
-
-        foreach ($this->normalizeEmails($memberEmails) as $email) {
-            if ($email === strtolower($creator->email)) {
-                continue;
-            }
-
-            $user = User::query()->where('email', $email)->first();
-
-            if ($user) {
-                $this->addMember($project, $user, 'member');
-            }
-        }
-
-        $groupId = $this->ensureProjectGroup($project);
-
-        DB::table('group_members')->insertOrIgnore([
-            'group_id' => $groupId,
-            'user_id' => $creator->id,
-            'role' => 'lead',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $memberUserIds = ProjectMember::query()
-            ->where('project_id', $project->id)
-            ->where('user_id', '!=', $creator->id)
-            ->pluck('user_id');
-
-        foreach ($memberUserIds as $userId) {
-            DB::table('group_members')->insertOrIgnore([
-                'group_id' => $groupId,
-                'user_id' => $userId,
-                'role' => 'member',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        $skipped = $this->syncProjectMembers($project, $creator, $memberEmails);
 
         /*
 ====================================
@@ -220,7 +184,10 @@ try {
             ]
         );
     }
-}
+
+        return $skipped;
+    }
+
     public function submitToLecturer(Project $project): void
     {
         if ($project->status !== 'draft') {
@@ -232,6 +199,39 @@ try {
             'submitted_at' => now(),
         ]);
 
+        $this->notifyLecturerProjectReview(
+            $project,
+            'project_submitted',
+            'Pengajuan proyek baru',
+            'Proyek "'.$project->title.'" diajukan untuk persetujuan Anda.'
+        );
+    }
+
+    public function submitRevisionToLecturer(Project $project): void
+    {
+        if (! in_array($project->status, ['active', 'pending_revision', 'completed'], true)) {
+            return;
+        }
+
+        $project->update([
+            'status' => 'pending_revision',
+            'submitted_at' => now(),
+        ]);
+
+        $this->notifyLecturerProjectReview(
+            $project,
+            'project_revision_submitted',
+            'Perubahan proyek menunggu persetujuan',
+            'Tim mengajukan perubahan pada proyek "'.$project->title.'". Mohon tinjau dan setujui kembali.'
+        );
+    }
+
+    private function notifyLecturerProjectReview(
+        Project $project,
+        string $type,
+        string $title,
+        string $message
+    ): void {
         $email = strtolower(trim((string) $project->lecturer_email));
 
         if ($email === '') {
@@ -241,12 +241,77 @@ try {
         DB::table('project_notifications')->insert([
             'project_id' => $project->id,
             'recipient_email' => $email,
-            'type' => 'project_submitted',
-            'title' => 'Pengajuan proyek baru',
-            'message' => 'Proyek "'.$project->title.'" diajukan untuk persetujuan Anda.',
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    /**
+     * Sinkronkan anggota tim dari daftar email (hanya user terdaftar).
+     *
+     * @param  list<string>  $memberEmails
+     * @return list<string> Email yang tidak ditemukan di sistem
+     */
+    public function syncProjectMembers(Project $project, User $creator, array $memberEmails): array
+    {
+        $skipped = [];
+        $creatorEmail = strtolower(trim((string) $creator->email));
+        $assignedUserIds = [(int) $creator->id];
+
+        $this->addMember($project, $creator, 'owner');
+
+        foreach ($this->normalizeEmails($memberEmails) as $email) {
+            if ($email === $creatorEmail) {
+                continue;
+            }
+
+            $user = $this->findUserByEmail($email);
+
+            if ($user) {
+                $this->addMember($project, $user, 'member');
+                $assignedUserIds[] = (int) $user->id;
+            } else {
+                $skipped[] = $email;
+            }
+        }
+
+        ProjectMember::query()
+            ->where('project_id', $project->id)
+            ->where('user_id', '!=', $creator->id)
+            ->whereNotIn('user_id', array_slice($assignedUserIds, 1))
+            ->delete();
+
+        $groupId = $this->ensureProjectGroup($project);
+
+        DB::table('group_members')->insertOrIgnore([
+            'group_id' => $groupId,
+            'user_id' => $creator->id,
+            'role' => 'lead',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (array_slice($assignedUserIds, 1) as $userId) {
+            DB::table('group_members')->insertOrIgnore([
+                'group_id' => $groupId,
+                'user_id' => $userId,
+                'role' => 'member',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return $skipped;
+    }
+
+    private function findUserByEmail(string $email): ?User
+    {
+        return User::query()
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim($email))])
+            ->first();
     }
 
     private function addMember(Project $project, User $user, string $role): void

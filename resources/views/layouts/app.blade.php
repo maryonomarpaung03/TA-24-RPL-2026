@@ -23,7 +23,9 @@
                 @include('partials.project-workflow-tabs')
             @endif
 
-            @yield('content')
+            <div class="@yield('content_wrapper_class', 'w-full min-w-0 flex-1 p-6 lg:p-8')">
+                @yield('content')
+            </div>
         </main>
     </div>
 

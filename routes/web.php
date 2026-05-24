@@ -21,6 +21,7 @@ use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
 use App\Http\Controllers\NilaiDariDosenController;
 use App\Http\Controllers\ProjectChatController;
+use App\Http\Controllers\LecturerClassController;
 
 /*
 |--------------------------------------------------------------------------
@@ -79,19 +80,6 @@ Route::post(
     '/logout',
     [LoginController::class, 'destroy']
 )->name('logout');
-Route::post(
-    '/problem-identification/{id}/store',
-    [DashboardController::class, 'storeProblem']
-)->name(
-    'problem.store'
-);
-Route::post(
-    '/problem/move',
-    [DashboardController::class, 'moveProblem']
-)->name(
-    'problem.move'
-);
-
 /*
 |--------------------------------------------------------------------------
 | Register
@@ -169,6 +157,9 @@ Route::get(
     Route::put('/projek/{id}', [BuatProjekController::class, 'update'])
         ->name('projek.update');
 
+    Route::delete('/projek/{id}', [BuatProjekController::class, 'destroy'])
+        ->name('projek.destroy');
+
     Route::get('/dosen/dashboard', [\App\Http\Controllers\DosenDashboardController::class, 'index'])
         ->name('dosen.dashboard');
 
@@ -180,6 +171,36 @@ Route::get(
 
     Route::post('/dosen/persetujuan-proyek/{id}/approve', [\App\Http\Controllers\DosenApprovalController::class, 'approve'])
         ->name('dosen.persetujuan.approve');
+
+    Route::get('/dosen/proyek-mahasiswa', [\App\Http\Controllers\DosenStudentProjectsController::class, 'index'])
+        ->name('dosen.proyek-mahasiswa');
+
+    Route::get('/dosen/proyek-mahasiswa/{id}', [\App\Http\Controllers\DosenStudentProjectsController::class, 'show'])
+        ->name('dosen.proyek-mahasiswa.show');
+
+    Route::get('/dosen/proyek/{id}/problem-identification', [\App\Http\Controllers\DosenProblemReviewController::class, 'show'])
+        ->name('dosen.problem-review');
+
+    Route::post('/dosen/proyek/{id}/problem-identification/{problemId}/review', [\App\Http\Controllers\DosenProblemReviewController::class, 'review'])
+        ->name('dosen.problem-review.submit');
+
+    Route::post('/problem-identification/{id}/store', [\App\Http\Controllers\ProblemIdentificationController::class, 'store'])
+        ->name('problem.store');
+
+    Route::post('/problem-identification/{id}/propose-voting', [\App\Http\Controllers\ProblemIdentificationController::class, 'proposeForVoting'])
+        ->name('problem.propose-voting');
+
+    Route::post('/problem-identification/{id}/vote', [\App\Http\Controllers\ProblemIdentificationController::class, 'vote'])
+        ->name('problem.vote');
+
+    Route::post('/problem-identification/{id}/comment', [\App\Http\Controllers\ProblemIdentificationController::class, 'comment'])
+        ->name('problem.comment');
+
+    Route::post('/problem-identification/{id}/submit-lecturer', [\App\Http\Controllers\ProblemIdentificationController::class, 'submitToLecturer'])
+        ->name('problem.submit-lecturer');
+
+    Route::post('/problem-identification/{id}/resubmit', [\App\Http\Controllers\ProblemIdentificationController::class, 'resubmit'])
+        ->name('problem.resubmit');
 
     /*
     |--------------------------------------------------------------------------
@@ -299,12 +320,15 @@ Route::get(
     Route::get('/notifikasi', [\App\Http\Controllers\NotifikasiController::class, 'index'])
         ->name('notifikasi');
 
+    Route::get('/notifikasi/{id}/buka', [\App\Http\Controllers\NotifikasiController::class, 'open'])
+        ->name('notifikasi.open');
+
+    Route::post('/notifikasi/baca-semua', [\App\Http\Controllers\NotifikasiController::class, 'markAllRead'])
+        ->name('notifikasi.read-all');
+
     Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
-    /*
-    Route::post('/classes/join', [StudentClassController::class, 'join'])->name('classes.join');
     Route::post('/dosen/classes', [LecturerClassController::class, 'store'])->name('dosen.classes.store');
-    */
     Route::redirect('/profil', '/settings')->name('profil');
 
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');

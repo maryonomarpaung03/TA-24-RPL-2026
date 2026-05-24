@@ -2,323 +2,179 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
+use App\Services\ProjectTaskService;
 use App\Support\ProjectAccess;
-use App\Support\ProjectCatalog;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\Project;
-use Carbon\Carbon;
 
 class PenyusunanController extends Controller
 {
-    private int $currentUserId;
+    public function __construct(
+        private readonly ProjectTaskService $tasks
+    ) {}
 
-    public function __construct()
-    {
-        $this->currentUserId = (int) Auth::user()->id;
-    }
-
-    /*
-    ==========================================
-    HALAMAN PENYUSUNAN
-    ==========================================
-    */
     public function index($id)
     {
-        // Pastikan project milik Maryono
         $project = Project::query()->find($id);
 
-        if (! $project || ! ProjectAccess::userCanAccess($this->currentUserId, $project)) {
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
             return redirect()
                 ->route('my-project')
                 ->with('error', 'Projek tidak ditemukan atau Anda tidak memiliki akses.');
         }
 
-$namaProjek = ProjectCatalog::name($id);
-
-        /*
-        ambil task dari database
-        */
         $taskData = DB::table('tasks')
-            ->leftJoin(
-                'users',
-                'tasks.assigned_to',
-                '=',
-                'users.id'
-            )
-            ->where(
-                'tasks.project_id',
-                $project->id
-            )
-            ->select(
-                'tasks.*',
-                'users.full_name'
-            )
+            ->leftJoin('users', 'tasks.assigned_to', '=', 'users.id')
+            ->where('tasks.project_id', $project->id)
+            ->select('tasks.*', 'users.full_name')
             ->orderBy('tasks.created_at')
             ->get();
 
-        /*
-        format agar cocok dengan blade lama
-        */
-        $tasks = $taskData->map(
-            function ($task, $index) {
+        $tasks = $taskData->map(function ($task, $index) {
+            return [
+                'id' => $task->id,
+                'no' => $index + 1,
+                'judul' => $task->task_title,
+                'deskripsi' => $task->description ?? '-',
+                'mulai' => $task->start_date
+                    ? Carbon::parse($task->start_date)->format('Y-m-d')
+                    : '-',
+                'selesai' => $task->due_date
+                    ? Carbon::parse($task->due_date)->format('Y-m-d')
+                    : '-',
+                'pj' => $task->full_name ?? 'Belum Ditentukan',
+                'assigned_to' => $task->assigned_to,
+            ];
+        })->toArray();
 
-                return [
-                    'id' => $task->id,
-
-                    'no' => $index + 1,
-
-                    'judul' =>
-                        $task->task_title,
-
-                    'deskripsi' =>
-                        $task->description
-                        ?? '-',
-
-                    'mulai' =>
-                        $task->start_date
-                        ? Carbon::parse(
-                            $task->start_date
-                        )->format('Y-m-d')
-                        : '-',
-
-                    'selesai' =>
-                        $task->due_date
-                        ? Carbon::parse(
-                            $task->due_date
-                        )->format('Y-m-d')
-                        : '-',
-
-                    'pj' =>
-                        $task->full_name
-                        ?? 'Belum Ditentukan',
-
-                    'assigned_to' =>
-                        $task->assigned_to
-                ];
-            }
-        )->toArray();
-
-        /*
-        ambil semua user
-        untuk dropdown penanggung jawab
-        */
-        $users = DB::table('users')
-            ->select('id', 'full_name')
-            ->get();
-
-         return view(
-            'Penyusunan',
-            [
-                'id' => $project->id,
-                'namaProjek' => $project->title,
-                'tasks' => $tasks,
-                'users' => $users
-            ]
-        );
+        return view('Penyusunan', [
+            'id' => $project->id,
+            'namaProjek' => $project->title,
+            'tasks' => $tasks,
+            'users' => $this->tasks->assignableMembers((int) $project->id),
+        ]);
     }
 
-    /*
-    ==========================================
-    TAMBAH TUGAS
-    ==========================================
-    */
-   public function tambahTugas(
-    Request $request,
-    $id
-)
-{
-    $request->validate([
-        'judul_tugas' => 'required',
-        'deskripsi_tugas' => 'nullable',
-        'tanggal_mulai' => 'required',
-        'tanggal_selesai' => 'required',
-        'penanggung_jawab' => 'required'
-    ]);
-
-    $project = Project::where(
-            'id',
-            $id
-        )
-        ->where(
-            'created_by',
-            $this->currentUserId
-        )
-        ->first();
-
-    if (!$project) {
-        return back()->with(
-            'error',
-            'Project tidak ditemukan'
-        );
-    }
-
-   
-    $milestone = DB::table('milestones')
-    ->first();
-
-if (!$milestone) {
-
-    return back()->with(
-        'error',
-        'Belum ada milestone pada database'
-    );
-}
-
-$milestoneId =
-    $milestone->id;
-
-
-    DB::table('tasks')->insert([
-
-        'project_id' =>
-            $project->id,
-
-        'milestone_id' =>
-            $milestoneId,
-
-        'parent_task_id' =>
-            null,
-
-        'assigned_to' =>
-            $request->penanggung_jawab,
-
-        'task_title' =>
-            $request->judul_tugas,
-
-        'description' =>
-            $request->deskripsi_tugas,
-
-        'priority' =>
-            'medium',
-
-        'status' =>
-            'pending',
-
-        'progress_percent' =>
-            0,
-
-        'start_date' =>
-            $request->tanggal_mulai,
-
-        'due_date' =>
-            $request->tanggal_selesai,
-
-        'created_at' =>
-            now()
-    ]);
-
-    return back()->with(
-        'success',
-        'Tugas berhasil ditambah'
-    );
-}
-
-    /*
-    ==========================================
-    EDIT TUGAS
-    ==========================================
-    */
-    public function editTugas(
-        Request $request,
-        $id
-    )
+    public function tambahTugas(Request $request, $id)
     {
         $request->validate([
-            'task_id' => 'required',
-            'judul_tugas' => 'required',
-            'deskripsi_tugas' => 'nullable',
-            'tanggal_mulai' => 'required',
-            'tanggal_selesai' => 'required'
+            'judul_tugas' => 'required|string|max:255',
+            'deskripsi_tugas' => 'nullable|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'penanggung_jawab' => 'required|integer',
         ]);
 
-        DB::table('tasks')
-            ->where(
-                'id',
-                $request->task_id
-            )
-            ->update([
+        $project = Project::query()->find($id);
 
-                'task_title' =>
-                    $request->judul_tugas,
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
+            return back()->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
+        }
 
-                'description' =>
-                    $request->deskripsi_tugas,
+        $assigneeId = (int) $request->penanggung_jawab;
 
-                'start_date' =>
-                    $request->tanggal_mulai,
+        if (! $this->tasks->assigneeIsProjectMember((int) $project->id, $assigneeId)) {
+            return back()->with('error', 'Penanggung jawab harus anggota proyek ini.');
+        }
 
-                'due_date' =>
-                    $request->tanggal_selesai
-            ]);
+        $this->tasks->createFromPlanning(
+            $project,
+            $assigneeId,
+            $request->judul_tugas,
+            $request->deskripsi_tugas,
+            $request->tanggal_mulai,
+            $request->tanggal_selesai,
+            (int) Auth::id()
+        );
 
         return back()->with(
             'success',
-            'Tugas berhasil diubah'
+            'Tugas berhasil ditambahkan dan muncul di Pelaksanaan & Evaluasi (Belum Dikerjakan).'
         );
     }
 
-    /*
-    ==========================================
-    HAPUS TUGAS
-    ==========================================
-    */
-    public function hapusTugas(
-        Request $request,
-        $id
-    )
+    public function editTugas(Request $request, $id)
     {
+        $request->validate([
+            'task_id' => 'required|integer',
+            'judul_tugas' => 'required|string|max:255',
+            'deskripsi_tugas' => 'nullable|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+        ]);
+
+        $project = Project::query()->find($id);
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
+            return back()->with('error', 'Akses ditolak.');
+        }
+
+        $updated = DB::table('tasks')
+            ->where('id', $request->task_id)
+            ->where('project_id', $project->id)
+            ->update([
+                'task_title' => $request->judul_tugas,
+                'description' => $request->deskripsi_tugas,
+                'start_date' => $request->tanggal_mulai,
+                'due_date' => $request->tanggal_selesai,
+                'updated_at' => now(),
+            ]);
+
+        if (! $updated) {
+            return back()->with('error', 'Tugas tidak ditemukan.');
+        }
+
+        return back()->with('success', 'Tugas berhasil diubah');
+    }
+
+    public function hapusTugas(Request $request, $id)
+    {
+        $request->validate(['task_id' => 'required|integer']);
+
+        $project = Project::query()->find($id);
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
+            return back()->with('error', 'Akses ditolak.');
+        }
+
         DB::table('tasks')
-            ->where(
-                'id',
-                $request->task_id
-            )
+            ->where('id', $request->task_id)
+            ->where('project_id', $project->id)
             ->delete();
 
-        return back()->with(
-            'success',
-            'Tugas berhasil dihapus'
-        );
+        return back()->with('success', 'Tugas berhasil dihapus');
     }
 
-    /*
-    ==========================================
-    KOMENTAR TUGAS
-    ==========================================
-    */
-    public function komentarTugas(
-        Request $request,
-        $id
-    )
+    public function komentarTugas(Request $request, $id)
     {
         $request->validate([
-            'task_id' => 'required',
-            'komentar' => 'required'
+            'task_id' => 'required|integer',
+            'komentar' => 'required|string',
         ]);
 
-        DB::table('discussions')
-            ->insert([
+        $project = Project::query()->find($id);
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
+            return back()->with('error', 'Akses ditolak.');
+        }
 
-                'project_id' =>
-                    $id,
+        $taskExists = DB::table('tasks')
+            ->where('id', $request->task_id)
+            ->where('project_id', $project->id)
+            ->exists();
 
-                'user_id' =>
-                    $this->currentUserId,
+        if (! $taskExists) {
+            return back()->with('error', 'Tugas tidak ditemukan.');
+        }
 
-                'task_id' =>
-                    $request->task_id,
+        DB::table('discussions')->insert([
+            'project_id' => $project->id,
+            'user_id' => Auth::id(),
+            'task_id' => $request->task_id,
+            'message' => $request->komentar,
+            'created_at' => now(),
+        ]);
 
-                'message' =>
-                    $request->komentar,
-
-                'created_at' =>
-                    now()
-            ]);
-
-        return back()->with(
-            'success',
-            'Komentar berhasil diberikan'
-        );
+        return back()->with('success', 'Komentar berhasil diberikan');
     }
 }

@@ -7,33 +7,32 @@ use App\Support\ProjectAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class DosenApprovalController extends Controller
+class DosenStudentProjectsController extends Controller
 {
+    /** @var list<string> */
+    private const APPROVED_STATUSES = ['active', 'completed'];
+
     public function index()
     {
-        if (Auth::user()->role !== 'lecturer') {
-            abort(403, 'Halaman ini hanya untuk dosen.');
-        }
+        $this->ensureLecturer();
 
         $email = strtolower(trim((string) Auth::user()->email));
 
-        $pending = Project::query()
+        $projects = Project::query()
             ->where('lecturer_email', $email)
-            ->whereIn('status', ['pending_approval', 'pending_revision'])
-            ->orderByDesc('submitted_at')
+            ->whereIn('status', self::APPROVED_STATUSES)
+            ->orderByDesc('updated_at')
             ->get()
             ->map(fn (Project $p) => $this->mapListRow($p));
 
-        return view('DosenApproval', [
-            'pending_projects' => $pending,
+        return view('DosenStudentProjects', [
+            'approved_projects' => $projects,
         ]);
     }
 
     public function show(int $id)
     {
-        if (Auth::user()->role !== 'lecturer') {
-            abort(403);
-        }
+        $this->ensureLecturer();
 
         $project = Project::query()->findOrFail($id);
 
@@ -41,56 +40,22 @@ class DosenApprovalController extends Controller
             abort(403, 'Anda tidak memiliki akses ke proyek ini.');
         }
 
-        return view('DosenApprovalDetail', [
+        if (! in_array($project->status, self::APPROVED_STATUSES, true)) {
+            return redirect()
+                ->route('dosen.proyek-mahasiswa')
+                ->with('error', 'Proyek ini belum disetujui atau masih menunggu persetujuan.');
+        }
+
+        return view('DosenStudentProjectDetail', [
             'project' => $this->mapDetailRow($project),
         ]);
     }
 
-    public function approve(int $id)
+    private function ensureLecturer(): void
     {
         if (Auth::user()->role !== 'lecturer') {
-            abort(403);
+            abort(403, 'Halaman ini hanya untuk dosen.');
         }
-
-        $project = Project::query()->findOrFail($id);
-
-        if (! ProjectAccess::lecturerCanView(Auth::user(), $project)) {
-            abort(403);
-        }
-
-        if (! in_array($project->status, ['pending_approval', 'pending_revision'], true)) {
-            return back()->with('error', 'Proyek ini tidak dalam status menunggu persetujuan.');
-        }
-
-        $wasRevision = $project->status === 'pending_revision';
-
-        $project->update([
-            'status' => 'active',
-        ]);
-
-        $creatorEmail = DB::table('users')->where('id', $project->created_by)->value('email');
-
-        if ($creatorEmail) {
-            DB::table('project_notifications')->insert([
-                'project_id' => $project->id,
-                'recipient_email' => strtolower($creatorEmail),
-                'type' => $wasRevision ? 'project_revision_approved' : 'project_approved',
-                'title' => $wasRevision ? 'Perubahan proyek disetujui' : 'Proyek disetujui dosen',
-                'message' => $wasRevision
-                    ? 'Dosen menyetujui perubahan pada proyek "'.$project->title.'".'
-                    : 'Proyek "'.$project->title.'" telah disetujui. Anda dapat melanjutkan ke tahap PjBL.',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-
-        $successMessage = $wasRevision
-            ? 'Perubahan proyek "'.$project->title.'" disetujui. Tim dapat melanjutkan PjBL.'
-            : 'Proyek "'.$project->title.'" berhasil disetujui. Mahasiswa dapat melanjutkan PjBL.';
-
-        return redirect()
-            ->route('dosen.proyek-mahasiswa.show', $project->id)
-            ->with('success', $successMessage);
     }
 
     /**
@@ -103,17 +68,21 @@ class DosenApprovalController extends Controller
             ->select('full_name', 'name', 'email')
             ->first();
 
-        $parsed = ProjectAccess::parseProjectDescription($project->description);
+        $memberCount = DB::table('project_members')
+            ->where('project_id', $project->id)
+            ->count();
 
         return [
             'id' => $project->id,
             'name' => $project->title,
             'status' => $project->status,
-            'status_label' => $project->status === 'pending_revision' ? 'Review Perubahan' : 'Menunggu Persetujuan',
-            'description' => $parsed['deskripsi'] ?: $project->description,
-            'submitted_at' => $project->submitted_at?->format('d M Y H:i'),
+            'status_label' => $project->status === 'completed' ? 'Selesai' : 'Berjalan',
+            'description' => ProjectAccess::displayDescription($project->description, 120),
+            'group_name' => $project->group_name ?? '-',
+            'course_name' => $project->course_name ?? '-',
             'creator_name' => $creator->full_name ?? $creator->name ?? '-',
-            'creator_email' => $creator->email ?? '-',
+            'member_count' => max(1, $memberCount + 1),
+            'updated_at' => $project->updated_at?->format('d M Y'),
         ];
     }
 
@@ -146,10 +115,16 @@ class DosenApprovalController extends Controller
             ])
             ->all();
 
+        $pendingProblemReview = DB::table('problem_identifications')
+            ->where('project_id', $project->id)
+            ->where('board_status', 'submitted')
+            ->exists();
+
         return [
             'id' => $project->id,
             'name' => $project->title,
             'status' => $project->status,
+            'status_label' => $project->status === 'completed' ? 'Selesai' : 'Berjalan',
             'group_name' => $project->group_name,
             'course_name' => $project->course_name,
             'masalah' => $parsed['masalah'],
@@ -159,11 +134,11 @@ class DosenApprovalController extends Controller
             'end_date' => $project->end_date,
             'lecturer_name' => $project->lecturer_name,
             'lecturer_email' => $project->lecturer_email,
-            'submitted_at' => $project->submitted_at?->format('d M Y H:i'),
             'creator_name' => $creator->full_name ?? $creator->name ?? '-',
             'creator_email' => $creator->email ?? '-',
             'members' => $members,
             'attachment_url' => $attachmentUrl,
+            'pending_problem_review' => $pendingProblemReview,
         ];
     }
 }
