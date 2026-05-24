@@ -4,7 +4,20 @@
 
 @push('head')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>.chart-container { position: relative; height: 300px; width: 100%; } [x-cloak] { display: none !important; }</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+<style>
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+</style>
 @endpush
 
 @section('content')
@@ -75,18 +88,73 @@
                     this.votingOpen = false;
                 },
                 addIdeaCard() {
-                    if (!this.form.title.trim()) return;
-                    this.board.ide.unshift({
-                        title: this.form.title.trim(),
-                        category: this.form.category,
-                        priority: this.form.priority,
-                        checklist: '0/3',
-                        attachment: this.form.attachment.trim() || '-'
-                    });
-                    this.form.title = '';
-                    this.form.description = '';
-                    this.form.attachment = '';
-                }
+
+    if (
+        !this.form.title.trim()
+    ) return;
+
+    fetch(
+        '{{ route("problem.store", $selected_project["id"]) }}',
+        {
+            method: 'POST',
+
+            headers: {
+                'Content-Type':
+                    'application/json',
+
+                'Accept':
+                    'application/json',
+
+                'X-CSRF-TOKEN':
+                    '{{ csrf_token() }}'
+            },
+
+            body: JSON.stringify({
+
+                title:
+                    this.form.title,
+
+                description:
+                    this.form.description,
+
+                category:
+                    this.form.category,
+
+                priority:
+                    this.form.priority,
+
+                attachment:
+                    this.form.attachment
+            })
+        }
+    )
+    .then(response =>
+        response.json()
+    )
+    .then(data => {
+
+        if (
+            data.success
+        ) {
+
+            this.board.ide.unshift(
+                data.card
+            );
+
+            this.form.title = '';
+            this.form.description = '';
+            this.form.attachment = '';
+        }
+    })
+    .catch(error => {
+
+        console.error(
+            'Gagal simpan problem:',
+            error
+        );
+    });
+}
+                    
             }">
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -176,83 +244,208 @@
                                 </div>
                             </div>
 
-                            <div class="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-sm uppercase tracking-[0.3em] text-gray-400 font-semibold">Kanban Board (Problem Flow)</h3>
-                                    <span class="text-xs text-slate-500">Drag & drop visual (mockup)</span>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 text-sm">
-                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
-                                        <p class="font-bold text-slate-700 mb-2">Ide Masalah</p>
-                                        <p x-show="board.ide.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada ide masalah.</p>
-                                        <template x-for="(card, idx) in board.ide" :key="'ide-' + idx">
-                                            <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
-                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
-                                                <p class="text-[11px] text-slate-500 mt-1">Label: <span x-text="card.category"></span> • <span x-text="card.priority"></span></p>
-                                                <p class="text-[11px] text-slate-500">Checklist: <span x-text="card.checklist"></span></p>
-                                                <p class="text-[11px] text-slate-500">Lampiran: <span x-text="card.attachment"></span></p>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
-                                        <div class="mb-2 flex items-center justify-between gap-2">
-                                            <p class="font-bold text-slate-700">Voting</p>
-                                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="votingOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'" x-text="votingOpen ? 'Dibuka' : 'Ditutup'"></span>
-                                        </div>
-                                        <div class="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600">
-                                            <p>Peserta: <span class="font-semibold" x-text="participantCount"></span></p>
-                                            <p>Sudah voting: <span class="font-semibold" x-text="votedCount()"></span></p>
-                                            <p>Belum voting: <span class="font-semibold" x-text="unvotedCount()"></span></p>
-                                        </div>
-                                        <p x-show="board.voting.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada voting.</p>
-                                        <template x-for="(card, idx) in sortedVotingCards()" :key="card.key || ('vote-' + idx)">
-                                            <div class="mb-2 rounded-xl border p-2" :class="isMyVote(card) ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-slate-50'">
-                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
-                                                <p class="text-[11px] text-slate-500 mt-1">Suara: <span class="font-semibold" x-text="card.votes"></span></p>
-                                                <button type="button" @click="toggleVote(card)" class="mt-2 w-full rounded-lg px-2 py-1 text-[11px] font-semibold transition"
-                                                    :class="isMyVote(card) ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'"
-                                                    x-text="isMyVote(card) ? 'Unvote' : 'Vote'">
-                                                </button>
-                                            </div>
-                                        </template>
-                                        <button type="button" x-show="board.voting.length > 0" @click="submitTopToLecturer()" class="mt-2 w-full rounded-lg bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-600 transition">
-                                            Ajukan Pemenang ke Dosen
-                                        </button>
-                                    </div>
-                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
-                                        <p class="font-bold text-slate-700 mb-2">Diajukan ke Dosen</p>
-                                        <p x-show="board.diajukan.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada pengajuan.</p>
-                                        <template x-for="(card, idx) in board.diajukan" :key="'aju-' + idx">
-                                            <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
-                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
-                                                <p class="text-[11px] text-amber-600 mt-1" x-text="card.status"></p>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
-                                        <p class="font-bold text-slate-700 mb-2">Perbaiki</p>
-                                        <p x-show="board.perbaiki.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada perbaikan.</p>
-                                        <template x-for="(card, idx) in board.perbaiki" :key="'fix-' + idx">
-                                            <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
-                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
-                                                <p class="text-[11px] text-red-600 mt-1" x-text="card.note"></p>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <div class="rounded-2xl border border-slate-200 bg-white p-3">
-                                        <p class="font-bold text-slate-700 mb-2">Selesai</p>
-                                        <p x-show="board.selesai.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Belum ada masalah final.</p>
-                                        <template x-for="(card, idx) in board.selesai" :key="'done-' + idx">
-                                            <div class="mb-2 rounded-xl border border-emerald-200 bg-emerald-50 p-2">
-                                                <p class="font-semibold text-slate-800" x-text="card.title"></p>
-                                                <p class="text-[11px] text-emerald-700 mt-1">Final: <span x-text="card.date"></span></p>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<div class="rounded-[1.75rem] bg-slate-100 border border-slate-200 p-4">
+    <div class="flex gap-3 justify-between text-sm">
+
+        <!-- IDE -->
+        <div
+            id="board-idea"
+            class="flex-1 min-w-0 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm min-h-[360px] flex flex-col">
+
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <p class="font-bold text-slate-700">
+                    Ide Masalah
+                </p>
+            </div>
+
+            <p
+                x-show="board.ide.length === 0"
+                class="text-[11px] text-slate-400 italic py-4 text-center">
+                Belum ada ide masalah.
+            </p>
+
+            <template
+                x-for="(card, idx) in board.ide"
+                :key="'ide-' + idx">
+
+                <div
+                    :data-id="card.id"
+                    class="problem-card mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 cursor-move">
+
+                    <p
+                        class="font-semibold text-slate-800"
+                        x-text="card.title">
+                    </p>
+
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        <span x-text="card.category"></span>
+                        •
+                        <span x-text="card.priority"></span>
+                    </p>
+
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        <span x-text="card.description"></span>
+                    </p>
+
+                </div>
+            </template>
+        </div>
+
+        <!-- VOTING -->
+        <div
+            id="board-voting"
+            class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white p-2.5 shrink-0">
+
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <p class="font-bold text-slate-700">
+                    Voting
+                </p>
+
+                <span
+                    class="rounded-full px-2 py-1 text-[10px] font-semibold"
+                    :class="votingOpen
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-200 text-slate-700'"
+                    x-text="votingOpen
+                        ? 'Dibuka'
+                        : 'Ditutup'">
+                </span>
+            </div>
+
+            <template
+                x-for="(card, idx) in board.voting"
+                :key="'vote-' + idx">
+
+                <div
+                    :data-id="card.id"
+                    class="problem-card mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 cursor-move">
+
+                    <p
+                        class="font-semibold text-slate-800"
+                        x-text="card.title">
+                    </p>
+
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        Vote:
+                        <span
+                            class="font-semibold"
+                            x-text="card.votes ?? 0">
+                        </span>
+                    </p>
+
+                    <button
+                        type="button"
+                        @click="toggleVote(card)"
+                        class="mt-2 w-full rounded-lg bg-blue-600 px-2 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition">
+
+                        Vote
+                    </button>
+                </div>
+            </template>
+        </div>
+
+        <!-- DIAJUKAN -->
+        <div
+            id="board-submitted"
+            class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white p-2.5 shrink-0">
+
+           <div class="border-b border-slate-200 pb-3 mb-4">
+                <p class="font-bold text-slate-700">
+                    Diajukan
+                </p>
+            </div>
+
+            <template
+                x-for="(card, idx) in board.diajukan"
+                :key="'aju-' + idx">
+
+                <div
+                    :data-id="card.id"
+                    class="problem-card mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 cursor-move">
+
+                    <p
+                        class="font-semibold text-slate-800"
+                        x-text="card.title">
+                    </p>
+
+                    <p
+                        class="text-[11px] text-amber-600 mt-1"
+                        x-text="card.status">
+                    </p>
+
+                </div>
+            </template>
+        </div>
+
+        <!-- PERBAIKI -->
+        <div
+            id="board-revision"
+            class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white p-2.5 shrink-0">
+
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <p class="font-bold text-slate-700">
+                    Perbaiki
+                </p>
+            </div>
+
+            <template
+                x-for="(card, idx) in board.perbaiki"
+                :key="'fix-' + idx">
+
+                <div
+                    :data-id="card.id"
+                    class="problem-card mb-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 cursor-move">
+
+                    <p
+                        class="font-semibold text-slate-800"
+                        x-text="card.title">
+                    </p>
+
+                    <p
+                        class="text-[11px] text-red-600 mt-1"
+                        x-text="card.note">
+                    </p>
+
+                </div>
+            </template>
+        </div>
+
+        <!-- DONE -->
+        <div
+            id="board-done"
+            class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white p-2.5 shrink-0">
+
+            <div class="border-b border-slate-200 pb-3 mb-4">
+                <p class="font-bold text-slate-700">
+                    Selesai
+                </p>
+            </div>
+            <template
+                x-for="(card, idx) in board.selesai"
+                :key="'done-' + idx">
+
+                <div
+                    :data-id="card.id"
+                    class="problem-card mb-2 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 cursor-move">
+
+                    <p
+                        class="font-semibold text-slate-800"
+                        x-text="card.title">
+                    </p>
+
+                    <p class="text-[11px] text-emerald-700 mt-1">
+                        Final:
+                        <span x-text="card.date"></span>
+                    </p>
+
+                </div>
+            </template>
+        </div>
+
+    </div>
+</div>
+</div>
+</div>
 
                     <aside class="space-y-6">
                         <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
@@ -336,6 +529,128 @@
 
 @push('scripts')
 <script>
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        const boards = {
+
+            'board-idea':
+                'idea',
+
+            'board-voting':
+                'voting',
+
+            'board-submitted':
+                'submitted',
+
+            'board-revision':
+                'revision',
+
+            'board-done':
+                'done',
+        };
+
+        Object.keys(
+            boards
+        ).forEach(
+            boardId => {
+
+                const el =
+                    document.getElementById(
+                        boardId
+                    );
+
+                if (!el) return;
+                
+
+                console.log('Attach sortable:', boardId);
+                new Sortable(
+                    el,
+                    {
+                        group:
+                            'problem-board',
+
+                        animation:
+                            150,
+
+                        draggable:
+                            '.problem-card',
+
+                        onEnd:
+                            function (evt) {
+                                console.log('DRAG WORKING');
+                                console.log(evt);
+
+                                const card =
+                                    evt.item;
+
+                                const problemId =
+                                    card.dataset.id;
+
+                                const newStatus =
+                                    boards[
+                                        evt.to.id
+                                    ];
+
+                                fetch(
+                                    '{{ route("problem.move") }}',
+                                    {
+                                        method:
+                                            'POST',
+
+                                        headers: {
+                                            'Content-Type':
+                                                'application/json',
+
+                                            'Accept':
+                                                'application/json',
+
+                                            'X-CSRF-TOKEN':
+                                                '{{ csrf_token() }}'
+                                        },
+
+                                        body:
+                                            JSON.stringify({
+
+                                                problem_id:
+                                                    problemId,
+
+                                                status:
+                                                    newStatus
+                                            })
+                                    }
+                                )
+                                .then(
+                                    response =>
+                                        response.json()
+                                )
+                                .then(
+                                    data => {
+
+                                        console.log(
+                                            'Moved',
+                                            data
+                                        );
+                                    }
+                                )
+                                .catch(
+                                    err => {
+
+                                        console.error(
+                                            err
+                                        );
+                                    }
+                                );
+                            }
+                    }
+                );
+            }
+        );
+    }
+);
+
+
 (function () {
     const chartOpt = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } };
     const pieEl = document.getElementById('pieChart');
