@@ -4,7 +4,7 @@
 @section('root_data', '{ sidebarOpen: true, commentModal: false, editModal: false, selectedTask: "", activeColumn: null }')
 
 @section('content')
-<div class="p-6 space-y-6">
+<div class="w-full space-y-6">
                 <!-- Judul & Breadcrumb -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
                     <div>
@@ -32,7 +32,7 @@
                         </div>
 
                         <div class="grid grid-cols-3 gap-6">
-                            @foreach([['key'=>'todo','label'=>'Belum Dikerjakan','color'=>'blue-600'], ['key'=>'doing','label'=>'Belum Dikerjakan','color'=>'yellow-400'], ['key'=>'done','label'=>'Selesai','color'=>'green-500']] as $col)
+                            @foreach([['key'=>'todo','label'=>'Belum Dikerjakan','color'=>'blue-600'], ['key'=>'doing','label'=>'Sedang Dikerjakan','color'=>'yellow-400'], ['key'=>'done','label'=>'Selesai','color'=>'green-500']] as $col)
                             <div class="bg-gray-200/80 rounded-[2rem] p-6 flex flex-col h-[600px]">
                                 <div class="flex items-center space-x-2 mb-6">
                                     <div class="w-3 h-3 rounded-full bg-{{ $col['color'] }}"></div>

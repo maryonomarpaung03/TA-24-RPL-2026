@@ -3,7 +3,7 @@
 @section('title', 'Dashboard - DELPRO')
 
 @section('content')
-<div class="flex-1 p-6">
+<div class="w-full space-y-6">
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         @foreach ($statistics as $key => $value)
@@ -47,19 +47,16 @@
                 <a href="{{ route('notifikasi') }}" class="text-blue-500 text-xs font-bold hover:underline">Lihat semua &rarr;</a>
             </div>
             @forelse($problem_voting_notifications as $note)
-            <div class="flex justify-between items-center mb-4 p-2 hover:bg-gray-50 rounded last:mb-0">
+            <a href="{{ route('dosen.problem-review', $note['project_id']) }}" class="flex justify-between items-center mb-4 p-2 hover:bg-gray-50 rounded last:mb-0 block">
                 <div class="flex items-center space-x-3 min-w-0">
                     <div class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></div>
                     <div class="min-w-0">
                         <h4 class="text-sm font-bold text-gray-800 truncate">{{ $note['problem_title'] }}</h4>
-                        <p class="text-[10px] text-gray-400">{{ $note['project_name'] }} · {{ $note['student_group'] }}</p>
+                        <p class="text-[10px] text-gray-400">{{ $note['project_name'] }}</p>
                     </div>
                 </div>
-                <div class="text-right shrink-0 ml-3">
-                    <span class="text-sm font-black text-blue-600">{{ $note['votes'] }}</span>
-                    <p class="text-[10px] text-gray-400">suara</p>
-                </div>
-            </div>
+                <span class="text-[10px] text-gray-400 shrink-0 ml-3">{{ $note['time_ago'] }}</span>
+            </a>
             @empty
             <p class="text-sm text-gray-400 text-center py-6">Belum ada masalah hasil voting.</p>
             @endforelse

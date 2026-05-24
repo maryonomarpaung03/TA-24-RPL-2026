@@ -21,7 +21,7 @@
         <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
     @endif
 
-    <div class="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm text-center max-w-2xl mx-auto">
+    <div class="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm w-full">
         @if($isPending)
             <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
                 <i class="fas fa-hourglass-half text-2xl"></i>

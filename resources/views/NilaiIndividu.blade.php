@@ -2,14 +2,13 @@
 
 @section('title', 'Penilaian Individu - DELPRO')
 @section('body_class', 'bg-slate-50 font-sans')
-@section('main_class', 'flex-1 overflow-y-auto')
-@section('hide_header', '1')
+@section('main_class', 'flex-1 flex flex-col min-w-0 overflow-y-auto')
 
 @section('content')
 @php
     $groupMembers = $anggota ?? [($studentData['name'] ?? 'Anggota')];
 @endphp
-<div class="max-w-7xl mx-auto px-6 py-8 space-y-6" x-data="{ activeTab: 'individual' }">
+<div class="w-full space-y-6" x-data="{ activeTab: 'individual' }">
                 <!-- Student Header Card -->
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
                     <div class="flex items-start justify-between mb-6">

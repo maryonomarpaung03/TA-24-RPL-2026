@@ -2,8 +2,7 @@
 
 @section('title', 'Dekomposisi Masalah - DELPRO')
 @section('root_data', '{ sidebarOpen: true }')
-@section('main_class', 'flex-1 overflow-y-auto')
-@section('hide_header', '1')
+@section('main_class', 'flex-1 flex flex-col min-w-0 overflow-y-auto')
 
 @push('head')
 <link rel="stylesheet" href="https://unpkg.com/drawflow/dist/drawflow.min.css">
@@ -124,22 +123,11 @@
 @endpush
 
 @section('content')
-<div class="max-w-full mx-auto px-6 py-8" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(csrf_token()))">
+<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(csrf_token()))">
     <div class="flex flex-col gap-6">
-                    <div class="flex flex-col md:flex-row items-start justify-between gap-4">
-                        <div>
-                            <p class="text-xs uppercase tracking-[0.3em] text-gray-500 font-semibold mb-2">Projects / Dekomposisi</p>
-                            <h1 class="text-3xl font-bold text-slate-900">Dekomposisi Masalah</h1>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <div class="relative">
-                                <i class="fas fa-bell text-2xl text-gray-400"></i>
-                                @if($user['notif_count'] > 0)
-                                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center border-2 border-white font-bold">{{ $user['notif_count'] }}</span>
-                                @endif
-                            </div>
-                            <div class="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">{{ $user['initials'] }}</div>
-                        </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-gray-500 font-semibold mb-2">Projects / Dekomposisi</p>
+                        <h1 class="text-3xl font-bold text-slate-900">Dekomposisi Masalah</h1>
                     </div>
 
                     <div class="grid grid-cols-1 xl:grid-cols-[1.7fr_1fr] gap-6">

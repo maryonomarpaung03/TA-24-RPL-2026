@@ -1,40 +1,62 @@
 @extends('layouts.app')
 
-@section('title', 'Notifikasi - DELPRO')
+@section('title', 'Semua Notifikasi - DELPRO')
 
 @section('content')
-<div class="flex-1 p-6">
+<div class="w-full space-y-6">
 
-    <div class="bg-white p-5 rounded shadow">
-        <div class="flex justify-between items-center mb-4 border-b pb-2">
-            <h3 class="font-bold text-gray-700 text-xs uppercase">Notifikasi</h3>
-            <span class="text-[10px] text-gray-400">{{ count($notifications) }} pesan</span>
+    @include('partials.flash-messages')
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Notifikasi</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                @if($unreadCount > 0)
+                    Anda memiliki {{ $unreadCount }} notifikasi belum dibaca.
+                @else
+                    Semua notifikasi sudah dibaca.
+                @endif
+            </p>
         </div>
+        @if($unreadCount > 0)
+        <form method="POST" action="{{ route('notifikasi.read-all') }}">
+            @csrf
+            <button type="submit"
+                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
+                <i class="fas fa-check-double text-blue-600"></i>
+                Tandai semua dibaca
+            </button>
+        </form>
+        @endif
+    </div>
 
-        @forelse($notifications as $note)
-        <article class="mb-4 last:mb-0 p-3 rounded hover:bg-gray-50 {{ $note->read_at ? '' : 'bg-blue-50/50' }}">
-            <div class="flex justify-between items-start gap-3">
-                <div class="min-w-0">
-                    <h4 class="text-sm font-bold text-gray-800">{{ $note->title }}</h4>
-                    <p class="text-[10px] text-gray-500 mt-1">{{ $note->message }}</p>
-                    @if($note->project_name)
-                    <p class="text-[10px] text-gray-400 mt-1">Proyek: {{ $note->project_name }}</p>
-                    @endif
-                </div>
-                <time class="text-[10px] text-gray-400 shrink-0">
-                    {{ \Carbon\Carbon::parse($note->created_at)->diffForHumans() }}
-                </time>
-            </div>
-            @if(auth()->user()->role === 'lecturer' && $note->project_id)
-                <a href="{{ route('dosen.persetujuan.show', $note->project_id) }}"
-                   class="inline-block mt-2 text-blue-500 text-xs font-bold hover:underline">Lihat proyek &rarr;</a>
-            @elseif($note->project_id && auth()->user()->role !== 'lecturer')
-                <a href="{{ route('dashboard', ['project_id' => $note->project_id]) }}"
-                   class="inline-block mt-2 text-blue-500 text-xs font-bold hover:underline">Buka proyek &rarr;</a>
+    <div class="flex gap-2">
+        <a href="{{ route('notifikasi', ['filter' => 'all']) }}"
+           class="rounded-full px-4 py-2 text-xs font-bold transition {{ $filter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
+            Semua
+        </a>
+        <a href="{{ route('notifikasi', ['filter' => 'unread']) }}"
+           class="rounded-full px-4 py-2 text-xs font-bold transition {{ $filter === 'unread' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
+            Belum dibaca
+            @if($unreadCount > 0)
+            <span class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] text-white">{{ $unreadCount }}</span>
             @endif
-        </article>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+        @forelse($notifications as $note)
+            @include('partials.notification-item', ['note' => $note, 'role' => $role])
         @empty
-        <p class="text-sm text-gray-400 text-center py-8">Belum ada notifikasi.</p>
+        <div class="px-6 py-16 text-center">
+            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                <i class="fas fa-bell-slash text-xl"></i>
+            </div>
+            <p class="text-sm font-semibold text-slate-600">
+                {{ $filter === 'unread' ? 'Tidak ada notifikasi belum dibaca' : 'Belum ada notifikasi' }}
+            </p>
+            <p class="text-xs text-slate-400 mt-2">Aktivitas proyek Anda akan muncul di halaman ini.</p>
+        </div>
         @endforelse
     </div>
 </div>

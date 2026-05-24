@@ -3,113 +3,93 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DosenDashboardController extends Controller
 {
-    public function index()
-    {
-        if (Auth::user()->role !== 'lecturer') {
-            abort(403, 'Halaman ini hanya untuk dosen.');
-        }
-
-        // Data statis sementara — integrasi database menyusul
-        $statistics = [
-            'total_proyek' => 24,
-            'proyek_berjalan' => 12,
-            'mahasiswa_kelas' => 156,
-            'mata_kuliah' => 4,
-        ];
-
-        $pending_approvals = [
-            [
-                'id' => 1,
-                'name' => 'Sistem Manajemen Inventori Lab',
-                'creator_name' => 'Ahmad Rizki',
-                'course' => 'Rekayasa Perangkat Lunak',
-                'submitted_at' => '14 Mei 2026',
-            ],
-            [
-                'id' => 2,
-                'name' => 'Aplikasi Monitoring Proyek Kampus',
-                'creator_name' => 'Siti Nurhaliza',
-                'course' => 'Pemrograman Web',
-                'submitted_at' => '13 Mei 2026',
-            ],
-            [
-                'id' => 3,
-                'name' => 'Platform Kolaborasi Mahasiswa',
-                'creator_name' => 'Budi Santoso',
-                'course' => 'Basis Data',
-                'submitted_at' => '12 Mei 2026',
-            ],
-            [
-                'id' => 4,
-                'name' => 'Chatbot FAQ Akademik',
-                'creator_name' => 'Dewi Lestari',
-                'course' => 'Kecerdasan Buatan',
-                'submitted_at' => '11 Mei 2026',
-            ],
-            [
-                'id' => 5,
-                'name' => 'Dashboard Analitik Nilai',
-                'creator_name' => 'Eko Prasetyo',
-                'course' => 'Visualisasi Data',
-                'submitted_at' => '10 Mei 2026',
-            ],
-        ];
-
-        $problem_voting_notifications = [
-            [
-                'id' => 101,
-                'project_name' => 'Sistem Manajemen Inventori Lab',
-                'problem_title' => 'Stok barang lab tidak terpantau real-time',
-                'student_group' => 'Kelompok Alpha',
-                'votes' => 8,
-                'time_ago' => '2 jam yang lalu',
-            ],
-            [
-                'id' => 102,
-                'project_name' => 'Aplikasi Monitoring Proyek Kampus',
-                'problem_title' => 'Deadline tugas sulit dilacak antar anggota',
-                'student_group' => 'Kelompok Beta',
-                'votes' => 6,
-                'time_ago' => '5 jam yang lalu',
-            ],
-            [
-                'id' => 103,
-                'project_name' => 'Platform Kolaborasi Mahasiswa',
-                'problem_title' => 'Komunikasi tim tersebar di banyak channel',
-                'student_group' => 'Kelompok Gamma',
-                'votes' => 7,
-                'time_ago' => '1 hari yang lalu',
-            ],
-            [
-                'id' => 104,
-                'project_name' => 'Chatbot FAQ Akademik',
-                'problem_title' => 'Mahasiswa kesulitan menemukan info akademik',
-                'student_group' => 'Kelompok Delta',
-                'votes' => 5,
-                'time_ago' => '1 hari yang lalu',
-            ],
-            [
-                'id' => 105,
-                'project_name' => 'Dashboard Analitik Nilai',
-                'problem_title' => 'Rekap nilai tidak terintegrasi per mata kuliah',
-                'student_group' => 'Kelompok Epsilon',
-                'votes' => 9,
-                'time_ago' => '2 hari yang lalu',
-            ],
-        ];
-
-        $pending_total = 8;
-        $notifications_total = 12;
-
-        return view('DosenDashboard', compact(
-            'statistics',
-            'pending_approvals',
-            'problem_voting_notifications',
-            'pending_total',
-            'notifications_total'
-        ));
+  public function index()
+  {
+    if (Auth::user()->role !== 'lecturer') {
+      abort(403, 'Halaman ini hanya untuk dosen.');
     }
+
+    $email = strtolower(trim((string) Auth::user()->email));
+
+    $statistics = [
+      'total_proyek' => DB::table('projects')->where('lecturer_email', $email)->count(),
+      'proyek_berjalan' => DB::table('projects')->where('lecturer_email', $email)->where('status', 'active')->count(),
+      'mahasiswa_kelas' => 0,
+      'mata_kuliah' => 0,
+    ];
+
+    $pending_approvals = DB::table('projects')
+      ->join('users', 'users.id', '=', 'projects.created_by')
+      ->where('projects.lecturer_email', $email)
+      ->where('projects.status', 'pending_approval')
+      ->orderByDesc('projects.submitted_at')
+      ->select(
+        'projects.id',
+        'projects.name as name',
+        'users.full_name as creator_name',
+        'projects.course_name as course',
+        'projects.submitted_at'
+      )
+      ->limit(5)
+      ->get()
+      ->map(fn ($row) => [
+        'id' => $row->id,
+        'name' => $row->name,
+        'creator_name' => $row->creator_name ?? 'Mahasiswa',
+        'course' => $row->course ?? '-',
+        'submitted_at' => $row->submitted_at
+          ? \Carbon\Carbon::parse($row->submitted_at)->format('d M Y')
+          : '-',
+      ])
+      ->all();
+
+    $problem_voting_notifications = DB::table('project_notifications')
+      ->join('projects', 'projects.id', '=', 'project_notifications.project_id')
+      ->leftJoin('problem_identifications', function ($join) {
+        $join->on('problem_identifications.project_id', '=', 'projects.id')
+          ->where('problem_identifications.board_status', '=', 'submitted');
+      })
+      ->where('project_notifications.recipient_email', $email)
+      ->whereIn('project_notifications.type', ['problem_submitted_for_review', 'problem_resubmitted'])
+      ->orderByDesc('project_notifications.created_at')
+      ->select(
+        'project_notifications.id',
+        'projects.name as project_name',
+        'projects.id as project_id',
+        'problem_identifications.title as problem_title',
+        'project_notifications.created_at'
+      )
+      ->limit(5)
+      ->get()
+      ->map(fn ($row) => [
+        'id' => $row->id,
+        'project_id' => $row->project_id,
+        'project_name' => $row->project_name,
+        'problem_title' => $row->problem_title ?? 'Masalah utama',
+        'time_ago' => \Carbon\Carbon::parse($row->created_at)->diffForHumans(),
+      ])
+      ->all();
+
+    $pending_total = DB::table('projects')
+      ->where('lecturer_email', $email)
+      ->where('status', 'pending_approval')
+      ->count();
+
+    $notifications_total = DB::table('project_notifications')
+      ->where('recipient_email', $email)
+      ->whereNull('read_at')
+      ->count();
+
+    return view('DosenDashboard', compact(
+      'statistics',
+      'pending_approvals',
+      'problem_voting_notifications',
+      'pending_total',
+      'notifications_total'
+    ));
+  }
 }

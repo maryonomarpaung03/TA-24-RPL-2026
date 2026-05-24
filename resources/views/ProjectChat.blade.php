@@ -4,7 +4,7 @@
 @section('root_data', '{ sidebarOpen: true }')
 
 @section('content')
-<div class="p-6 space-y-6">
+<div class="w-full space-y-6">
     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
         <p class="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em]">Project / Chat Room</p>
         <h2 class="mt-2 text-2xl font-bold text-gray-900">{{ $namaProjek }}</h2>

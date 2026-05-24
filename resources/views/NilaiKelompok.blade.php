@@ -8,7 +8,7 @@
     $projectTitle = $namaProjek ?? ($groupData['project'] ?? 'Projek Tidak Ditemukan');
     $anggotaList = $anggota ?? collect($groupData['members'] ?? [])->pluck('name')->all();
 @endphp
-<div class="p-6 space-y-6">
+<div class="w-full space-y-6">
                 <!-- Project Header -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
                     <div>
@@ -55,7 +55,7 @@
                         </div>
 
                         <!-- Card Container -->
-                        <div class="bg-white rounded-[2.5rem] p-12 shadow-sm border border-gray-100 max-w-4xl">
+                        <div class="bg-white rounded-[2.5rem] p-12 shadow-sm border border-gray-100 w-full">
                             <form action="#" class="space-y-10">
                                 <!-- Bagian 1: Penilaian Kelompok -->
                                 <div class="space-y-2">

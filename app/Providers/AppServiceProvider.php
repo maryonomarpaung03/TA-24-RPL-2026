@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\NotificationPresenter;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
@@ -29,17 +30,18 @@ class AppServiceProvider extends ServiceProvider
             $selected_project = ProjectCatalog::find($projectId);
 
             $notifCount = 0;
+            $recentNotifications = collect();
             if (auth()->check()) {
                 $email = strtolower(trim((string) auth()->user()->email));
-                $notifCount = \Illuminate\Support\Facades\DB::table('project_notifications')
-                    ->where('recipient_email', $email)
-                    ->whereNull('read_at')
-                    ->count();
+                $notifCount = NotificationPresenter::unreadCount($email);
+                $recentNotifications = NotificationPresenter::forUser($email, 8);
             }
 
             $view->with([
                 'selected_project' => $selected_project,
                 'notif_count' => $notifCount,
+                'recent_notifications' => $recentNotifications,
+                'loggedUser' => auth()->user(),
             ]);
         });
     }
