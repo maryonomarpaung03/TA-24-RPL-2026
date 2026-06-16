@@ -75,7 +75,7 @@
             </div>
         </div>
     </template>
-
+    
     @if($enrolledClasses->isNotEmpty())
     <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3" x-show="sidebarOpen">
         <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold mb-2">My classes</p>
