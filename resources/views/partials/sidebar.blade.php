@@ -19,7 +19,7 @@
 
     <!-- Logo + User Initial -->
     <div class="p-6 text-center">
-        <a href="{{ auth()->user()->role === 'lecturer' ? route('dosen.dashboard') : route('dashboard') }}"
+        <a href="{{ auth()->user()->role === 'lecturer' ? route('dosen.dashboard') : route('my-project') }}"
            class="inline-flex items-center justify-center flex-col gap-1">
 
             
@@ -74,15 +74,6 @@
         @else
         {{-- Menu mahasiswa --}}
         @include('partials.student-class-join')
-
-        <a href="{{ route('dashboard') }}"
-           class="flex items-center gap-3 p-3 rounded-xl transition
-           {{ Request::routeIs('dashboard') || Request::routeIs('home')
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100' }}">
-            <i class="fas fa-th-large w-6 text-center"></i>
-            <span x-show="sidebarOpen" class="font-semibold">Dashboard</span>
-        </a>
 
         <!-- Projects -->
         <a href="{{ route('my-project') }}"
