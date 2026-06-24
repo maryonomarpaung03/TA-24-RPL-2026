@@ -56,22 +56,35 @@
                 </div>
                 @endif
 
-                @if(Route::has('classes.join'))
-
-<form
-    method="POST"
-    action="{{ route('classes.join') }}"
-    class="space-y-4"
->
-    @csrf
-
-@else
-
-<div class="rounded-xl bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-700">
-    Fitur join class sedang dinonaktifkan sementara.
-</div>
-
-@endif
+                <form method="POST" action="{{ route('classes.join') }}" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label for="student-join-code" class="block text-xs font-semibold text-slate-500 mb-1">Class code</label>
+                        <input id="student-join-code"
+                               name="join_code"
+                               type="text"
+                               value="{{ old('join_code') }}"
+                               required
+                               autocomplete="off"
+                               placeholder="e.g. A1B2C3"
+                               maxlength="12"
+                               class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-mono uppercase tracking-widest text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 @error('join_code') border-red-400 @enderror">
+                        <p class="mt-2 text-[11px] text-slate-500">Ask your lecturer for the 6-character class code.</p>
+                        @error('join_code')
+                        <p class="mt-1 text-[11px] text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                        <button type="button" @click="joinOpen = false"
+                                class="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="rounded-full bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm">
+                            Join
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </template>
