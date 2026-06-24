@@ -24,7 +24,7 @@ class LoginController extends Controller
                 return redirect()->route('dosen.dashboard');
             }
 
-            return redirect()->route('dashboard');
+            return redirect()->route('my-project');
         }
 
         return view('auth.login');
@@ -74,7 +74,7 @@ class LoginController extends Controller
         return redirect()->route('dosen.dashboard');
     }
 
-    return redirect()->route('dashboard');
+    return redirect()->route('my-project');
 }
 
 
