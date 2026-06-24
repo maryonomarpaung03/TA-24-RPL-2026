@@ -16,15 +16,15 @@
     }
 @endphp
 
-<header class="bg-white px-8 py-4 flex justify-between items-center border-b border-gray-100 sticky top-0 z-40">
+<header class="bg-white px-6 py-3 flex justify-between items-center border-b border-gray-100 sticky top-0 z-40">
 
     <!-- Welcome -->
     <div>
-        <p class="text-gray-400 text-[10px] uppercase font-bold tracking-widest">
+        <p class="text-gray-400 text-xs uppercase font-bold tracking-widest">
             selamat datang,
         </p>
 
-        <h3 class="font-bold text-gray-800 text-sm">
+        <h3 class="font-bold text-gray-800 text-base">
             {{ $displayName }}
         </h3>
     </div>

@@ -39,6 +39,16 @@
                     <p class="mt-1"><span class="font-semibold">Diajukan:</span> {{ $selected_project['submitted_at']->format('d M Y H:i') }}</p>
                 @endif
             </div>
+
+            @if($isOwner)
+            <div class="flex justify-center">
+                <a href="{{ route('projek.edit', $selected_project['id']) }}"
+                   class="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-white px-5 py-2.5 text-sm font-semibold text-amber-700 hover:bg-amber-50 transition">
+                    <i class="fas fa-edit"></i>
+                    Edit & Ajukan Ulang
+                </a>
+            </div>
+            @endif
         @elseif($isDraft)
             <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-600">
                 <i class="fas fa-file-pen text-2xl"></i>

@@ -40,12 +40,6 @@ class BuatProjekController extends Controller
                 ->with('error', 'Proyek dengan status ini tidak dapat diedit.');
         }
 
-        if ($project->status === 'pending_approval') {
-            return redirect()
-                ->route('problem-identification', $project->id)
-                ->with('info', 'Proyek sedang menunggu persetujuan awal dosen. Edit setelah disetujui atau ditolak.');
-        }
-
         $parsed = ProjectAccess::parseProjectDescription($project->description);
         $memberEmails = DB::table('project_members')
             ->join('users', 'project_members.user_id', '=', 'users.id')
@@ -57,7 +51,7 @@ class BuatProjekController extends Controller
         return view('BuatProjek', [
             'isEdit' => true,
             'project' => $project,
-            'editMode' => $project->status === 'draft' ? 'draft' : 'revision',
+            'editMode' => in_array($project->status, ['draft'], true) ? 'draft' : 'revision',
             'attachmentMedia' => ProjectAccess::projectMediaPreview(
                 $project->logo,
                 $project->description

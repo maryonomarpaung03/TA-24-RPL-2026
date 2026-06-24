@@ -76,9 +76,9 @@
 
                 {{-- Baris 4 --}}
                 <div>
-                    <label for="birth_place_date" class="sr-only">Tempat / tanggal lahir</label>
-                    <input id="birth_place_date" name="birth_place_date" type="text" value="{{ old('birth_place_date') }}" required
-                           placeholder="Tempat/Tanggal Lahir" class="{{ $inputClass }}">
+                    <label for="birth_place_date" class="sr-only">Tanggal lahir</label>
+                    <input id="birth_place_date" name="birth_place_date" type="date" value="{{ old('birth_place_date') }}" required
+                           class="{{ $inputClass }} text-slate-700">
                 </div>
                 <div>
                     <label for="gender" class="sr-only">Jenis kelamin</label>

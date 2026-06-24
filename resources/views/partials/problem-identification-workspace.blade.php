@@ -14,6 +14,7 @@
         propose: @js(route('problem.propose-voting', $projectId)),
         vote: @js(route('problem.vote', $projectId)),
         comment: @js(route('problem.comment', $projectId)),
+        discuss: @js(route('problem.discuss', $projectId)),
         submit: @js(route('problem.submit-lecturer', $projectId)),
         resubmit: @js(route('problem.resubmit', $projectId)),
     },
@@ -251,16 +252,18 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
+            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm flex flex-col">
                 <h3 class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Diskusi</h3>
-                <div class="space-y-3 text-sm text-slate-700 max-h-[420px] overflow-y-auto">
-                    <p x-show="comments.length === 0" class="text-sm text-slate-400 text-center py-4">Belum ada komentar.</p>
+                <div x-ref="commentList" class="space-y-3 text-sm text-slate-700 max-h-[360px] overflow-y-auto mb-4">
+                    <p x-show="comments.length === 0" class="text-sm text-slate-400 text-center py-4">Belum ada pesan. Mulai diskusi tim di sini.</p>
                     <template x-for="comment in comments" :key="'c-' + comment.id">
                         <div class="rounded-2xl bg-slate-50 p-3 border border-slate-200">
                             <div class="flex items-start justify-between gap-2 text-[11px] text-slate-500">
                                 <div class="min-w-0">
                                     <span class="font-semibold text-slate-700" x-text="comment.from"></span>
-                                    <span class="ml-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 truncate max-w-[140px]" x-text="comment.problem_title"></span>
+                                    <template x-if="comment.problem_title">
+                                        <span class="ml-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 truncate max-w-[140px]" x-text="comment.problem_title"></span>
+                                    </template>
                                 </div>
                                 <span class="shrink-0" x-text="comment.time"></span>
                             </div>
@@ -300,6 +303,22 @@
                         </div>
                     </template>
                 </div>
+                <!-- Chat input -->
+                <div class="border-t border-slate-100 pt-4">
+                    <div class="flex gap-2 items-end">
+                        <textarea x-model="generalDraft"
+                                  @keydown.enter.prevent="if (!$event.shiftKey) postGeneralMessage()"
+                                  rows="2"
+                                  class="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:bg-white resize-none transition"
+                                  placeholder="Tulis pesan diskusi... (Enter untuk kirim)"></textarea>
+                        <button type="button"
+                                @click="postGeneralMessage()"
+                                :disabled="loading || !generalDraft.trim()"
+                                class="shrink-0 h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition disabled:opacity-40">
+                            <i class="fas fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
@@ -327,6 +346,7 @@ function problemBoardApp(config) {
         cardDrafts: {},
         replyingTo: null,
         replyDraft: '',
+        generalDraft: '',
         form: { title: '', description: '', category: 'Teknik', priority: 'Sedang', attachment: '' },
         get votingOpen() { return this.board.voting.length > 0; },
         init() {
@@ -462,19 +482,38 @@ function problemBoardApp(config) {
             }
             this.loading = true;
             try {
-                const data = await this.apiPost(this.routes.comment, {
-                    problem_id: comment.problem_id,
+                const data = await this.apiPost(this.routes.discuss, {
                     message,
                     parent_id: comment.id,
                 });
                 this.comments = data.comments || [];
                 this.cancelReply();
                 this.showFlash('Balasan terkirim.');
+                this.$nextTick(() => this.scrollComments());
             } catch (e) {
                 this.showFlash(e.message, 'error');
             } finally {
                 this.loading = false;
             }
+        },
+        async postGeneralMessage() {
+            const message = (this.generalDraft || '').trim();
+            if (!message) return;
+            this.loading = true;
+            try {
+                const data = await this.apiPost(this.routes.discuss, { message });
+                this.comments = data.comments || [];
+                this.generalDraft = '';
+                this.$nextTick(() => this.scrollComments());
+            } catch (e) {
+                this.showFlash(e.message, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        scrollComments() {
+            const el = this.$refs.commentList;
+            if (el) el.scrollTop = el.scrollHeight;
         },
         countVotersFromBoard(board) {
             return board.voting.length;

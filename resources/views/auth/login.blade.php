@@ -3,34 +3,34 @@
 @section('title', 'Masuk - DELPRO')
 
 @section('content')
-<div class="flex min-h-screen items-center justify-center px-4 py-10 bg-slate-50">
+<div class="flex min-h-screen items-center justify-center px-6 py-10 bg-slate-50">
 
-    <div class="w-full max-w-sm rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+    <div class="w-full max-w-md rounded-3xl bg-white p-10 shadow-sm border border-slate-200">
 
         <!-- Logo -->
         <div class="mb-8 text-center">
-            <p class="text-xs font-bold uppercase tracking-widest text-blue-600">
+            <p class="text-sm font-bold uppercase tracking-widest text-blue-600">
                 DELPRO
             </p>
 
-            <h1 class="mt-2 text-2xl font-bold text-slate-900">
+            <h1 class="mt-2 text-3xl font-bold text-slate-900">
                 Masuk ke akun
             </h1>
 
-            <p class="mt-2 text-sm text-slate-500">
+            <p class="mt-2 text-base text-slate-500">
                 Gunakan email dan kata sandi Anda
             </p>
         </div>
 
         @if(session('success'))
-    <div class="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700 border border-green-200">
+    <div class="mb-4 rounded-xl bg-green-50 px-4 py-3 text-base text-green-700 border border-green-200">
         {{ session('success') }}
     </div>
 @endif
 
         <!-- Error -->
         @if ($errors->any())
-            <div class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">
+            <div class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-base text-red-700 border border-red-200">
                 {{ $errors->first() }}
             </div>
         @endif
@@ -39,13 +39,13 @@
         <form
             method="POST"
             action="{{ route('login.store') }}"
-            class="space-y-4"
+            class="space-y-5"
         >
             @csrf
 
             <!-- Email -->
             <div>
-                <label class="mb-2 block text-sm font-medium text-slate-700">
+                <label class="mb-2 block text-base font-medium text-slate-700">
                     Email
                 </label>
 
@@ -55,14 +55,14 @@
                     value="{{ old('email') }}"
                     required
                     autofocus
-                    class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                    class="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-base outline-none focus:border-blue-500"
                     placeholder="Masukkan email"
                 >
             </div>
 
             <!-- Password -->
             <div>
-                <label class="mb-2 block text-sm font-medium text-slate-700">
+                <label class="mb-2 block text-base font-medium text-slate-700">
                     Kata sandi
                 </label>
 
@@ -70,13 +70,13 @@
                     type="password"
                     name="password"
                     required
-                    class="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                    class="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-base outline-none focus:border-blue-500"
                     placeholder="Masukkan kata sandi"
                 >
             </div>
 
             <!-- Remember -->
-            <label class="flex items-center gap-2 text-sm text-slate-600">
+            <label class="flex items-center gap-2 text-base text-slate-600">
                 <input
                     type="checkbox"
                     name="remember"
@@ -88,7 +88,7 @@
             <!-- Button Login -->
             <button
                 type="submit"
-                class="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 transition"
+                class="w-full rounded-xl bg-blue-600 py-3.5 text-base font-semibold text-white hover:bg-blue-700 transition"
             >
                 Masuk
             </button>
@@ -96,7 +96,7 @@
         </form>
 
         <!-- Register Link -->
-        <div class="mt-6 space-y-2 text-center text-sm text-slate-600">
+        <div class="mt-6 space-y-2 text-center text-base text-slate-600">
             <p>
                 Mahasiswa:
                 <a href="{{ route('register') }}" class="font-semibold text-blue-600 hover:text-blue-700">Daftar akun</a>

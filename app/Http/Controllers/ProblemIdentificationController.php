@@ -107,6 +107,26 @@ class ProblemIdentificationController extends Controller
     ]);
   }
 
+  public function discuss(Request $request, int $id): JsonResponse
+  {
+    $validated = $request->validate([
+      'message' => ['required', 'string', 'max:2000'],
+      'parent_id' => ['nullable', 'integer'],
+    ]);
+
+    $result = $this->service->addGeneralDiscussion(
+      $id,
+      Auth::user(),
+      $validated['message'],
+      isset($validated['parent_id']) ? (int) $validated['parent_id'] : null
+    );
+
+    return response()->json([
+      'success' => true,
+      'comments' => $result['comments'],
+    ]);
+  }
+
   public function resubmit(Request $request, int $id): JsonResponse
   {
     $request->validate([

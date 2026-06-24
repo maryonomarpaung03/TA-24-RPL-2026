@@ -185,11 +185,88 @@ class ProblemIdentificationService
     }
 
     $rows = $this->discussionRowsQuery($projectId)
-      ->whereNotNull('discussions.problem_id')
       ->orderBy('discussions.created_at')
       ->get();
 
     return $this->buildDiscussionTree($rows);
+  }
+
+  /**
+   * @return array{comments: array<int, array<string, mixed>>}
+   */
+  public function addGeneralDiscussion(
+    int $projectId,
+    User $user,
+    string $message,
+    ?int $parentId = null
+  ): array {
+    $project = Project::query()->findOrFail($projectId);
+
+    if ($user->role === 'lecturer') {
+      throw ValidationException::withMessages([
+        'role' => 'Hanya mahasiswa yang dapat berdiskusi di sini.',
+      ]);
+    }
+
+    if (! ProjectAccess::userCanAccess($user, $project)) {
+      abort(403, 'Anda tidak memiliki akses ke proyek ini.');
+    }
+
+    $message = trim($message);
+
+    if ($message === '') {
+      throw ValidationException::withMessages([
+        'message' => 'Pesan tidak boleh kosong.',
+      ]);
+    }
+
+    if (strlen($message) > 2000) {
+      throw ValidationException::withMessages([
+        'message' => 'Pesan maksimal 2000 karakter.',
+      ]);
+    }
+
+    if ($parentId) {
+      $parent = DB::table('discussions')
+        ->where('id', $parentId)
+        ->where('project_id', $projectId)
+        ->whereNull('task_id')
+        ->first();
+
+      if (! $parent) {
+        throw ValidationException::withMessages([
+          'parent_id' => 'Komentar tidak ditemukan.',
+        ]);
+      }
+
+      if (Schema::hasColumn('discussions', 'parent_id') && $parent->parent_id) {
+        throw ValidationException::withMessages([
+          'parent_id' => 'Balasan hanya dapat ditambahkan pada komentar utama.',
+        ]);
+      }
+    }
+
+    $insert = [
+      'project_id' => $projectId,
+      'user_id' => $user->id,
+      'task_id' => null,
+      'message' => $message,
+      'created_at' => now(),
+    ];
+
+    if (Schema::hasColumn('discussions', 'problem_id')) {
+      $insert['problem_id'] = null;
+    }
+
+    if (Schema::hasColumn('discussions', 'parent_id') && $parentId) {
+      $insert['parent_id'] = $parentId;
+    }
+
+    DB::table('discussions')->insert($insert);
+
+    return [
+      'comments' => $this->discussionThreadForProject($projectId),
+    ];
   }
 
   /**
@@ -341,8 +418,8 @@ class ProblemIdentificationService
         'from' => $row->full_name ?: $row->name ?: 'Anggota',
         'text' => $row->message,
         'time' => \Carbon\Carbon::parse($row->created_at)->diffForHumans(),
-        'problem_id' => (int) $row->problem_id,
-        'problem_title' => $row->problem_title ?: 'Masalah',
+        'problem_id' => $row->problem_id ? (int) $row->problem_id : null,
+        'problem_title' => $row->problem_title ?: null,
         'parent_id' => property_exists($row, 'parent_id') ? $row->parent_id : null,
         'replies' => [],
       ];

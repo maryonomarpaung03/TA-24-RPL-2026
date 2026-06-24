@@ -14,15 +14,45 @@
 
 @section('content')
 <div class="w-full">
-        <h2 class="text-3xl font-bold text-gray-900 mb-8">
-            @if(!$isEdit)
-                Buat Projek
-            @elseif($editMode === 'draft')
-                Edit Projek (Draft)
-            @else
-                Edit Projek
-            @endif
-        </h2>
+        <div class="flex items-center gap-3 mb-8">
+            <h2 class="text-3xl font-bold text-gray-900">
+                @if(!$isEdit)
+                    Buat Projek
+                @elseif($editMode === 'draft')
+                    Edit Projek (Draft)
+                @else
+                    Edit Projek
+                @endif
+            </h2>
+
+            {{-- Tooltip Petunjuk Pengisian --}}
+            <div class="relative" x-data="{ open: false }">
+                <button type="button"
+                        @mouseenter="open = true"
+                        @mouseleave="open = false"
+                        @click="open = !open"
+                        class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center hover:bg-blue-200 transition">
+                    ?
+                </button>
+
+                <div x-show="open"
+                     x-cloak
+                     x-transition
+                     @mouseleave="open = false"
+                     class="absolute left-0 top-8 z-50 w-80 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg text-sm text-gray-600">
+                    <p class="font-bold text-gray-800 mb-2">Petunjuk Pengisian</p>
+                    <ol class="space-y-1.5 list-decimal list-inside leading-relaxed">
+                        <li>Isi data kelompok dan mata kuliah sesuai proyek Anda.</li>
+                        <li>Email dosen digunakan untuk notifikasi dan persetujuan proyek.</li>
+                        @if($isEdit && $editMode !== 'draft')
+                        <li>Setelah mengubah data, klik <strong>Ajukan Perbaikan ke Dosen</strong> agar perubahan ditinjau dosen.</li>
+                        @else
+                        <li><strong>Simpan ke Draft</strong> untuk menyimpan sementara; <strong>Ajukan ke Dosen</strong> langsung mengirim pengajuan.</li>
+                        @endif
+                    </ol>
+                </div>
+            </div>
+        </div>
 
         @if(session('success'))
             <div class="mb-6 rounded-xl bg-green-100 border border-green-300 text-green-700 px-4 py-3">{{ session('success') }}</div>
@@ -40,18 +70,6 @@
         @endif
 
         <div class="bg-white rounded-[2rem] border border-gray-100 p-10 shadow-sm">
-            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8">
-                <h4 class="font-bold text-gray-800 mb-3">Petunjuk Pengisian</h4>
-                <ul class="text-sm text-gray-600 space-y-2 list-decimal list-inside leading-relaxed">
-                    <li>Isi data kelompok dan mata kuliah sesuai proyek Anda.</li>
-                    <li>Email dosen digunakan untuk notifikasi dan persetujuan proyek.</li>
-                    @if($isEdit && $editMode !== 'draft')
-                    <li>Setelah mengubah data, klik <strong>Ajukan Perbaikan ke Dosen</strong> agar perubahan ditinjau dosen. Proyek tetap dapat diakses tim selama menunggu persetujuan.</li>
-                    @else
-                    <li><strong>Simpan ke Draft</strong> untuk menyimpan sementara; <strong>Ajukan ke Dosen</strong> langsung mengirim pengajuan.</li>
-                    @endif
-                </ul>
-            </div>
 
             <form action="{{ $isEdit ? route('projek.update', $project->id) : route('simpan-projek') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                 @csrf

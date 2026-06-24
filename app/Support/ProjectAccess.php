@@ -143,7 +143,7 @@ class ProjectAccess
      */
     public static function editableStatuses(): array
     {
-        return ['draft', 'active', 'pending_revision', 'completed', 'rejected'];
+        return ['draft', 'active', 'pending_approval', 'pending_revision', 'completed', 'rejected'];
     }
 
     /**

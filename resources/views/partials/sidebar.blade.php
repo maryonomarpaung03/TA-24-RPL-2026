@@ -18,7 +18,7 @@
 >
 
     <!-- Logo + User Initial -->
-    <div class="p-6 text-center">
+    <div class="p-4 text-center">
         <a href="{{ auth()->user()->role === 'lecturer' ? route('dosen.dashboard') : route('my-project') }}"
            class="inline-flex items-center justify-center flex-col gap-1">
 
@@ -93,152 +93,39 @@
         </a>
 
         @if(!empty($selected_project))
-
         @php
-            $pjblUnlocked = $selected_project['can_access_pjbl'] ?? false;
-            $wfIdentification = Request::routeIs('problem-identification');
-
-            $wfDecomposition =
-                Request::routeIs('dekomposisi');
-
-            $wfPlanning =
-                Request::routeIs('penyusunan')
-                || Request::routeIs('tambah-tugas');
-
-            $wfExecution =
-                Request::routeIs('pelaksanaan')
-                || Request::routeIs('waktu-progres');
-
-            $wfAssessment =
-                Request::routeIs('penilaian-individu')
-                || Request::routeIs('penilaian-kelompok')
-                || Request::routeIs('penilaian-dosen-status')
-                || Request::routeIs('nilai-dari-dosen');
-
-            $wfChat =
-                Request::routeIs('project-chat');
-
-            $wfActive =
-                'flex items-center gap-3 rounded-3xl border border-blue-200 bg-blue-50 px-3 py-3 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition';
-
-            $wfIdle =
-                'flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition';
+            $statusLabel = $selected_project['status_label'] ?? 'Draft';
+            $statusColor = match($selected_project['status'] ?? 'draft') {
+                'active'             => 'bg-green-100 text-green-700',
+                'pending_approval',
+                'pending_revision'   => 'bg-amber-100 text-amber-700',
+                'completed'          => 'bg-blue-100 text-blue-700',
+                'rejected'           => 'bg-red-100 text-red-700',
+                default              => 'bg-slate-100 text-slate-600',
+            };
         @endphp
 
-        <!-- Selected Project -->
+        <!-- Selected Project (minimal) -->
         <div class="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-
-            <p
-                x-show="sidebarOpen"
-                class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-3"
-            >
+            <p x-show="sidebarOpen"
+               class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-2">
                 Selected Project
             </p>
 
-            <div class="space-y-3">
-
-                <div class="rounded-3xl bg-white p-3 shadow-sm">
-                    <p
-                        x-show="sidebarOpen"
-                        class="text-sm font-semibold text-slate-900"
-                    >
-                        {{ $selected_project['name'] }}
-                    </p>
-
-                    <p
-                        x-show="sidebarOpen"
-                        class="text-[10px] text-slate-500 mt-1 line-clamp-2"
-                    >
-                        @if($pjblUnlocked)
-                            {{ $selected_project['description'] }}
-                        @elseif($selected_project['is_under_review'] ?? false)
-                            In Review — menunggu dosen
-                        @elseif($selected_project['is_draft'] ?? false)
-                            Draft — belum diajukan
-                        @else
-                            PjBL belum tersedia
-                        @endif
-                    </p>
-                </div>
-
-                @if(!$pjblUnlocked)
-                <a href="{{ route('problem-identification', $selected_project['id']) }}"
-                   class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
-                    <i class="fas fa-hourglass-half text-lg w-5"></i>
-                    <span x-show="sidebarOpen">Project Status</span>
-                </a>
-                @else
-                <a href="{{ route('problem-identification', $selected_project['id']) }}"
-                   class="{{ $wfIdentification ? $wfActive : $wfIdle }}">
-
-                    <i class="fas fa-search text-lg w-5"></i>
-                    <span x-show="sidebarOpen">
-                        Problem Identification
-                    </span>
-                </a>
-
-                <a href="{{ route('dekomposisi', $selected_project['id']) }}"
-                   class="{{ $wfDecomposition ? $wfActive : $wfIdle }}">
-
-                    <i class="fas fa-project-diagram text-lg w-5"></i>
-
-                    <span x-show="sidebarOpen">
-                        Problem Decomposition
-                    </span>
-                </a>
-
-                <a href="{{ route('penyusunan', $selected_project['id']) }}"
-                   class="{{ $wfPlanning ? $wfActive : $wfIdle }}">
-
-                    <i class="fas fa-tasks text-lg w-5"></i>
-
-                    <span x-show="sidebarOpen">
-                        Project Planning
-                    </span>
-                </a>
-
-                <a href="{{ route('pelaksanaan', $selected_project['id']) }}"
-                   class="{{ $wfExecution ? $wfActive : $wfIdle }}">
-
-                    <i class="fas fa-play text-lg w-5"></i>
-
-                    <span x-show="sidebarOpen">
-                        Execution & Evaluation
-                    </span>
-                </a>
-
-                <a href="{{ route('penilaian-individu', $selected_project['id']) }}"
-                   class="{{ $wfAssessment ? $wfActive : $wfIdle }}">
-
-                    <i class="fas fa-clipboard-check text-lg w-5"></i>
-
-                    <span x-show="sidebarOpen">
-                        Assessment & Reflection
-                    </span>
-                </a>
-
-                <a href="{{ route('project-chat', $selected_project['id']) }}"
-                   class="{{ $wfChat ? $wfActive : $wfIdle }}">
-
-                    <i class="fas fa-comments text-lg w-5"></i>
-
-                    <span x-show="sidebarOpen">
-                        Project Chat
-                    </span>
-                </a>
-                @endif
-
-                <a href="{{ route('my-project') }}"
-                   class="mt-3 inline-flex w-full items-center justify-center rounded-3xl border border-slate-200 bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
-
-                    <i class="fas fa-exchange-alt text-lg w-5"></i>
-
-                    <span x-show="sidebarOpen">
-                        Change Project
-                    </span>
-                </a>
-
+            <div x-show="sidebarOpen" class="rounded-2xl bg-white px-3 py-2.5 shadow-sm mb-3">
+                <p class="text-sm font-semibold text-slate-900 truncate">
+                    {{ $selected_project['name'] }}
+                </p>
+                <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $statusColor }}">
+                    {{ $statusLabel }}
+                </span>
             </div>
+
+            <a href="{{ route('my-project') }}"
+               class="inline-flex w-full items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+                <i class="fas fa-exchange-alt"></i>
+                <span x-show="sidebarOpen">Change Project</span>
+            </a>
         </div>
         @endif
         @endif

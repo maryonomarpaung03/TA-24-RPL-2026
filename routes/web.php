@@ -195,6 +195,9 @@ Route::get(
     Route::post('/problem-identification/{id}/comment', [\App\Http\Controllers\ProblemIdentificationController::class, 'comment'])
         ->name('problem.comment');
 
+    Route::post('/problem-identification/{id}/discuss', [\App\Http\Controllers\ProblemIdentificationController::class, 'discuss'])
+        ->name('problem.discuss');
+
     Route::post('/problem-identification/{id}/submit-lecturer', [\App\Http\Controllers\ProblemIdentificationController::class, 'submitToLecturer'])
         ->name('problem.submit-lecturer');
 
@@ -327,10 +330,8 @@ Route::get(
 
     Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
-    /*
-    Route::post('/classes/join', [StudentClassController::class, 'join'])->name('classes.join');
-    Route::post('/dosen/classes', [LecturerClassController::class, 'store'])->name('dosen.classes.store');
-    Route::redirect('/profil', '/settings')->name('profil');
 
-    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+    Route::post('/classes/join', [\App\Http\Controllers\StudentClassController::class, 'join'])->name('classes.join');
+    Route::post('/dosen/classes', [\App\Http\Controllers\LecturerClassController::class, 'store'])->name('dosen.classes.store');
+    Route::redirect('/profil', '/settings')->name('profil');
 });
