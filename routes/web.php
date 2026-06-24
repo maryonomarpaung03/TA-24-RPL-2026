@@ -21,8 +21,6 @@ use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
 use App\Http\Controllers\NilaiDariDosenController;
 use App\Http\Controllers\ProjectChatController;
-use App\Http\Controllers\LecturerClassController;
-use App\Http\Controllers\StudentClassController;
 
 /*
 |--------------------------------------------------------------------------
@@ -329,6 +327,7 @@ Route::get(
 
     Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    /*
     Route::post('/classes/join', [StudentClassController::class, 'join'])->name('classes.join');
     Route::post('/dosen/classes', [LecturerClassController::class, 'store'])->name('dosen.classes.store');
     Route::redirect('/profil', '/settings')->name('profil');
