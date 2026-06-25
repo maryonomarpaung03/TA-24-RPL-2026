@@ -23,8 +23,51 @@ class ProjekSayaController extends Controller
             ->where('user_id', $currentUserId)
             ->pluck('project_id');
 
-        $projectData = Project::query()
-            ->whereIn('id', $ownedIds->merge($memberIds)->unique())
+        $keyword = request('search');
+
+        $searchHistory = session(
+            'search_history',
+            []
+        );
+
+        if (!empty($keyword)) {
+
+            array_unshift(
+                $searchHistory,
+                $keyword
+            );
+
+            $searchHistory = array_unique(
+                $searchHistory
+            );
+
+            $searchHistory = array_slice(
+                $searchHistory,
+                0,
+                5
+            );
+
+            session([
+                'search_history' => $searchHistory
+            ]);
+        }
+
+
+        $projectQuery = Project::query()
+            ->whereIn(
+                'id',
+                $ownedIds->merge($memberIds)->unique()
+            );
+
+        if (!empty($keyword)) {
+            $projectQuery->where(
+                'title',
+                'LIKE',
+                '%' . $keyword . '%'
+            );
+        }
+
+        $projectData = $projectQuery
             ->orderByDesc('created_at')
             ->get();
 

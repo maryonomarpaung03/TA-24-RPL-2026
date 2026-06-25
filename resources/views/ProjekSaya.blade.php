@@ -15,17 +15,35 @@
 
     <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex items-center space-x-4 mb-8">
         <div class="flex-1 relative" x-data="{ openHistory: false }">
-            <div class="flex items-center bg-gray-50 rounded-full px-6 py-2 border border-transparent focus-within:border-blue-300 transition">
-                <i class="fas fa-search text-gray-400 mr-3"></i>
-                <input @focus="openHistory = true" @click.outside="openHistory = false" type="text" placeholder="Cari projek" class="bg-transparent w-full outline-none text-sm py-1">
+            <form method="GET" action="{{ route('my-project') }}">
+                <div class="flex items-center bg-gray-50 rounded-full px-6 py-2 border border-transparent focus-within:border-blue-300 transition">
+                    <i class="fas fa-search text-gray-400 mr-3"></i>
+                    <input 
+                        type="text"
+                        name="search"
+                        value="{{ $keyword ?? '' }}"
+                        placeholder="Cari projek"
+                        class="bg-transparent w-full outline-none text-sm py-1"
+                    >
+                    
+                </div>
+            </form>
+            <div class="flex-1 relative" x-data="{ openHistory: false }">
+                    <div
+                        x-show="openHistory"
+                        @click.outside="openHistory = false"
+                        class="absolute left-0 right-0 mt-2 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden"
+                    >
+                        <p class="px-4 py-2 text-[10px] uppercase font-bold text-gray-400 border-b">Pencarian Terakhir</p>
+
+                        @forelse($searchHistory as $h)
+                            <a href="{{ route('my-project', ['search' => $h]) }}"class="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 border-b border-gray-50">{{ $h }}</a>
+                        @empty
+                            <p class="px-4 py-3 text-sm text-gray-400">Belum ada riwayat pencarian</p>
+                        @endforelse
+                    </div>
+                </div>
             </div>
-            <div x-show="openHistory" class="absolute left-0 right-0 mt-2 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden">
-                <p class="px-4 py-2 text-[10px] uppercase font-bold text-gray-400 border-b">Pencarian Terakhir</p>
-                @foreach($searchHistory as $h)
-                    <a href="#" class="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 border-b border-gray-50">{{ $h }}</a>
-                @endforeach
-            </div>
-        </div>
         <div class="relative" x-data="{ openStatus: false }">
             <button @click="openStatus = !openStatus" class="bg-gray-50 px-6 py-3 rounded-full text-sm font-bold text-gray-700 border flex items-center space-x-2 hover:bg-gray-100">
                 <span>Status</span>
@@ -41,7 +59,14 @@
             </div>
         </div>
     </div>
-
+    
+    @if(count($projects) === 0)
+                <div class="bg-white rounded-2xl border p-10 text-center">
+                    <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+                    <h3 class="font-bold text-gray-700">Proyek tidak ditemukan</h3>
+                    <p class="text-gray-500 mt-2">Coba gunakan kata kunci lain.</p>
+                </div>
+            @else            
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         @foreach($projects as $p)
         <article
@@ -80,7 +105,7 @@
         </a>
     </div>
 </div>
-
+@endif
 @if(session('error'))
     <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
          class="fixed bottom-10 right-10 bg-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl z-[100] flex items-center space-x-3 transition-all max-w-md">
