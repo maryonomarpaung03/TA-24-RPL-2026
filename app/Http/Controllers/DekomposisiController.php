@@ -37,6 +37,26 @@ class DekomposisiController extends Controller
 
         /*
         =====================================
+        APPROVED PROBLEM STATEMENTS
+        =====================================
+        */
+        $approvedProblems = DB::table('problem_identifications')
+            ->where('project_id', $id)
+            ->where('board_status', 'done')
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(fn($p) => [
+                'id'          => $p->id,
+                'title'       => $p->title,
+                'description' => $p->description ?? null,
+                'category'    => $p->category ?? null,
+                'priority'    => $p->priority ?? null,
+            ])
+            ->values()
+            ->toArray();
+
+        /*
+        =====================================
         LOAD NODES
         =====================================
         */
@@ -95,7 +115,8 @@ class DekomposisiController extends Controller
                     'root',
 
                 'title' =>
-                    $selected['title']
+                    $approvedProblems[0]['title']
+                    ?? $selected['title']
                     ?? $selected['name']
                     ?? 'Topik Utama',
 
@@ -202,6 +223,8 @@ class DekomposisiController extends Controller
 
                 'selected_project' =>
                     $selected,
+
+                'approvedProblems' => $approvedProblems,
 
                 'diagramSeed' => [
 

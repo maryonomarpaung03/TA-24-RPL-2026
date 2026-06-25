@@ -12,65 +12,82 @@
         width: 100%;
         height: 720px;
         background-image:
-            linear-gradient(to right, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
-        background-size: 20px 20px;
-        background-color: #fff;
+            radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+        background-size: 24px 24px;
+        background-color: #f8fafc;
     }
-    /* Topik: isi bentuk pakai warna dari pemilih (background tulisan); node luar tetap transparan */
+
+    /* ── Node wrapper ── */
     .drawflow .drawflow-node.topic-node {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        min-width: 120px;
-        max-width: 280px;
-        padding: 4px 0;
+        min-width: 100px;
+        max-width: 260px;
+        padding: 0;
     }
-    /* Tanpa ring/fokus biru di luar kotak topik (drawflow + selection) */
-    .drawflow .drawflow-node.topic-node.selected {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }
+    .drawflow .drawflow-node.topic-node.selected { background: transparent !important; border: none !important; box-shadow: none !important; outline: none !important; }
     .drawflow .drawflow-node.topic-node:focus,
-    .drawflow .drawflow-node.topic-node:focus-visible {
-        outline: none !important;
-        box-shadow: none !important;
-    }
+    .drawflow .drawflow-node.topic-node:focus-visible { outline: none !important; box-shadow: none !important; }
+
+    /* ── Inner shape base ── */
     .drawflow .drawflow-node.topic-node .topic-inner {
-        box-shadow: none !important;
         box-sizing: border-box;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.10), 0 0 0 1.5px rgba(0,0,0,0.07) !important;
+        transition: box-shadow 0.15s;
     }
+    .drawflow .drawflow-node.topic-node:hover .topic-inner,
+    .drawflow .drawflow-node.topic-node.selected .topic-inner {
+        box-shadow: 0 4px 18px rgba(0,0,0,0.14), 0 0 0 2px rgba(59,130,246,0.45) !important;
+    }
+
+    /* ── Root node glow ── */
+    .drawflow .drawflow-node.topic-node .topic-inner.is-root {
+        box-shadow: 0 4px 24px rgba(59,130,246,0.22), 0 0 0 2.5px rgba(59,130,246,0.25) !important;
+    }
+    .drawflow .drawflow-node.topic-node:hover .topic-inner.is-root,
+    .drawflow .drawflow-node.topic-node.selected .topic-inner.is-root {
+        box-shadow: 0 6px 28px rgba(59,130,246,0.35), 0 0 0 3px rgba(59,130,246,0.55) !important;
+    }
+
+    /* ── Labels ── */
     .drawflow .drawflow-node.topic-node .node-label {
-        font-size: 12px;
-        line-height: 1.35;
-        font-weight: 600;
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 700;
     }
-    /* Bentuk topik — background teks dari inline style nodeHtml */
+    .drawflow .drawflow-node.topic-node .node-creator {
+        font-size: 10px;
+        font-weight: 500;
+        margin-top: 3px;
+        opacity: 0.6;
+        line-height: 1.2;
+    }
+
+    /* ── Shapes ── */
     .drawflow .drawflow-node.topic-node .topic-inner.shape-square {
-        border-radius: 0;
-        padding: 10px 14px;
-        min-width: 72px;
+        border-radius: 8px;
+        padding: 12px 16px;
+        min-width: 80px;
         text-align: center;
     }
     .drawflow .drawflow-node.topic-node .topic-inner.shape-rounded {
-        border-radius: 16px;
-        padding: 10px 16px;
-        min-width: 72px;
+        border-radius: 18px;
+        padding: 12px 18px;
+        min-width: 80px;
         text-align: center;
     }
     .drawflow .drawflow-node.topic-node .topic-inner.shape-rectangle {
-        border-radius: 8px;
-        padding: 10px 16px;
-        min-width: 200px;
-        max-width: 280px;
+        border-radius: 12px;
+        padding: 12px 18px;
+        min-width: 180px;
+        max-width: 260px;
         text-align: left;
     }
     .drawflow .drawflow-node.topic-node .topic-inner.shape-capsule {
         border-radius: 999px;
-        padding: 10px 22px;
-        min-width: 72px;
+        padding: 10px 24px;
+        min-width: 80px;
         text-align: center;
         display: inline-flex;
         align-items: center;
@@ -78,52 +95,66 @@
     }
     .drawflow .drawflow-node.topic-node .topic-inner.shape-circle {
         border-radius: 50%;
-        width: 132px;
-        height: 132px;
-        min-width: 132px;
-        min-height: 132px;
-        padding: 12px;
+        width: 140px;
+        height: 140px;
+        min-width: 140px;
+        min-height: 140px;
+        padding: 14px;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
     }
     .drawflow .drawflow-node.topic-node .topic-inner.shape-circle .node-label {
-        font-size: 11px;
-        line-height: 1.25;
+        font-size: 12px;
+        line-height: 1.3;
         overflow: hidden;
         display: -webkit-box;
-        -webkit-line-clamp: 7;
+        -webkit-line-clamp: 5;
         -webkit-box-orient: vertical;
     }
-    /*
-     * Drawflow default memakai stroke biru untuk jalur koneksi antar node.
-     * Override ke slate agar selaras dengan palet halaman (bukan bug — memang bawaan library).
-     */
+
+    /* ── Connection lines ── */
     .drawflow .connection .main-path {
-        stroke: #94a3b8 !important;
+        stroke: #334155 !important;
         stroke-width: 2px;
+        stroke-linecap: round;
+        marker-end: url(#df-arrow);
     }
-    .drawflow .connection .main-path:hover {
-        stroke: #64748b !important;
-    }
-    .drawflow .connection.selected .main-path {
-        stroke: #475569 !important;
-    }
+    .drawflow .connection .main-path:hover { stroke: #1e40af !important; stroke-width: 2.5px; marker-end: url(#df-arrow-blue); }
+    .drawflow .connection.selected .main-path { stroke: #2563eb !important; stroke-width: 2.5px; marker-end: url(#df-arrow-blue); }
+
+    /* ── Port dots ── */
     .drawflow .drawflow-node .input,
     .drawflow .drawflow-node .output {
-        background: #cbd5e1;
-        border-color: #94a3b8;
+        background: #fff;
+        border: 2px solid #94a3b8;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
     }
     .drawflow .drawflow-node .input:hover,
     .drawflow .drawflow-node .output:hover {
-        background: #94a3b8;
+        background: #3b82f6;
+        border-color: #2563eb;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(csrf_token()))">
+{{-- SVG arrow marker defs (referenced by CSS marker-end) --}}
+<svg style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true">
+    <defs>
+        <marker id="df-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <polygon points="0 1, 8 4, 0 7" fill="#334155"/>
+        </marker>
+        <marker id="df-arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <polygon points="0 1, 8 4, 0 7" fill="#2563eb"/>
+        </marker>
+    </defs>
+</svg>
+<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(csrf_token()), @js($approvedProblems))">
     <div class="flex flex-col gap-6">
                     <div>
                         <p class="text-xs uppercase tracking-[0.3em] text-gray-500 font-semibold mb-2">Projects / Dekomposisi</p>
@@ -132,15 +163,31 @@
 
                     <div class="grid grid-cols-1 xl:grid-cols-[1.7fr_1fr] gap-6">
                         <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-                            <div class="border-b border-slate-200 px-5 py-3 flex items-center justify-between">
+                            <div class="border-b border-slate-200 px-5 py-2.5 flex items-center justify-between gap-3 flex-wrap">
                                 <div class="flex items-center gap-2 text-xs text-slate-500">
-                                    <span class="rounded-md bg-slate-100 px-2 py-1 font-semibold">Draw Mode</span>
+                                    <span class="rounded-md bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">Draw Mode</span>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <button class="h-8 w-8 rounded-md bg-slate-100 text-slate-500"><i class="fas fa-mouse-pointer text-xs"></i></button>
-                                    <button class="h-8 w-8 rounded-md bg-slate-100 text-slate-500"><i class="fas fa-vector-square text-xs"></i></button>
-                                    <button class="h-8 w-8 rounded-md bg-slate-100 text-slate-500"><i class="fas fa-circle text-xs"></i></button>
-                                    <button class="h-8 w-8 rounded-md bg-slate-100 text-slate-500"><i class="fas fa-grip-lines text-xs"></i></button>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    {{-- Zoom --}}
+                                    <button @click="zoomIn()" title="Zoom In" class="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 transition">
+                                        <i class="fas fa-search-plus text-[11px]"></i> Zoom In
+                                    </button>
+                                    <button @click="zoomOut()" title="Zoom Out" class="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 transition">
+                                        <i class="fas fa-search-minus text-[11px]"></i> Zoom Out
+                                    </button>
+                                    <div class="w-px h-5 bg-slate-200 mx-0.5"></div>
+                                    {{-- Connections --}}
+                                    <button @click="removeLastConnection()" title="Hapus garis terakhir" class="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition">
+                                        <i class="fas fa-minus text-[11px]"></i> Hapus Garis
+                                    </button>
+                                    <button @click="clearAllConnections()" title="Hapus semua garis" class="flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition">
+                                        <i class="fas fa-times text-[11px]"></i> Hapus Semua
+                                    </button>
+                                    <div class="w-px h-5 bg-slate-200 mx-0.5"></div>
+                                    {{-- Reset --}}
+                                    <button @click="resetCanvas()" title="Reset canvas" class="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition">
+                                        <i class="fas fa-redo-alt text-[11px]"></i> Reset
+                                    </button>
                                 </div>
                             </div>
 
@@ -153,48 +200,198 @@
 
                                 <div id="drawflow" x-ref="drawflow"></div>
                             </div>
+
+                            {{-- Tabel Ringkasan Diagram --}}
+                            <div class="border-t border-slate-200 px-6 py-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Struktur Node Diagram</h3>
+                                    <span class="text-xs text-slate-400" x-text="diagramTree.length + ' node'"></span>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b border-slate-200">
+                                                <th class="pb-3 text-left text-xs font-semibold text-slate-500 pr-4 whitespace-nowrap">Nama Node</th>
+                                                <th class="pb-3 text-left text-xs font-semibold text-slate-500 pr-4 whitespace-nowrap">Tipe</th>
+                                                <th class="pb-3 text-left text-xs font-semibold text-slate-500 pr-4 whitespace-nowrap">Parent</th>
+                                                <th class="pb-3 text-left text-xs font-semibold text-slate-500 pr-4 whitespace-nowrap">Child</th>
+                                                <th class="pb-3 text-left text-xs font-semibold text-slate-500 pr-4 whitespace-nowrap">Pembuat</th>
+                                                <th class="pb-3 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">Tanggal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-if="diagramTree.length === 0">
+                                                <tr>
+                                                    <td colspan="6" class="py-8 text-center text-xs text-slate-400">
+                                                        Diagram belum dibuat. Tambahkan topik untuk memulai.
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            <template x-for="node in diagramTree" :key="node.id">
+                                                <tr class="border-b border-slate-100 hover:bg-slate-50 transition align-top">
+                                                    {{-- Nama Node --}}
+                                                    <td class="py-3 pr-4">
+                                                        <div class="flex items-start gap-2">
+                                                            <div class="mt-1.5 h-2 w-2 rounded-full shrink-0"
+                                                                 :style="'background:' + textColorForBackground(node.color)"></div>
+                                                            <span class="font-semibold text-slate-800 leading-snug" x-text="node.title"></span>
+                                                        </div>
+                                                    </td>
+                                                    {{-- Tipe --}}
+                                                    <td class="py-3 pr-4">
+                                                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap"
+                                                              :style="'background:' + node.color + ';color:' + textColorForBackground(node.color)">
+                                                            <i class="fas fa-circle text-[5px]"></i>
+                                                            <span x-text="node.type"></span>
+                                                        </span>
+                                                    </td>
+                                                    {{-- Parent --}}
+                                                    <td class="py-3 pr-4">
+                                                        <template x-if="node.parents.length === 0">
+                                                            <span class="text-slate-300 text-xs">—</span>
+                                                        </template>
+                                                        <template x-if="node.parents.length > 0">
+                                                            <div class="flex flex-col gap-1">
+                                                                <template x-for="p in node.parents" :key="p">
+                                                                    <span class="inline-flex items-center gap-1 text-xs text-slate-600">
+                                                                        <i class="fas fa-arrow-up text-[9px] text-slate-400"></i>
+                                                                        <span x-text="p"></span>
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </td>
+                                                    {{-- Children --}}
+                                                    <td class="py-3 pr-4">
+                                                        <template x-if="node.children.length === 0">
+                                                            <span class="text-slate-300 text-xs">—</span>
+                                                        </template>
+                                                        <template x-if="node.children.length > 0">
+                                                            <div class="flex flex-col gap-1">
+                                                                <template x-for="c in node.children" :key="c">
+                                                                    <span class="inline-flex items-center gap-1 text-xs text-slate-600">
+                                                                        <i class="fas fa-arrow-down text-[9px] text-slate-400"></i>
+                                                                        <span x-text="c"></span>
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </td>
+                                                    {{-- Pembuat --}}
+                                                    <td class="py-3 pr-4">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <div class="h-6 w-6 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-700"
+                                                                 x-text="(node.createdBy || '?').slice(0,2).toUpperCase()"></div>
+                                                            <span class="text-xs text-slate-600" x-text="node.createdBy || '—'"></span>
+                                                        </div>
+                                                    </td>
+                                                    {{-- Tanggal --}}
+                                                    <td class="py-3 text-xs text-slate-500 whitespace-nowrap" x-text="node.createdAt || '—'"></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
 
-                        <aside class="space-y-6">
-                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
-                                <h3 class="text-sm uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Tambah Topik</h3>
-                                <button @click="showTopicModal = true" class="flex w-full items-center justify-between rounded-3xl bg-slate-100 px-4 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">
-                                    <span>Tambah Topik</span>
-                                    <i class="fas fa-plus-circle text-lg"></i>
+                        <aside class="space-y-2">
+
+                            {{-- STEP 1: Pilih Masalah --}}
+                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">1</span>
+                                    <h3 class="text-sm font-bold text-slate-800">Pilih Masalah</h3>
+                                </div>
+                                <p x-show="approvedProblems.length === 0" class="text-xs text-slate-400 text-center py-3">Belum ada masalah yang disetujui dosen.</p>
+                                <div x-show="approvedProblems.length > 0" class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b border-slate-900">
+                                                <th class="pb-2 text-left text-xs font-semibold text-slate-700">No</th>
+                                                <th class="pb-2 text-left text-xs font-semibold text-slate-700">Masalah</th>
+                                                <th class="pb-2 text-xs font-semibold text-slate-700"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="(problem, i) in approvedProblems" :key="problem.id">
+                                                <tr class="border-b border-slate-200 hover:bg-slate-50 transition">
+                                                    <td class="py-2.5 pr-2 text-xs text-slate-400 align-top" x-text="i + 1"></td>
+                                                    <td class="py-2.5 pr-3 align-top">
+                                                        <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="problem.title"></p>
+                                                        <div class="flex gap-1 mt-1 flex-wrap">
+                                                            <span x-show="problem.category" class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700" x-text="problem.category"></span>
+                                                            <span x-show="problem.priority" class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600" x-text="problem.priority"></span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-2.5 align-top">
+                                                        <button x-show="!addedProblemIds.includes(problem.id)" type="button" @click="addProblemToDiagram(problem)"
+                                                                class="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap">
+                                                            <i class="fas fa-plus text-[9px]"></i> Tambah
+                                                        </button>
+                                                        <span x-show="addedProblemIds.includes(problem.id)"
+                                                              class="flex items-center gap-1 rounded-lg bg-green-100 px-2.5 py-1.5 text-xs font-semibold text-green-700 whitespace-nowrap">
+                                                            <i class="fas fa-check text-[9px]"></i> Ditambahkan
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- connector --}}
+                            <div class="flex justify-center py-1">
+                                <div class="flex flex-col items-center gap-0.5">
+                                    <div class="w-px h-3 bg-slate-300"></div>
+                                    <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
+                                </div>
+                            </div>
+
+                            {{-- STEP 2: Tambah Topik --}}
+                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">2</span>
+                                    <h3 class="text-sm font-bold text-slate-800">Tambah Topik</h3>
+                                </div>
+                                <button @click="showTopicModal = true" class="flex w-full items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">
+                                    <span>+ Tambah Sub-Topik</span>
+                                    <i class="fas fa-plus-circle text-base text-blue-600"></i>
                                 </button>
                             </div>
 
-                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
-                                <h3 class="text-sm uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Daftar Diagram</h3>
-                                <div class="space-y-3">
+                            {{-- connector --}}
+                            <div class="flex justify-center py-1">
+                                <div class="flex flex-col items-center gap-0.5">
+                                    <div class="w-px h-3 bg-slate-300"></div>
+                                    <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
+                                </div>
+                            </div>
+
+                            {{-- STEP 3: Daftar Diagram --}}
+                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">3</span>
+                                    <h3 class="text-sm font-bold text-slate-800">Daftar Diagram</h3>
+                                </div>
+                                <div class="space-y-2">
                                     <template x-if="topicList.length === 0">
-                                        <div class="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                                            Belum ada topik.
+                                        <div class="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-400 text-center">
+                                            Belum ada topik di diagram.
                                         </div>
                                     </template>
-
                                     <template x-for="topic in topicList" :key="topic.id">
-                                        <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                                        <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2.5">
                                             <div class="min-w-0">
                                                 <p class="truncate text-sm font-semibold text-slate-700" x-text="topic.title"></p>
-                                                <p class="text-[11px] text-slate-500" x-text="'Dibuat oleh: ' + (topic.createdBy || '-')"></p>
+                                                <p class="text-[11px] text-slate-400" x-text="'oleh ' + (topic.createdBy || '-')"></p>
                                             </div>
-                                            <div class="flex items-center gap-2 shrink-0">
-                                                <button
-                                                    type="button"
-                                                    @click="openEditTopic(topic)"
-                                                    class="h-7 w-7 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
-                                                    title="Edit topik"
-                                                >
+                                            <div class="flex items-center gap-1.5 shrink-0">
+                                                <button type="button" @click="openEditTopic(topic)" class="h-7 w-7 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition" title="Edit">
                                                     <i class="fas fa-pen text-[11px]"></i>
                                                 </button>
-                                                <button
-                                                    x-show="!topic.isRoot"
-                                                    @click="removeTopic(topic.id)"
-                                                    type="button"
-                                                    class="h-7 w-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
-                                                    title="Hapus topik"
-                                                >
+                                                <button x-show="!topic.isRoot" @click="removeTopic(topic.id)" type="button" class="h-7 w-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Hapus">
                                                     <i class="fas fa-trash text-[11px]"></i>
                                                 </button>
                                             </div>
@@ -203,53 +400,45 @@
                                 </div>
                             </div>
 
-                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
-                                <h3 class="text-sm uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Zoom & Export</h3>
-                                <div class="space-y-4 text-sm text-slate-700">
-                                    <button @click="zoomIn()" class="flex w-full items-center justify-between rounded-3xl bg-slate-50 px-4 py-4 hover:bg-slate-100 transition">
-                                        <span>Zoom In</span>
-                                        <i class="fas fa-search-plus"></i>
-                                    </button>
-                                    <button @click="zoomOut()" class="flex w-full items-center justify-between rounded-3xl bg-slate-50 px-4 py-4 hover:bg-slate-100 transition">
-                                        <span>Zoom Out</span>
-                                        <i class="fas fa-search-minus"></i>
-                                    </button>
-                                    <button class="flex w-full items-center justify-between rounded-3xl bg-slate-50 px-4 py-4 hover:bg-slate-100 transition">
-                                        <span>Download .PNG</span>
-                                        <i class="fas fa-download"></i>
-                                    </button>
+                            {{-- connector --}}
+                            <div class="flex justify-center py-1">
+                                <div class="flex flex-col items-center gap-0.5">
+                                    <div class="w-px h-3 bg-slate-300"></div>
+                                    <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
                                 </div>
-                                <button @click="resetCanvas()" class="mt-3 w-full rounded-2xl bg-red-50 text-red-600 text-xs font-semibold px-4 py-2 hover:bg-red-100 transition">Reset Canvas</button>
-                                <button @click="removeLastConnection()" class="mt-2 w-full rounded-2xl bg-amber-50 text-amber-700 text-xs font-semibold px-4 py-2 hover:bg-amber-100 transition">Hapus Garis Terakhir</button>
-                                <button @click="clearAllConnections()" class="mt-2 w-full rounded-2xl bg-orange-50 text-orange-700 text-xs font-semibold px-4 py-2 hover:bg-orange-100 transition">Hapus Semua Garis</button>
                             </div>
 
-                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-6 shadow-sm">
-                                <h3 class="text-sm uppercase tracking-[0.3em] text-slate-400 font-semibold mb-4">Komentar</h3>
-                                <div class="space-y-4">
+                            {{-- STEP 4: Export --}}
+                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">4</span>
+                                    <h3 class="text-sm font-bold text-slate-800">Export</h3>
+                                </div>
+                                <button class="flex w-full items-center justify-between rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">
+                                    <span>Download Diagram (.PNG)</span>
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+
+                            {{-- Komentar (di luar alur kerja) --}}
+                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm mt-2">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <i class="fas fa-comments text-slate-400 text-sm"></i>
+                                    <h3 class="text-sm font-bold text-slate-800">Komentar Tim</h3>
+                                </div>
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+                                    <p x-show="comments.length === 0" class="text-xs text-slate-400 text-center py-2">Belum ada komentar.</p>
                                     <template x-for="comment in comments" :key="comment.id">
-                                        <div class="rounded-3xl bg-slate-50 p-4">
-                                            <div class="flex items-start gap-3">
-                                                <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-700" x-text="comment.author"></div>
-                                                <div>
-                                                    <p class="text-xs font-semibold text-slate-900" x-text="comment.author"></p>
-                                                    <p class="text-sm text-slate-600" x-text="comment.text"></p>
-                                                </div>
-                                            </div>
+                                        <div class="rounded-2xl bg-slate-50 p-3 flex items-start gap-2.5">
+                                            <div class="h-8 w-8 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700" x-text="comment.author"></div>
+                                            <p class="text-sm text-slate-600 pt-1" x-text="comment.text"></p>
                                         </div>
                                     </template>
                                 </div>
-                                <div class="mt-4 space-y-3">
-                                    <input
-                                        x-model="newComment"
-                                        @keydown.enter.prevent="submitComment()"
-                                        type="text"
-                                        placeholder="Ketik komentar..."
-                                        class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                                    />
-                                    <button @click="submitComment()" type="button" class="w-full rounded-full bg-blue-600 text-white py-2.5 text-sm font-semibold hover:bg-blue-700 transition">
-                                        Submit
-                                    </button>
+                                <div class="mt-3 space-y-2">
+                                    <input x-model="newComment" @keydown.enter.prevent="submitComment()" type="text" placeholder="Ketik komentar..."
+                                           class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-400"/>
+                                    <button @click="submitComment()" type="button" class="w-full rounded-2xl bg-blue-600 text-white py-2 text-sm font-semibold hover:bg-blue-700 transition">Kirim</button>
                                 </div>
                             </div>
                         </aside>
@@ -320,7 +509,7 @@
 @push('scripts')
 <script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
 <script>
-function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, csrfToken) {
+function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, csrfToken, approvedProblemsData) {
     return {
         showTopicModal: false,
         showEditTopicModal: false,
@@ -334,6 +523,9 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
         newComment: '',
         comments: seedData.comments || [],
         topicList: [],
+        approvedProblems: approvedProblemsData || [],
+        addedProblemIds: [],
+        diagramTree: [],
         selectedNodeId: null,
         lastConnection: null,
         editor: null,
@@ -397,10 +589,16 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             const bg = this.sanitizeHexColor(topic.color);
             const fg = this.textColorForBackground(bg);
             const title = this.escapeHtml(topic.title);
-            const ring = 'rgba(15,23,42,0.12)';
-            const tip = this.topicHoverTitle(topic);
-            const tipAttr = tip ? ` title="${this.escapeHtml(tip)}"` : '';
-            return `<div class="${this.shapeClass(topic.shape)} topic-inner"${tipAttr} style="border:1px solid ${ring};background:${bg};"><div class="node-label" style="color:${fg};">${title}</div></div>`;
+            const creator = this.escapeHtml(this.topicCreator(topic) || '');
+            const isRoot = (topic.key === 'root');
+            const rootClass = isRoot ? ' is-root' : '';
+            const creatorHtml = creator
+                ? `<div class="node-creator" style="color:${fg};">${creator}</div>`
+                : '';
+            return `<div class="${this.shapeClass(topic.shape)} topic-inner${rootClass}" style="background:${bg};">
+                <div class="node-label" style="color:${fg};">${title}</div>
+                ${creatorHtml}
+            </div>`;
         },
         setupDrawflow() {
             this.editor = new Drawflow(this.$refs.drawflow);
@@ -518,6 +716,43 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
                 createdBy: this.topicCreator(all[id].data),
                 isRoot: all[id].data.key === 'root',
             }));
+            // rebuild addedProblemIds
+            const added = new Set();
+            Object.values(all).forEach(node => {
+                const m = String(node.data.key || '').match(/^prob-(\d+)-/);
+                if (m) added.add(Number(m[1]));
+            });
+            this.addedProblemIds = Array.from(added);
+            // build parent-child tree for summary table
+            this.diagramTree = Object.keys(all).map(id => {
+                const node = all[id];
+                const title = node.data.title || node.name || '-';
+                const isRoot = (node.data.key === 'root');
+                // children: nodes this node outputs to
+                const childIds = Object.values(node.outputs || {})
+                    .flatMap(o => (o.connections || []).map(c => c.node));
+                const children = childIds
+                    .map(cid => all[cid] ? (all[cid].data.title || all[cid].name || '-') : null)
+                    .filter(Boolean);
+                // parents: nodes that output into this node
+                const parentIds = Object.values(node.inputs || {})
+                    .flatMap(i => (i.connections || []).map(c => c.node));
+                const parents = parentIds
+                    .map(pid => all[pid] ? (all[pid].data.title || all[pid].name || '-') : null)
+                    .filter(Boolean);
+                const type = (isRoot || children.length > 0) ? 'Parent' : 'Child';
+                return {
+                    id: Number(id),
+                    title,
+                    isRoot,
+                    type,
+                    parents,
+                    children,
+                    color: node.data.color || '#dbeafe',
+                    createdBy: this.topicCreator(node.data),
+                    createdAt: node.data.createdAt || '-',
+                };
+            });
             this.persistDiagram();
         },
         openEditTopic(topic) {
@@ -626,6 +861,23 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.newTopicColor = '#dbeafe';
             this.newTopicShape = 'rounded';
             this.showTopicModal = false;
+        },
+        addProblemToDiagram(problem) {
+            if (!this.editor) return;
+            const key = `prob-${problem.id}-${Date.now()}`;
+            const posX = 160 + (this.topicList.length % 3) * 220;
+            const posY = 120 + Math.floor(this.topicList.length / 3) * 140;
+            const payload = {
+                key,
+                title: problem.title,
+                shape: 'rounded',
+                color: '#dbeafe',
+                createdBy: this.currentUserName || this.userInitials,
+                createdAt: this.todayDate(),
+            };
+            this.editor.addNode(key, 1, 1, posX, posY, 'topic-node', payload, this.nodeHtml(payload));
+            this.syncTopicList();
+            this.persistDiagram();
         },
         zoomIn() {
             if (this.editor) this.editor.zoom_in();
