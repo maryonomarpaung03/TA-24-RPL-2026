@@ -177,6 +177,9 @@ Route::get(
     Route::get('/dosen/proyek-mahasiswa/{id}', [\App\Http\Controllers\DosenStudentProjectsController::class, 'show'])
         ->name('dosen.proyek-mahasiswa.show');
 
+    Route::get('/dosen/proyek/{id}/dekomposisi', [\App\Http\Controllers\DosenDekomposisiController::class, 'show'])
+        ->name('dosen.dekomposisi');
+
     Route::get('/dosen/proyek/{id}/problem-identification', [\App\Http\Controllers\DosenProblemReviewController::class, 'show'])
         ->name('dosen.problem-review');
 
@@ -238,6 +241,11 @@ Route::get(
                 '/dekomposisi/sync',
                 [\App\Http\Controllers\DekomposisiController::class, 'sync']
             )->name('dekomposisi.sync');
+
+            Route::post(
+                '/dekomposisi/kirim',
+                [\App\Http\Controllers\DekomposisiController::class, 'submit']
+            )->name('dekomposisi.submit');
 
             /*
             |--------------------------------------------------------------------------

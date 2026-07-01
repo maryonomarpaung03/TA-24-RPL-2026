@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
@@ -435,5 +436,68 @@ class DekomposisiController extends Controller
             ->json([
                 'ok' => true
             ]);
+    }
+
+    public function submit(Request $request, $id)
+    {
+        $project = Project::query()->find($id);
+
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
+            return response()->json(['ok' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $nodes       = $request->input('nodes', []);
+        $connections = $request->input('connections', []);
+        $comments    = $request->input('comments', []);
+
+        if (empty($nodes)) {
+            return response()->json(['ok' => false, 'message' => 'Diagram masih kosong.'], 422);
+        }
+
+        DB::table('decomposition_submissions')->insert([
+            'project_id'          => $project->id,
+            'submitted_by'        => Auth::id(),
+            'nodes_snapshot'      => json_encode($nodes),
+            'connections_snapshot' => json_encode($connections),
+            'comments_snapshot'   => json_encode($comments),
+            'status'              => 'submitted',
+            'created_at'          => now(),
+            'updated_at'          => now(),
+        ]);
+
+        // Kirim notifikasi ke dosen yang terhubung ke proyek ini
+        $lecturerEmails = DB::table('project_members')
+            ->join('users', 'project_members.user_id', '=', 'users.id')
+            ->where('project_members.project_id', $project->id)
+            ->where('users.role', 'lecturer')
+            ->pluck('users.email');
+
+        // Cek juga dosen dari kelas (academic_classes)
+        $classLecturerEmails = DB::table('academic_classes')
+            ->join('users', 'academic_classes.lecturer_id', '=', 'users.id')
+            ->whereIn('academic_classes.id', function ($q) use ($project) {
+                $q->select('class_id')
+                    ->from('project_members')
+                    ->where('project_id', $project->id);
+            })
+            ->pluck('users.email');
+
+        $allLecturerEmails = $lecturerEmails->merge($classLecturerEmails)->unique();
+
+        $submitterName = Auth::user()?->full_name ?? Auth::user()?->name ?? 'Mahasiswa';
+
+        foreach ($allLecturerEmails as $email) {
+            DB::table('project_notifications')->insert([
+                'project_id'      => $project->id,
+                'recipient_email' => strtolower(trim($email)),
+                'type'            => 'decomposition_submitted',
+                'title'           => 'Diagram Dekomposisi Dikirim',
+                'message'         => $submitterName . ' mengirimkan diagram dekomposisi proyek "' . $project->title . '" untuk ditinjau.',
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+        }
+
+        return response()->json(['ok' => true, 'message' => 'Diagram berhasil dikirim ke dosen.']);
     }
 }

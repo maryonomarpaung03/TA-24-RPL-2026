@@ -85,6 +85,17 @@
                 <p class="text-xs text-gray-500 mt-1">Review masalah utama hasil voting tim mahasiswa.</p>
             </a>
 
+            <a href="{{ route('dosen.dekomposisi', $project['id']) }}"
+               class="rounded-2xl border p-4 hover:border-purple-300 hover:bg-purple-50/50 transition group">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                </div>
+                <h3 class="font-bold text-gray-900 mt-3 group-hover:text-purple-700">Dekomposisi Masalah</h3>
+                <p class="text-xs text-gray-500 mt-1">Lihat diagram dekomposisi dan history pembuatan dari tim mahasiswa.</p>
+            </a>
+
             <div class="rounded-2xl border border-dashed border-gray-200 p-4 bg-gray-50/80">
                 <div class="w-10 h-10 rounded-xl bg-gray-200 text-gray-500 flex items-center justify-center">
                     <i class="fas fa-star"></i>

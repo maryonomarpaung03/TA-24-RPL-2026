@@ -154,7 +154,7 @@
         </marker>
     </defs>
 </svg>
-<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(csrf_token()), @js($approvedProblems))">
+<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(route('dekomposisi.submit', $id)), @js(csrf_token()), @js($approvedProblems))">
     <div class="flex flex-col gap-6">
                     <div>
                         <p class="text-xs uppercase tracking-[0.3em] text-gray-500 font-semibold mb-2">Projects / Dekomposisi</p>
@@ -420,6 +420,42 @@
                                 </button>
                             </div>
 
+                            {{-- connector --}}
+                            <div class="flex justify-center py-1">
+                                <div class="flex flex-col items-center gap-0.5">
+                                    <div class="w-px h-3 bg-slate-300"></div>
+                                    <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
+                                </div>
+                            </div>
+
+                            {{-- STEP 5: Kirim ke Dosen --}}
+                            <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white">5</span>
+                                    <h3 class="text-sm font-bold text-slate-800">Kirim ke Dosen</h3>
+                                </div>
+                                <p class="text-xs text-slate-500 mb-3">Kirim diagram dekomposisi beserta history pembuatannya kepada dosen untuk ditinjau.</p>
+
+                                <template x-if="submitSuccess">
+                                    <div class="mb-3 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-xs font-semibold text-green-700 flex items-center gap-2">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Diagram berhasil dikirim ke dosen!</span>
+                                    </div>
+                                </template>
+                                <template x-if="submitError">
+                                    <div class="mb-3 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-semibold text-red-600 flex items-center gap-2">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span x-text="submitError"></span>
+                                    </div>
+                                </template>
+
+                                <button @click="kirimKeDosen()" :disabled="submitting"
+                                        class="flex w-full items-center justify-between rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition">
+                                    <span x-text="submitting ? 'Mengirim...' : 'Kirim Diagram ke Dosen'"></span>
+                                    <i class="fas" :class="submitting ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+                                </button>
+                            </div>
+
                             {{-- Komentar (di luar alur kerja) --}}
                             <div class="bg-white rounded-[1.75rem] border border-slate-200 p-5 shadow-sm mt-2">
                                 <div class="flex items-center gap-3 mb-4">
@@ -509,7 +545,7 @@
 @push('scripts')
 <script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
 <script>
-function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, csrfToken, approvedProblemsData) {
+function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, submitUrl, csrfToken, approvedProblemsData) {
     return {
         showTopicModal: false,
         showEditTopicModal: false,
@@ -535,7 +571,11 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
         currentUserName: String(currentUserName || '').trim(),
         projectId: projectId,
         syncUrl: String(syncUrl || ''),
+        submitUrl: String(submitUrl || ''),
         csrfToken: String(csrfToken || ''),
+        submitting: false,
+        submitSuccess: false,
+        submitError: null,
         init() {
             this.$nextTick(() => this.setupDrawflow());
         },
@@ -915,6 +955,42 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             });
             this.lastConnection = null;
             this.syncTopicList();
+        },
+        async kirimKeDosen() {
+            if (!this.submitUrl || this.submitting) return;
+            this.submitting = true;
+            this.submitSuccess = false;
+            this.submitError = null;
+
+            const payload = this.getPersistPayload();
+
+            if (!payload.nodes || payload.nodes.length === 0) {
+                this.submitError = 'Diagram masih kosong. Tambahkan topik terlebih dahulu.';
+                this.submitting = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(this.submitUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const json = await res.json();
+                if (json.ok) {
+                    this.submitSuccess = true;
+                } else {
+                    this.submitError = json.message || 'Gagal mengirim diagram.';
+                }
+            } catch (e) {
+                this.submitError = 'Terjadi kesalahan koneksi. Coba lagi.';
+            } finally {
+                this.submitting = false;
+            }
         }
     };
 }
