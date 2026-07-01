@@ -8,3 +8,8 @@
         {{ session('error') }}
     </div>
 @endif
+@if(session('info'))
+    <div class="mb-4 rounded bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 text-sm">
+        {{ session('info') }}
+    </div>
+@endif

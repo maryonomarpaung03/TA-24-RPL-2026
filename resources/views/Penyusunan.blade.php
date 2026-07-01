@@ -11,7 +11,18 @@ x-data="{
     editModal:false,
     deleteModal:false,
     confirmEdit:false,
-    selectedTask:{id:'',judul:'',deskripsi:'',mulai:'',selesai:'',pj:''}
+    selectedTask:{id:'',judul:'',deskripsi:'',mulai:'',selesai:'',pj:''},
+    fAssignee:'all',
+    fDeadline:'all',
+    myId: {{ $currentUserId ?? 0 }},
+    taskMatch(assigned, days) {
+        if (this.fAssignee === 'mine' && String(assigned) !== String(this.myId)) return false;
+        if (this.fAssignee !== 'all' && this.fAssignee !== 'mine' && String(assigned) !== String(this.fAssignee)) return false;
+        if (this.fDeadline === 'overdue' && !(days !== null && days < 0)) return false;
+        if (this.fDeadline === 'urgent' && !(days !== null && days >= 0 && days <= 3)) return false;
+        if (this.fDeadline === 'soon' && !(days !== null && days >= 0 && days <= 7)) return false;
+        return true;
+    }
 }">
 
 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center mb-6">
@@ -26,6 +37,10 @@ x-data="{
     >
         + Tambah Tugas
     </button>
+</div>
+
+<div class="mb-6">
+    @include('partials.task-filter-bar')
 </div>
 
 <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
@@ -45,13 +60,29 @@ x-data="{
 
             <tbody>
                 @forelse($tasks as $task)
-                <tr class="border-t hover:bg-gray-50 transition">
+                @php $isMine = (int) $task['assigned_to'] === (int) ($currentUserId ?? 0); @endphp
+                <tr class="border-t hover:bg-gray-50 transition {{ $isMine ? 'bg-blue-50/40' : '' }}"
+                    x-show="taskMatch({{ (int) $task['assigned_to'] }}, {{ $task['days_left'] === null ? 'null' : (int) $task['days_left'] }})">
                     <td class="p-4 text-center">{{ $task['no'] }}</td>
                     <td class="p-4 font-bold">{{ $task['judul'] }}</td>
                     <td class="p-4 text-gray-500">{{ $task['deskripsi'] }}</td>
                     <td class="p-4 text-center">{{ $task['mulai'] }}</td>
-                    <td class="p-4 text-center">{{ $task['selesai'] }}</td>
-                    <td class="p-4 text-center font-semibold">{{ $task['pj'] }}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex flex-col items-center gap-1">
+                            <span>{{ $task['selesai'] }}</span>
+                            @if(!empty($task['urgency_label']))
+                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold {{ $task['urgency'] === 'overdue' ? 'bg-red-100 text-red-600' : ($task['urgency'] === 'urgent' ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-600') }}">
+                                <i class="fas fa-clock mr-0.5"></i>{{ $task['urgency_label'] }}
+                            </span>
+                            @endif
+                        </div>
+                    </td>
+                    <td class="p-4 text-center font-semibold">
+                        {{ $task['pj'] }}
+                        @if($isMine)
+                        <span class="ml-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-600 align-middle">Saya</span>
+                        @endif
+                    </td>
                     <td class="p-4">
                         <div class="flex justify-center gap-4">
 
@@ -60,11 +91,16 @@ x-data="{
                                 selectedTask = {
                                     id:'{{ $task['id'] }}',
                                     judul:@js($task['judul']),
-                                    deskripsi:@js($task['deskripsi'])
+                                    deskripsi:@js($task['deskripsi']),
+                                    comments:@js($task['comments'])
                                 }"
-                                class="text-blue-500 hover:text-blue-700"
+                                class="relative text-blue-500 hover:text-blue-700"
+                                title="Komentar tugas"
                             >
                                 <i class="fas fa-comment-dots"></i>
+                                @if(count($task['comments']) > 0)
+                                <span class="absolute -top-2 -right-2 inline-flex min-w-[16px] h-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">{{ count($task['comments']) }}</span>
+                                @endif
                             </button>
 
                             <button
@@ -114,18 +150,33 @@ x-data="{
 <form action="{{ route('penyusunan.tambah-tugas', $id) }}" method="POST">
 @csrf
 <div class="space-y-4">
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Nama Tugas</label>
 <input type="text" name="judul_tugas" placeholder="Judul tugas" class="w-full border rounded-xl p-3" required>
-<textarea name="deskripsi_tugas" placeholder="Deskripsi tugas" class="w-full border rounded-xl p-3"></textarea>
-<div class="grid grid-cols-2 gap-4">
-<input type="date" name="tanggal_mulai" class="border rounded-xl p-3" required>
-<input type="date" name="tanggal_selesai" class="border rounded-xl p-3" required>
 </div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi Tugas</label>
+<textarea name="deskripsi_tugas" placeholder="Deskripsi tugas" class="w-full border rounded-xl p-3"></textarea>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
+<input type="date" name="tanggal_mulai" class="w-full border rounded-xl p-3" required>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Berakhir</label>
+<input type="date" name="tanggal_selesai" class="w-full border rounded-xl p-3" required>
+</div>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Nama Penanggung Jawab</label>
 <select name="penanggung_jawab" class="w-full border rounded-xl p-3" required>
 <option value="">Pilih Penanggung Jawab</option>
 @foreach($users as $user)
 <option value="{{ $user->id }}">{{ $user->full_name }}</option>
 @endforeach
 </select>
+</div>
 </div>
 <div class="flex justify-end gap-3 mt-6">
 <button type="button" @click="addModal=false" class="px-5 py-2 bg-gray-200 rounded-xl">Batal</button>
@@ -141,6 +192,28 @@ x-data="{
 <h3 class="font-bold text-xl mb-4">Komentar Tugas</h3>
 <p class="font-semibold" x-text="selectedTask.judul"></p>
 <p class="text-sm text-gray-500 mb-4" x-text="selectedTask.deskripsi"></p>
+
+<!-- Daftar komentar -->
+<div class="mb-4">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+        Komentar (<span x-text="(selectedTask.comments || []).length"></span>)
+    </p>
+    <div class="max-h-56 overflow-y-auto space-y-2 pr-1">
+        <template x-if="!selectedTask.comments || selectedTask.comments.length === 0">
+            <p class="text-sm text-gray-400 italic py-2">Belum ada komentar pada tugas ini.</p>
+        </template>
+        <template x-for="(c, i) in (selectedTask.comments || [])" :key="i">
+            <div class="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2">
+                <div class="flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                    <span class="font-semibold text-gray-700" x-text="c.from"></span>
+                    <span class="shrink-0" x-text="c.time"></span>
+                </div>
+                <p class="text-sm text-gray-700 mt-0.5 whitespace-pre-line" x-text="c.text"></p>
+            </div>
+        </template>
+    </div>
+</div>
+
 <form action="{{ route('penyusunan.komentar-tugas', $id) }}" method="POST">
 @csrf
 <input type="hidden" name="task_id" :value="selectedTask.id">

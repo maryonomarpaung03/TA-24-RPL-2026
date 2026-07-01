@@ -9,6 +9,7 @@
     $isEdit = $isEdit ?? false;
     $editMode = $editMode ?? 'draft';
     $defaults = $formDefaults ?? [];
+    $classContext = $classContext ?? null;
     $val = fn (string $key, mixed $fallback = '') => old($key, $defaults[$key] ?? $fallback);
 @endphp
 
@@ -75,6 +76,13 @@
                 @csrf
                 @if($isEdit)
                     @method('PUT')
+                @endif
+                @if($classContext)
+                    <input type="hidden" name="academic_class_id" value="{{ $classContext['id'] }}">
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                        <i class="fas fa-chalkboard mr-1"></i> Proyek ini akan terhubung ke kelas
+                        <span class="font-bold">{{ $classContext['name'] }}</span>.
+                    </div>
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -175,7 +183,7 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-                    <a href="{{ route('my-project') }}"
+                    <a href="{{ $classContext ? route('classes.show', $classContext['id']) : route('my-project') }}"
                        class="text-center bg-gray-200 text-gray-700 px-8 py-2.5 rounded-full font-bold text-sm hover:bg-gray-300 transition">
                         Batal
                     </a>

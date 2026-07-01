@@ -159,6 +159,9 @@ Route::get(
     Route::delete('/projek/{id}', [BuatProjekController::class, 'destroy'])
         ->name('projek.destroy');
 
+    Route::post('/projek/{id}/tugas/{task}/komentar', [\App\Http\Controllers\TaskCommentController::class, 'store'])
+        ->name('task.komentar');
+
     Route::get('/dosen/dashboard', [\App\Http\Controllers\DosenDashboardController::class, 'index'])
         ->name('dosen.dashboard');
 
@@ -180,6 +183,18 @@ Route::get(
     Route::get('/dosen/proyek/{id}/dekomposisi', [\App\Http\Controllers\DosenDekomposisiController::class, 'show'])
         ->name('dosen.dekomposisi');
 
+    Route::get('/dosen/proyek/{id}/penyusunan', [\App\Http\Controllers\DosenProjectMonitorController::class, 'planning'])
+        ->name('dosen.penyusunan');
+
+    Route::get('/dosen/proyek/{id}/pelaksanaan', [\App\Http\Controllers\DosenProjectMonitorController::class, 'execution'])
+        ->name('dosen.pelaksanaan');
+
+    Route::post('/dosen/proyek/{id}/pelaksanaan/approval/{approvalId}/approve', [\App\Http\Controllers\DosenProjectMonitorController::class, 'approve'])
+        ->name('dosen.pelaksanaan.approve');
+
+    Route::post('/dosen/proyek/{id}/pelaksanaan/approval/{approvalId}/reject', [\App\Http\Controllers\DosenProjectMonitorController::class, 'reject'])
+        ->name('dosen.pelaksanaan.reject');
+
     Route::get('/dosen/proyek/{id}/problem-identification', [\App\Http\Controllers\DosenProblemReviewController::class, 'show'])
         ->name('dosen.problem-review');
 
@@ -188,6 +203,12 @@ Route::get(
 
     Route::post('/problem-identification/{id}/store', [\App\Http\Controllers\ProblemIdentificationController::class, 'store'])
         ->name('problem.store');
+
+    Route::post('/problem-identification/{id}/update-problem', [\App\Http\Controllers\ProblemIdentificationController::class, 'updateProblem'])
+        ->name('problem.update');
+
+    Route::post('/problem-identification/{id}/delete-problem', [\App\Http\Controllers\ProblemIdentificationController::class, 'deleteProblem'])
+        ->name('problem.delete');
 
     Route::post('/problem-identification/{id}/propose-voting', [\App\Http\Controllers\ProblemIdentificationController::class, 'proposeForVoting'])
         ->name('problem.propose-voting');
@@ -288,6 +309,31 @@ Route::get(
                 [PelaksanaanController::class, 'index']
             )->name('pelaksanaan');
 
+            Route::post(
+                '/pelaksanaan/kolom/tambah',
+                [PelaksanaanController::class, 'addColumn']
+            )->name('pelaksanaan.kolom.tambah');
+
+            Route::post(
+                '/pelaksanaan/kolom/edit',
+                [PelaksanaanController::class, 'updateColumn']
+            )->name('pelaksanaan.kolom.edit');
+
+            Route::post(
+                '/pelaksanaan/kolom/hapus',
+                [PelaksanaanController::class, 'deleteColumn']
+            )->name('pelaksanaan.kolom.hapus');
+
+            Route::post(
+                '/pelaksanaan/tugas/pindah',
+                [PelaksanaanController::class, 'moveTask']
+            )->name('pelaksanaan.tugas.pindah');
+
+            Route::post(
+                '/pelaksanaan/tugas/cepat',
+                [PelaksanaanController::class, 'quickAddTask']
+            )->name('pelaksanaan.tugas.cepat');
+
             Route::get(
                 '/penilaian-kelompok',
                 [NilaiKelompokController::class, 'index']
@@ -317,6 +363,16 @@ Route::get(
                 '/chat',
                 [ProjectChatController::class, 'send']
             )->name('project-chat.send');
+
+            Route::put(
+                '/chat/{message}',
+                [ProjectChatController::class, 'updateMessage']
+            )->name('project-chat.update');
+
+            Route::delete(
+                '/chat/{message}',
+                [ProjectChatController::class, 'deleteMessage']
+            )->name('project-chat.delete');
         });
         /*
 
@@ -339,7 +395,18 @@ Route::get(
     Route::get('/settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
+    Route::get('/kelas-saya', [\App\Http\Controllers\StudentClassController::class, 'index'])->name('classes.mine');
     Route::post('/classes/join', [\App\Http\Controllers\StudentClassController::class, 'join'])->name('classes.join');
+    Route::get('/classes/{id}', [\App\Http\Controllers\ClassRoomController::class, 'show'])->name('classes.show');
+    Route::post('/classes/{id}/chat', [\App\Http\Controllers\ClassRoomController::class, 'send'])->name('classes.chat.send');
+    Route::put('/classes/{id}/chat/{message}', [\App\Http\Controllers\ClassRoomController::class, 'updateMessage'])->name('classes.chat.update');
+    Route::delete('/classes/{id}/chat/{message}', [\App\Http\Controllers\ClassRoomController::class, 'deleteMessage'])->name('classes.chat.delete');
+    Route::post('/classes/{id}/members', [\App\Http\Controllers\ClassRoomController::class, 'addMember'])->name('classes.members.add');
+    Route::delete('/classes/{id}/members/{userId}', [\App\Http\Controllers\ClassRoomController::class, 'removeMember'])->name('classes.members.remove');
+
+    Route::get('/dosen/kelas-saya', [\App\Http\Controllers\LecturerClassController::class, 'index'])->name('dosen.kelas');
     Route::post('/dosen/classes', [\App\Http\Controllers\LecturerClassController::class, 'store'])->name('dosen.classes.store');
+    Route::put('/dosen/classes/{id}', [\App\Http\Controllers\LecturerClassController::class, 'update'])->name('dosen.classes.update');
+    Route::delete('/dosen/classes/{id}', [\App\Http\Controllers\LecturerClassController::class, 'destroy'])->name('dosen.classes.destroy');
     Route::redirect('/profil', '/settings')->name('profil');
 });

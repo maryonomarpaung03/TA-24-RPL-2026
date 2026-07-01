@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicClass;
 use App\Models\Project;
 use App\Services\ProjectWorkspaceService;
 use App\Support\ProjectAccess;
@@ -15,13 +16,60 @@ class BuatProjekController extends Controller
         private readonly ProjectWorkspaceService $workspace
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
+        $classContext = null;
+        $formDefaults = [];
+
+        $academicClass = $this->resolveClassContext($request->query('class'));
+
+        if ($academicClass) {
+            $classContext = [
+                'id' => $academicClass->id,
+                'name' => $academicClass->name,
+            ];
+            $formDefaults = [
+                'course_name' => $academicClass->course_name,
+                'lecturer_name' => $academicClass->lecturer
+                    ? (trim($academicClass->lecturer->displayName()) ?: $academicClass->lecturer->email)
+                    : '',
+                'lecturer_email' => $academicClass->lecturer->email ?? '',
+            ];
+        }
+
         return view('BuatProjek', [
             'isEdit' => false,
             'project' => null,
             'attachmentMedia' => ProjectAccess::projectMediaPreview(null, null),
+            'formDefaults' => $formDefaults,
+            'classContext' => $classContext,
         ]);
+    }
+
+    /**
+     * Ambil kelas jika pengguna berhak (dosen pengampu atau anggota).
+     */
+    private function resolveClassContext($classId): ?AcademicClass
+    {
+        if (! $classId) {
+            return null;
+        }
+
+        $academicClass = AcademicClass::query()->with('lecturer')->find($classId);
+
+        if (! $academicClass) {
+            return null;
+        }
+
+        $userId = (int) Auth::id();
+
+        if ((int) $academicClass->lecturer_id === $userId) {
+            return $academicClass;
+        }
+
+        $isMember = $academicClass->members()->where('users.id', $userId)->exists();
+
+        return $isMember ? $academicClass : null;
     }
 
     public function edit(int $id)
@@ -80,9 +128,12 @@ class BuatProjekController extends Controller
             $memberEmails = $this->parseMemberEmails($validated['member_emails'] ?? '');
             $months = (int) $validated['planned_months'];
 
+            $academicClass = $this->resolveClassContext($request->input('academic_class_id'));
+
             $project = Project::create([
                 'name' => $validated['judul'],
                 'title' =>$validated['judul'],
+                'academic_class_id' => $academicClass?->id,
                 'group_name' => $validated['group_name'],
                 'course_name' => $validated['course_name'],
                 'description' => $description,

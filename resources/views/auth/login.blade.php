@@ -28,6 +28,13 @@
     </div>
 @endif
 
+        <!-- Auto-logout / info -->
+        @if (session('error'))
+            <div class="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-base text-amber-800 border border-amber-200">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <!-- Error -->
         @if ($errors->any())
             <div class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-base text-red-700 border border-red-200">

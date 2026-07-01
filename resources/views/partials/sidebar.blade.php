@@ -10,6 +10,8 @@
             $initials = strtoupper(substr($words[0], 0, 2));
         }
     }
+
+    $classUnreadTotal = $u ? \App\Support\ClassActivity::summary($u)['total'] : 0;
 @endphp
 
 <aside
@@ -44,8 +46,20 @@
         {{-- Menu dosen: Kelas (+), Dashboard, Approval Project --}}
         @include('partials.dosen-class-menu')
 
+        <a href="{{ route('dosen.kelas') }}"
+           class="flex items-center gap-3 p-3 transition
+           {{ Request::routeIs('dosen.kelas')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+            <i class="fas fa-chalkboard w-6 text-center"></i>
+            <span x-show="sidebarOpen" class="font-semibold">Kelas Saya</span>
+            @if($classUnreadTotal > 0)
+            <span class="ml-auto inline-flex min-w-[20px] h-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">{{ $classUnreadTotal > 99 ? '99+' : $classUnreadTotal }}</span>
+            @endif
+        </a>
+
         <a href="{{ route('dosen.dashboard') }}"
-           class="flex items-center gap-3 p-3 rounded-xl transition
+           class="flex items-center gap-3 p-3 transition
            {{ Request::routeIs('dosen.dashboard')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
@@ -54,7 +68,7 @@
         </a>
 
         <a href="{{ route('dosen.persetujuan') }}"
-           class="flex items-center gap-3 p-3 rounded-xl transition
+           class="flex items-center gap-3 p-3 transition
            {{ Request::routeIs('dosen.persetujuan*')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
@@ -63,7 +77,7 @@
         </a>
 
         <a href="{{ route('dosen.proyek-mahasiswa') }}"
-           class="flex items-center gap-3 p-3 rounded-xl transition
+           class="flex items-center gap-3 p-3 transition
            {{ Request::routeIs('dosen.proyek-mahasiswa*')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
@@ -75,9 +89,21 @@
         {{-- Menu mahasiswa --}}
         @include('partials.student-class-join')
 
+        <a href="{{ route('classes.mine') }}"
+           class="flex items-center gap-3 p-3 transition
+           {{ Request::routeIs('classes.mine') || Request::routeIs('classes.show')
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100' }}">
+            <i class="fas fa-chalkboard w-6 text-center"></i>
+            <span x-show="sidebarOpen" class="font-semibold">Kelas Saya</span>
+            @if($classUnreadTotal > 0)
+            <span class="ml-auto inline-flex min-w-[20px] h-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">{{ $classUnreadTotal > 99 ? '99+' : $classUnreadTotal }}</span>
+            @endif
+        </a>
+
         <!-- Projects -->
         <a href="{{ route('my-project') }}"
-           class="flex items-center gap-3 p-3 rounded-xl transition
+           class="flex items-center gap-3 p-3 transition
            {{ Request::routeIs('my-project')
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100' }}">
@@ -106,23 +132,23 @@
         @endphp
 
         <!-- Selected Project (minimal) -->
-        <div class="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+        <div class="mt-4 border border-slate-200 bg-slate-50 p-4">
             <p x-show="sidebarOpen"
                class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-semibold mb-2">
                 Selected Project
             </p>
 
-            <div x-show="sidebarOpen" class="rounded-2xl bg-white px-3 py-2.5 shadow-sm mb-3">
+            <div x-show="sidebarOpen" class="bg-white px-3 py-2.5 shadow-sm mb-3">
                 <p class="text-sm font-semibold text-slate-900 truncate">
                     {{ $selected_project['name'] }}
                 </p>
-                <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $statusColor }}">
+                <span class="mt-1 inline-block px-2 py-0.5 text-[11px] font-semibold {{ $statusColor }}">
                     {{ $statusLabel }}
                 </span>
             </div>
 
             <a href="{{ route('my-project') }}"
-               class="inline-flex w-full items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+               class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
                 <i class="fas fa-exchange-alt"></i>
                 <span x-show="sidebarOpen">Change Project</span>
             </a>
@@ -135,7 +161,7 @@
         <!-- Create Project -->
         <div class="px-4 py-4">
             <a href="{{ route('buat-projek') }}"
-               class="block rounded-3xl bg-blue-600 px-4 py-3 text-center text-white font-semibold shadow-md hover:bg-blue-700 transition">
+               class="block rounded-lg bg-blue-600 px-4 py-3 text-center text-white font-semibold shadow-md hover:bg-blue-700 transition">
                 + New Project
             </a>
         </div>
@@ -145,7 +171,7 @@
     <div class="mt-auto px-4 pb-5 space-y-2">
 
         <a href="{{ route('settings') }}"
-           class="flex items-center gap-3 rounded-3xl px-4 py-3 transition
+           class="flex items-center gap-3 px-4 py-3 transition
            {{ Request::routeIs('settings*') ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100' }}">
 
             <i class="fas fa-cog w-5 text-center"></i>
@@ -164,7 +190,7 @@
             @csrf
 
             <button type="submit"
-                    class="flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-gray-600 hover:bg-gray-100 transition">
+                    class="flex w-full items-center gap-3 px-4 py-3 text-left text-gray-600 hover:bg-gray-100 transition">
 
                 <i class="fas fa-sign-out-alt w-5 text-center"></i>
 

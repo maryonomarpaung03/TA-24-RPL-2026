@@ -9,8 +9,11 @@
     votersCount: @js($votersCount ?? 0),
     board: @js($problemBoard ?? ['ide' => [], 'voting' => [], 'diajukan' => [], 'perbaiki' => [], 'selesai' => []]),
     comments: @js($problemComments ?? []),
+    currentUserId: @js($currentUserId ?? 0),
     routes: {
         store: @js(route('problem.store', $projectId)),
+        update: @js(route('problem.update', $projectId)),
+        delete: @js(route('problem.delete', $projectId)),
         propose: @js(route('problem.propose-voting', $projectId)),
         vote: @js(route('problem.vote', $projectId)),
         comment: @js(route('problem.comment', $projectId)),
@@ -219,16 +222,62 @@
                                 <p x-show="board.ide.length === 0" class="text-xs text-slate-400 italic py-8 text-center">Belum ada ide masalah.</p>
                                 <template x-for="card in board.ide" :key="'ide-' + card.id">
                                     <div :data-id="card.id" class="problem-card rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                        <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="card.title"></p>
-                                        <p class="text-xs text-slate-400 mt-1.5" x-text="card.author_name"></p>
-                                        <div class="flex flex-wrap gap-1 mt-1.5">
-                                            <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600" x-text="card.category"></span>
-                                            <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600" x-text="card.priority"></span>
-                                        </div>
-                                        <p class="text-xs text-slate-500 mt-1.5 line-clamp-2" x-text="card.description"></p>
-                                        <button type="button" @click="proposeVoting(card)" class="mt-2.5 w-full rounded-lg border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition">
-                                            Ajukan untuk voting
-                                        </button>
+                                        {{-- Mode tampil --}}
+                                        <template x-if="!card._editing">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="card.title"></p>
+                                                <p class="text-xs text-slate-400 mt-1.5" x-text="card.author_name"></p>
+                                                <div class="flex flex-wrap gap-1 mt-1.5">
+                                                    <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600" x-text="card.category"></span>
+                                                    <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600" x-text="card.priority"></span>
+                                                </div>
+                                                <p class="text-xs text-slate-500 mt-1.5 line-clamp-2" x-text="card.description"></p>
+                                                <button type="button" @click="proposeVoting(card)" class="mt-2.5 w-full rounded-lg border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition">
+                                                    Ajukan untuk voting
+                                                </button>
+                                                <div x-show="card.created_by === currentUserId || isPm" class="mt-2 flex items-center gap-3 border-t border-slate-200 pt-2 text-[11px]">
+                                                    <button type="button" @click="startEditIdea(card)" class="font-semibold text-slate-500 hover:text-blue-600 transition">
+                                                        <i class="fas fa-pen"></i> Edit
+                                                    </button>
+                                                    <button type="button" @click="deleteIdea(card)" class="font-semibold text-slate-500 hover:text-red-600 transition">
+                                                        <i class="fas fa-trash"></i> Hapus
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        {{-- Mode edit --}}
+                                        <template x-if="card._editing">
+                                            <div class="space-y-2">
+                                                <input x-model="card._editTitle" type="text" placeholder="Judul masalah"
+                                                       class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400">
+                                                <textarea x-model="card._editDesc" rows="2" placeholder="Deskripsi"
+                                                          class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400 resize-none"></textarea>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <select x-model="card._editCategory" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400">
+                                                        <option>Teknik</option>
+                                                        <option>Diskusi</option>
+                                                        <option>Etika</option>
+                                                        <option>Kebutuhan Proyek</option>
+                                                    </select>
+                                                    <select x-model="card._editPriority" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400">
+                                                        <option>Tinggi</option>
+                                                        <option>Sedang</option>
+                                                        <option>Rendah</option>
+                                                    </select>
+                                                </div>
+                                                <div class="flex gap-2">
+                                                    <button type="button" @click="saveIdea(card)" :disabled="loading"
+                                                            class="flex-1 rounded-lg bg-blue-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50">
+                                                        Simpan
+                                                    </button>
+                                                    <button type="button" @click="card._editing = false"
+                                                            class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition">
+                                                        Batal
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </div>
                                 </template>
                             </div>
@@ -561,6 +610,48 @@ function problemBoardApp(config) {
                 const data = await this.apiPost(this.routes.propose, { problem_id: card.id });
                 this.board = data.board;
                 this.showFlash('Ide dipindahkan ke voting.');
+            } catch (e) {
+                this.showFlash(e.message, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        startEditIdea(card) {
+            card._editTitle = card.title;
+            card._editDesc = card.description || '';
+            card._editCategory = card.category;
+            card._editPriority = card.priority;
+            card._editing = true;
+        },
+        async saveIdea(card) {
+            if (!(card._editTitle || '').trim()) {
+                this.showFlash('Judul masalah tidak boleh kosong.', 'error');
+                return;
+            }
+            this.loading = true;
+            try {
+                const data = await this.apiPost(this.routes.update, {
+                    problem_id: card.id,
+                    title: card._editTitle,
+                    description: card._editDesc,
+                    category: card._editCategory,
+                    priority: card._editPriority,
+                });
+                this.board = data.board;
+                this.showFlash('Ide masalah diperbarui.');
+            } catch (e) {
+                this.showFlash(e.message, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        async deleteIdea(card) {
+            if (!confirm('Anda yakin ingin menghapus ide masalah "' + card.title + '"? Tindakan ini tidak dapat dibatalkan.')) return;
+            this.loading = true;
+            try {
+                const data = await this.apiPost(this.routes.delete, { problem_id: card.id });
+                this.board = data.board;
+                this.showFlash('Ide masalah dihapus.');
             } catch (e) {
                 this.showFlash(e.message, 'error');
             } finally {

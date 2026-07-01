@@ -17,7 +17,7 @@
 
     <button type="button"
             @click="menuOpen = !menuOpen"
-            class="flex w-full items-center gap-3 p-3 rounded-xl transition bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+            class="flex w-full items-center gap-3 p-3 rounded-lg transition bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
             :class="menuOpen ? 'ring-2 ring-blue-300' : ''">
         <i class="fas fa-plus w-6 text-center text-lg"></i>
         <span x-show="sidebarOpen" class="font-semibold">Kelas</span>

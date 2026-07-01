@@ -4,12 +4,99 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicClass;
 use App\Models\User;
+use App\Support\ClassActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class LecturerClassController extends Controller
 {
+    /**
+     * Daftar kelas yang dibuat dosen untuk dikelola.
+     */
+    public function index()
+    {
+        if (Auth::user()->role !== 'lecturer') {
+            abort(403);
+        }
+
+        $classes = AcademicClass::query()
+            ->where('lecturer_id', Auth::id())
+            ->withCount('members')
+            ->latest()
+            ->get();
+
+        // Snapshot jumlah baru untuk ditampilkan, lalu tandai semua terbaca.
+        $unreadMap = ClassActivity::summary(Auth::user())['by_class'];
+        ClassActivity::markAllRead(Auth::user());
+
+        return view('DosenKelasSaya', [
+            'classes' => $classes,
+            'unreadMap' => $unreadMap,
+        ]);
+    }
+
+    /**
+     * Perbarui informasi kelas milik dosen.
+     */
+    public function update(Request $request, $id)
+    {
+        $academicClass = $this->ownedClassOrFail($id);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'course_name' => ['required', 'string', 'max:255'],
+            'academic_year' => ['required', 'string', 'max:20'],
+            'semester' => ['required', Rule::in(['Ganjil', 'Genap', 'Pendek'])],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'max_members' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'visibility' => ['required', Rule::in(['public', 'closed'])],
+        ]);
+
+        $academicClass->update([
+            'name' => $validated['name'],
+            'course_name' => $validated['course_name'],
+            'academic_year' => $validated['academic_year'],
+            'semester' => $validated['semester'],
+            'description' => $validated['description'] ?? null,
+            'max_members' => $validated['max_members'] ?? null,
+            'visibility' => $validated['visibility'],
+        ]);
+
+        return redirect()
+            ->route('dosen.kelas')
+            ->with('success', 'Kelas "'.$academicClass->name.'" berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus kelas milik dosen beserta anggota & chatnya.
+     */
+    public function destroy($id)
+    {
+        $academicClass = $this->ownedClassOrFail($id);
+        $name = $academicClass->name;
+        $academicClass->delete();
+
+        return redirect()
+            ->route('dosen.kelas')
+            ->with('success', 'Kelas "'.$name.'" telah dihapus.');
+    }
+
+    private function ownedClassOrFail($id): AcademicClass
+    {
+        if (Auth::user()->role !== 'lecturer') {
+            abort(403);
+        }
+
+        $academicClass = AcademicClass::query()->findOrFail($id);
+
+        if ((int) $academicClass->lecturer_id !== (int) Auth::id()) {
+            abort(403);
+        }
+
+        return $academicClass;
+    }
+
     public function store(Request $request)
     {
         if (Auth::user()->role !== 'lecturer') {

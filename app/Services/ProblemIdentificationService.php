@@ -479,6 +479,65 @@ class ProblemIdentificationService
     return $this->findCard($id, $user->id);
   }
 
+  /**
+   * @param  array<string, mixed>  $data
+   * @return array<string, mixed>
+   */
+  public function updateIdea(int $projectId, int $problemId, User $user, array $data): array
+  {
+    $this->assertStudentAccess($projectId, $user);
+    $problem = $this->findProblemInProject($projectId, $problemId);
+
+    $this->assertIdeaEditable($projectId, $problem, $user, 'diubah');
+
+    DB::table('problem_identifications')
+      ->where('id', $problemId)
+      ->update([
+        'title' => $data['title'],
+        'description' => $data['description'] ?? null,
+        'category' => $data['category'],
+        'priority' => $data['priority'],
+        'updated_at' => now(),
+      ]);
+
+    return $this->findCard($problemId, $user->id);
+  }
+
+  public function deleteIdea(int $projectId, int $problemId, User $user): void
+  {
+    $this->assertStudentAccess($projectId, $user);
+    $problem = $this->findProblemInProject($projectId, $problemId);
+
+    $this->assertIdeaEditable($projectId, $problem, $user, 'dihapus');
+
+    if (Schema::hasColumn('discussions', 'problem_id')) {
+      DB::table('discussions')->where('problem_id', $problemId)->delete();
+    }
+
+    DB::table('problem_votes')->where('problem_id', $problemId)->delete();
+    DB::table('problem_identifications')->where('id', $problemId)->delete();
+  }
+
+  /**
+   * Pastikan ide masih boleh diubah/dihapus: status idea & oleh pembuat atau PM.
+   */
+  private function assertIdeaEditable(int $projectId, object $problem, User $user, string $verb): void
+  {
+    if ($problem->board_status !== 'idea') {
+      throw ValidationException::withMessages([
+        'problem' => 'Hanya ide yang belum diajukan ke voting yang dapat ' . $verb . '.',
+      ]);
+    }
+
+    $project = Project::query()->findOrFail($projectId);
+
+    if ((int) $problem->created_by !== (int) $user->id && ! $this->isPm($project, $user->id)) {
+      throw ValidationException::withMessages([
+        'role' => 'Hanya pembuat ide atau Project Manager yang dapat ' . $verb . ' ide ini.',
+      ]);
+    }
+  }
+
   public function proposeForVoting(int $projectId, int $problemId, User $user): array
   {
     $this->assertStudentAccess($projectId, $user);
@@ -624,6 +683,7 @@ class ProblemIdentificationService
       ]);
 
     $this->notifyLecturer($project, $winnerId);
+    $this->notifyTeamSubmitted($project, $winnerId);
 
     return $this->findCard($winnerId, (int) auth()->id());
   }
@@ -720,6 +780,24 @@ class ProblemIdentificationService
       'created_at' => now(),
       'updated_at' => now(),
     ]);
+  }
+
+  private function notifyTeamSubmitted(Project $project, int $problemId): void
+  {
+    $problem = DB::table('problem_identifications')->where('id', $problemId)->first();
+    $emails = $this->teamEmails($project->id, (int) $project->created_by);
+
+    foreach ($emails as $email) {
+      DB::table('project_notifications')->insert([
+        'project_id' => $project->id,
+        'recipient_email' => $email,
+        'type' => 'problem_submitted_to_lecturer',
+        'title' => 'Masalah diajukan ke dosen',
+        'message' => 'Masalah "' . ($problem->title ?? 'Utama') . '" telah diajukan ke dosen dan sedang menunggu review.',
+        'created_at' => now(),
+        'updated_at' => now(),
+      ]);
+    }
   }
 
   private function notifyStudents(

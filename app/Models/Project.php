@@ -12,6 +12,7 @@ class Project extends Model
 
     protected $fillable = [
         'team_id',
+        'academic_class_id',
         'name',
         'description',
         'problem_definition',

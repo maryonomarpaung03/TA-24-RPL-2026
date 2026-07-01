@@ -96,14 +96,27 @@
                 <p class="text-xs text-gray-500 mt-1">Lihat diagram dekomposisi dan history pembuatan dari tim mahasiswa.</p>
             </a>
 
-            <div class="rounded-2xl border border-dashed border-gray-200 p-4 bg-gray-50/80">
-                <div class="w-10 h-10 rounded-xl bg-gray-200 text-gray-500 flex items-center justify-center">
-                    <i class="fas fa-star"></i>
+            <a href="{{ route('dosen.penyusunan', $project['id']) }}"
+               class="rounded-2xl border p-4 hover:border-emerald-300 hover:bg-emerald-50/50 transition group">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <i class="fas fa-list-check"></i>
+                    </div>
                 </div>
-                <h3 class="font-bold text-gray-700 mt-3">Penilaian Proyek</h3>
-                <p class="text-xs text-gray-500 mt-1">Fitur penilaian hasil proyek akan tersedia pada tahap berikutnya.</p>
-                <span class="inline-block mt-3 text-[10px] font-bold uppercase text-gray-400 bg-white border px-2 py-1 rounded-full">Segera hadir</span>
-            </div>
+                <h3 class="font-bold text-gray-900 mt-3 group-hover:text-emerald-700">Project Planning</h3>
+                <p class="text-xs text-gray-500 mt-1">Lihat rencana dan daftar tugas yang disusun tim mahasiswa.</p>
+            </a>
+
+            <a href="{{ route('dosen.pelaksanaan', $project['id']) }}"
+               class="rounded-2xl border p-4 hover:border-orange-300 hover:bg-orange-50/50 transition group">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+                        <i class="fas fa-diagram-project"></i>
+                    </div>
+                </div>
+                <h3 class="font-bold text-gray-900 mt-3 group-hover:text-orange-700">Execution &amp; Evaluation</h3>
+                <p class="text-xs text-gray-500 mt-1">Pantau papan kanban, progres, dan kontribusi tiap mahasiswa.</p>
+            </a>
         </div>
     </div>
 </div>

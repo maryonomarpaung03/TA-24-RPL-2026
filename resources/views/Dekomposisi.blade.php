@@ -958,6 +958,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
         },
         async kirimKeDosen() {
             if (!this.submitUrl || this.submitting) return;
+            if (!confirm('Apakah Anda yakin akan mengirimkan diagram dekomposisi ke dosen?')) return;
             this.submitting = true;
             this.submitSuccess = false;
             this.submitError = null;

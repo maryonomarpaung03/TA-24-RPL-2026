@@ -1,20 +1,10 @@
-@php
-    $enrolledClasses = collect();
-    if (\Illuminate\Support\Facades\Schema::hasTable('class_members')) {
-        $enrolledClasses = \App\Models\ClassMember::query()
-            ->with('academicClass')
-            ->where('user_id', auth()->id())
-            ->latest('joined_at')
-            ->get();
-    }
-@endphp
-
 <div x-data="{ joinOpen: @js(session('open_join_class') || $errors->has('join_code')) }"
-     @keydown.escape.window="joinOpen = false">
+     @keydown.escape.window="joinOpen = false"
+     @open-join-class.window="joinOpen = true">
 
     <button type="button"
             @click="joinOpen = true"
-            class="flex w-full items-center gap-3 p-3 rounded-xl transition bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+            class="flex w-full items-center gap-3 p-3 rounded-lg transition bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
             title="Join class">
         <i class="fas fa-plus w-6 text-center text-lg"></i>
         <span x-show="sidebarOpen" class="font-semibold">Join Class</span>
@@ -88,18 +78,4 @@
             </div>
         </div>
     </template>
-    
-    @if($enrolledClasses->isNotEmpty())
-    <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3" x-show="sidebarOpen">
-        <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold mb-2">My classes</p>
-        <ul class="space-y-2 max-h-32 overflow-y-auto">
-            @foreach($enrolledClasses as $enrollment)
-            <li class="rounded-xl bg-white px-3 py-2 border border-slate-100">
-                <p class="text-xs font-semibold text-slate-800 truncate">{{ $enrollment->academicClass->name }}</p>
-                <p class="text-[10px] text-slate-500 truncate">{{ $enrollment->academicClass->course_name }}</p>
-            </li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
 </div>

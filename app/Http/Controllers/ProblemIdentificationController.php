@@ -36,6 +36,46 @@ class ProblemIdentificationController extends Controller
     ]);
   }
 
+  public function updateProblem(Request $request, int $id): JsonResponse
+  {
+    $validated = $request->validate([
+      'problem_id' => ['required', 'integer'],
+      'title' => ['required', 'string', 'max:255'],
+      'description' => ['nullable', 'string'],
+      'category' => ['required', 'in:' . implode(',', ProblemIdentificationService::CATEGORIES)],
+      'priority' => ['required', 'in:' . implode(',', ProblemIdentificationService::PRIORITIES)],
+    ]);
+
+    $card = $this->service->updateIdea(
+      $id,
+      (int) $validated['problem_id'],
+      Auth::user(),
+      $validated
+    );
+
+    $board = $this->service->buildBoard($id, (int) Auth::id());
+
+    return response()->json([
+      'success' => true,
+      'card' => $card,
+      'board' => $board,
+    ]);
+  }
+
+  public function deleteProblem(Request $request, int $id): JsonResponse
+  {
+    $request->validate(['problem_id' => ['required', 'integer']]);
+
+    $this->service->deleteIdea($id, (int) $request->problem_id, Auth::user());
+
+    $board = $this->service->buildBoard($id, (int) Auth::id());
+
+    return response()->json([
+      'success' => true,
+      'board' => $board,
+    ]);
+  }
+
   public function proposeForVoting(Request $request, int $id): JsonResponse
   {
     $request->validate(['problem_id' => ['required', 'integer']]);

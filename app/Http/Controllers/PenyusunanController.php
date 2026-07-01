@@ -33,7 +33,36 @@ class PenyusunanController extends Controller
             ->orderBy('tasks.created_at')
             ->get();
 
-        $tasks = $taskData->map(function ($task, $index) {
+        // Komentar tiap tugas (dari tabel discussions).
+        $commentsByTask = [];
+        $taskIds = $taskData->pluck('id');
+
+        if ($taskIds->isNotEmpty()) {
+            $commentRows = DB::table('discussions')
+                ->leftJoin('users', 'users.id', '=', 'discussions.user_id')
+                ->whereIn('discussions.task_id', $taskIds)
+                ->orderBy('discussions.created_at')
+                ->select(
+                    'discussions.task_id',
+                    'discussions.message',
+                    'discussions.created_at',
+                    'users.full_name',
+                    'users.name'
+                )
+                ->get();
+
+            foreach ($commentRows as $row) {
+                $commentsByTask[$row->task_id][] = [
+                    'from' => $row->full_name ?: $row->name ?: 'Anggota',
+                    'text' => $row->message,
+                    'time' => Carbon::parse($row->created_at)->format('d M Y H:i'),
+                ];
+            }
+        }
+
+        $tasks = $taskData->map(function ($task, $index) use ($commentsByTask) {
+            $urgency = \App\Services\ProjectTaskService::urgencyMeta($task->due_date);
+
             return [
                 'id' => $task->id,
                 'no' => $index + 1,
@@ -46,7 +75,11 @@ class PenyusunanController extends Controller
                     ? Carbon::parse($task->due_date)->format('Y-m-d')
                     : '-',
                 'pj' => $task->full_name ?? 'Belum Ditentukan',
-                'assigned_to' => $task->assigned_to,
+                'assigned_to' => (int) $task->assigned_to,
+                'days_left' => $urgency['days_left'],
+                'urgency' => $urgency['urgency'],
+                'urgency_label' => $urgency['label'],
+                'comments' => $commentsByTask[$task->id] ?? [],
             ];
         })->toArray();
 
@@ -55,6 +88,7 @@ class PenyusunanController extends Controller
             'namaProjek' => $project->title,
             'tasks' => $tasks,
             'users' => $this->tasks->assignableMembers((int) $project->id),
+            'currentUserId' => (int) Auth::id(),
         ]);
     }
 

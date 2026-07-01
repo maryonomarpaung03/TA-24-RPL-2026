@@ -73,6 +73,16 @@
                         Ajukan ke Dosen
                     </button>
                 </form>
+                <form method="POST" action="{{ route('projek.destroy', $selected_project['id']) }}" class="inline"
+                      onsubmit="return confirm('Hapus proyek draft &quot;{{ $selected_project['name'] }}&quot;? Tindakan ini tidak dapat dibatalkan.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-full border border-red-300 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition">
+                        <i class="fas fa-trash"></i>
+                        Hapus Proyek
+                    </button>
+                </form>
             </div>
             @endif
         @else
