@@ -2,210 +2,125 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
-use App\Services\ProjectTaskService;
+use App\Models\ProjectBoard;
 use App\Support\PjblContext;
-use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
-
+use App\Models\TaskComment;
+use App\Models\Task;
 class PelaksanaanController extends Controller
 {
-    public function __construct(
-        private readonly ProjectTaskService $tasks
-    ) {}
-
     public function index($id)
     {
         $selected = ProjectCatalog::find($id);
 
-        if (! $selected) {
+        if (!$selected) {
+
             return redirect()
                 ->route('my-project')
-                ->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
+                ->with('error', 'Project tidak ditemukan.');
+
         }
 
-        $projectId = (int) $id;
-
+        $boards = ProjectBoard::with('tasks.comments')
+            ->where('project_id', $id)
+            ->orderBy('position')
+            ->get();
+        // dd($boards);
         return view('Pelaksanaan', [
+
             'user' => PjblContext::viewer(),
+
             'namaProjek' => $selected['name'],
-            'id' => $projectId,
-            'columns' => $this->tasks->columnsForProject($projectId),
-            'kanban' => $this->tasks->kanbanForProject($projectId),
-            'colorOptions' => ProjectTaskService::COLUMN_COLORS,
-            'teamInitials' => PjblContext::memberInitials($projectId),
-            'members' => $this->tasks->assignableMembers($projectId),
-            'currentUserId' => (int) Auth::id(),
+
+            'id' => $id,
+
+            'boards' => $boards,
+
+            'teamInitials' => PjblContext::memberInitials($id),
+            'allBoards' => $boards,
+
         ]);
     }
-
-    public function addColumn(Request $request, $id)
-    {
-        $request->validate($this->columnRules());
-
-        $project = $this->authorizeProject($id);
-        if (! $project instanceof Project) {
-            return $project;
-        }
-
-        try {
-            $this->tasks->createColumn(
-                (int) $project->id,
-                $request->label,
-                (string) $request->color,
-                $this->columnConfig($request)
-            );
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
-
-        return back()->with('success', 'Kolom berhasil ditambahkan.');
-    }
-
-    public function updateColumn(Request $request, $id)
-    {
-        $request->validate(['column_id' => 'required|integer'] + $this->columnRules());
-
-        $project = $this->authorizeProject($id);
-        if (! $project instanceof Project) {
-            return $project;
-        }
-
-        try {
-            $this->tasks->updateColumn(
-                (int) $project->id,
-                (int) $request->column_id,
-                $request->label,
-                (string) $request->color,
-                $this->columnConfig($request)
-            );
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
-
-        return back()->with('success', 'Kolom berhasil diperbarui.');
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function columnRules(): array
-    {
-        return [
-            'label' => 'required|string|max:60',
-            'color' => 'nullable|string|max:20',
-            'description' => 'nullable|string|max:500',
-            'is_done' => 'nullable|boolean',
-            'requires_approval' => 'nullable|boolean',
-            'checklist' => 'nullable|array|max:15',
-            'checklist.*' => 'nullable|string|max:200',
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function columnConfig(Request $request): array
-    {
-        return [
-            'description' => $request->input('description'),
-            'is_done' => $request->boolean('is_done'),
-            'requires_approval' => $request->boolean('requires_approval'),
-            'checklist' => (array) $request->input('checklist', []),
-        ];
-    }
-
-    public function deleteColumn(Request $request, $id)
-    {
-        $request->validate(['column_id' => 'required|integer']);
-
-        $project = $this->authorizeProject($id);
-        if (! $project instanceof Project) {
-            return $project;
-        }
-
-        try {
-            $this->tasks->deleteColumn((int) $project->id, (int) $request->column_id);
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
-
-        return back()->with('success', 'Kolom berhasil dihapus. Tugas dipindahkan ke kolom pertama.');
-    }
-
-    public function moveTask(Request $request, $id)
+    public function moveTask(Request $request)
     {
         $request->validate([
-            'task_id' => 'required|integer',
-            'column_key' => 'required|string|max:40',
-            'checklist_confirmed' => 'nullable|boolean',
+            'task_id' => 'required|exists:tasks,id',
+            'board_id' => 'required|exists:project_boards,id',
         ]);
 
-        $project = $this->authorizeProject($id);
-        if (! $project instanceof Project) {
-            return $project;
-        }
+        $task = Task::findOrFail($request->task_id);
 
-        try {
-            $result = $this->tasks->moveTask(
-                (int) $project->id,
-                (int) $request->task_id,
-                $request->column_key,
-                (int) Auth::id(),
-                $request->boolean('checklist_confirmed')
-            );
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
+        $task->board_id = $request->board_id;
+        $task->save();
 
-        return back()->with(
-            'success',
-            $result['pending']
-                ? 'Tugas diajukan ke Dosen dan menunggu persetujuan.'
-                : 'Tugas berhasil dipindahkan.'
-        );
+        return response()->json([
+            'success' => true
+        ]);
     }
-
-    public function quickAddTask(Request $request, $id)
+    public function store(Request $request, $projectId)
     {
         $request->validate([
-            'column_key' => 'required|string|max:40',
-            'judul_tugas' => 'required|string|max:255',
+            'name' => 'required|max:100'
         ]);
 
-        $project = $this->authorizeProject($id);
-        if (! $project instanceof Project) {
-            return $project;
-        }
+        ProjectBoard::create([
+            'project_id' => $projectId,
+            'name' => $request->name,
+            'position' => ProjectBoard::where('project_id', $projectId)->count() + 1,
+            'is_completed' => false
+        ]);
 
-        try {
-            $this->tasks->quickAddTask(
-                (int) $project->id,
-                $request->column_key,
-                $request->judul_tugas,
-                (int) Auth::id()
-            );
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
 
-        return back()->with('success', 'Tugas berhasil ditambahkan.');
+        return redirect()
+            ->route('pelaksanaan', $projectId)
+            ->with('success', 'Board berhasil ditambahkan.');
     }
-
-    /**
-     * @return Project|\Illuminate\Http\RedirectResponse
-     */
-    private function authorizeProject($id)
+    public function comment(Request $request, $taskId)
     {
-        $project = Project::query()->find($id);
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
 
-        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
-            return back()->with('error', 'Proyek tidak ditemukan atau Anda tidak memiliki akses.');
-        }
+        $task = Task::findOrFail($taskId);
 
-        return $project;
+        TaskComment::create([
+            'task_id' => $task->id,
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()
+            ->route('pelaksanaan', $task->project_id)
+            ->with('success', 'Komentar berhasil ditambahkan.');
+    }
+    public function updateTask(Request $request, $taskId)
+    {
+        $request->validate([
+            'task_title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'required|in:low,medium,high',
+            'link' => 'nullable|url',
+            'board_id' => 'required|exists:project_boards,id',
+            'status' => 'required|in:pending,in_progress,completed',
+            'progress_percent' => 'required|integer|min:0|max:100',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $task = Task::findOrFail($taskId);
+
+        $task->update([
+            'board_id' => $request->board_id,
+            'task_title' => $request->task_title,
+            'description' => $request->description,
+            'link' => $request->link,
+            'priority' => $request->priority,
+            'status' => $request->status,
+            'progress_percent' => $request->progress_percent,
+            'due_date' => $request->due_date,
+        ]);
+
+        return redirect()
+            ->route('pelaksanaan', $task->project_id)
+            ->with('success', 'Task berhasil diperbarui.');
     }
 }

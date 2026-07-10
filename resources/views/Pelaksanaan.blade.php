@@ -1,196 +1,811 @@
 @extends('layouts.app')
 
 @section('title', 'Pelaksanaan & Evaluasi - DELPRO')
+@section('root_data', '{ 
+                        sidebarOpen: true, 
+                        commentModal: false, 
+                        editModal: false, 
+                        addComment: false,
+                        activeColumn:null, 
+                        selectedTask:{ 
+                            id:null, 
+                            title:"", 
+                            description:"", 
+                            priority:"medium", 
+                            status:"pending", 
+                            progress:0, due:""}, 
+                        }')
 
 @section('content')
-<div class="w-full space-y-6"
-     x-data="{
-        colAddModal: false,
-        colEditModal: false,
-        colDeleteModal: false,
-        commentModal: false,
-        moveModal: false,
-        addCol: { label: '', color: 'blue-600', description: '', is_done: false, requires_approval: false, checklist: [] },
-        editCol: { id: '', label: '', color: '', description: '', is_done: false, requires_approval: false, checklist: [] },
-        delCol: { id: '', label: '' },
-        commentTask: { id: '', name: '', comments: [] },
-        columns: {{ Illuminate\Support\Js::from($columns) }},
-        moveCtx: { id: '', name: '', fromKey: '' },
-        moveTarget: '',
-        moveChecks: [],
-        fAssignee: 'all',
-        fDeadline: 'all',
-        myId: {{ $currentUserId ?? 0 }},
-        openMove(id, name, fromKey) {
-            this.moveCtx = { id, name, fromKey };
-            this.moveTarget = '';
-            this.moveChecks = [];
-            this.moveModal = true;
-        },
-        targetColumn() { return this.columns.find(c => c.key === this.moveTarget) || null; },
-        onTargetChange() {
-            const t = this.targetColumn();
-            const n = (t && t.checklist) ? t.checklist.length : 0;
-            this.moveChecks = Array(n).fill(false);
-        },
-        checklistOk() {
-            const t = this.targetColumn();
-            if (!t || !t.checklist || t.checklist.length === 0) return true;
-            return this.moveChecks.length === t.checklist.length && this.moveChecks.every(v => v === true);
-        },
-        canMove() { return this.moveTarget !== '' && this.checklistOk(); },
-        taskMatch(assigned, days) {
-            if (this.fAssignee === 'mine' && String(assigned) !== String(this.myId)) return false;
-            if (this.fAssignee !== 'all' && this.fAssignee !== 'mine' && String(assigned) !== String(this.fAssignee)) return false;
-            if (this.fDeadline === 'overdue' && !(days !== null && days < 0)) return false;
-            if (this.fDeadline === 'urgent' && !(days !== null && days >= 0 && days <= 3)) return false;
-            if (this.fDeadline === 'soon' && !(days !== null && days >= 0 && days <= 7)) return false;
-            return true;
-        }
-     }">
 
-    @include('partials.flash-messages')
+<div x-data="taskManager()"class="w-full space-y-6">
 
-    <!-- Judul & Breadcrumb -->
+    {{-- ========================================================= --}}
+    {{-- HEADER PROJECT --}}
+    {{-- ========================================================= --}}
+
     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
         <div>
-            <h2 class="text-3xl font-bold text-gray-900 leading-tight">{{ $namaProjek }}</h2>
-            <nav class="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-tight">
-                projek saya/ <span class="text-blue-500">Pelaksanaan dan evaluasi</span>
-            </nav>
+            <h2 class="text-3xl font-bold text-gray-900">{{ $namaProjek }}</h2>
+            <p class="text-[11px] uppercase tracking-wider text-gray-400 mt-2">Projek Saya /
+                <span class="text-blue-600">Pelaksanaan & Evaluasi</span>
+            </p>
         </div>
-        <button @click="addCol = { label: '', color: 'blue-600', description: '', is_done: false, requires_approval: false, checklist: [] }; colAddModal = true"
-                class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition">
-            <i class="fas fa-plus mr-1"></i> Tambah Kolom
+        <button
+            class="text-2xl text-gray-400 hover:text-blue-600 transition">
+            <i class="fas fa-cog"></i>
         </button>
     </div>
+    <div class="flex justify-between items-center mb-5">
 
-    <!-- Anggota Aktif -->
+    <div></div>
+
+    <form action="{{ route('boards.store',$id) }}" method="POST" class="flex gap-2">
+        @csrf
+
+        <input
+            type="text"
+            name="name"
+            placeholder="Nama Dashboard"
+            class="rounded-xl border px-3 py-2 text-sm">
+
+        <button
+            class="bg-blue-600 text-white px-4 rounded-xl">
+            + Dashboard
+        </button>
+    </form>
+
+</div>
+
+    {{-- ========================================================= --}}
+    {{-- TEAM MEMBER --}}
+    {{-- ========================================================= --}}
+
     <div class="flex justify-end">
         <div class="flex -space-x-2">
-            @forelse($teamInitials ?? [] as $av)
-            <div class="w-7 h-7 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-blue-600 shadow-sm">{{ $av }}</div>
+            @forelse($teamInitials as $avatar)
+                <div class="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-700 shadow">{{ $avatar }}</div>
             @empty
-            <span class="text-[10px] text-gray-400 italic">Belum ada anggota</span>
+                <span class="text-xs text-gray-400">Belum ada anggota</span>
             @endforelse
         </div>
     </div>
 
-    <!-- FILTER -->
-    @include('partials.task-filter-bar')
 
-    <!-- KANBAN BOARD -->
-    @include('partials.kanban-board', ['editable' => true, 'id' => $id, 'kanban' => $kanban])
+    {{-- ========================================================= --}}
+    {{-- KANBAN BOARD --}}
+    {{-- ========================================================= --}}
 
-    <!-- MODAL TAMBAH KOLOM -->
-    <div x-show="colAddModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl max-h-[88vh] overflow-y-auto" @click.outside="colAddModal = false">
-            <h3 class="text-lg font-bold mb-5">Tambah Kolom</h3>
-            <form method="POST" action="{{ route('pelaksanaan.kolom.tambah', $id) }}">
-                @csrf
-                @include('partials.kanban-column-fields', ['model' => 'addCol'])
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" @click="colAddModal = false" class="px-5 py-2 bg-gray-200 rounded-xl text-sm font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold">Tambah</button>
-                </div>
-            </form>
+    <div class="flex gap-6 overflow-x-auto pb-4">
+
+@foreach($boards as $board)
+
+@php
+$totalTask = $board->tasks->count();
+$completedTask = $board->tasks->where('status','completed')->count();
+$progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
+@endphp
+
+<div class="w-[340px] min-w-[340px] bg-gray-100 rounded-3xl shadow-md p-5 flex flex-col">
+
+    {{-- HEADER --}}
+    <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+            <h3 class="font-bold">{{ $board->name }}</h3>
         </div>
+
+        <span class="text-xs text-gray-500">
+            {{ $totalTask }} Task
+        </span>
     </div>
 
-    <!-- MODAL EDIT KOLOM -->
-    <div x-show="colEditModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl max-h-[88vh] overflow-y-auto" @click.outside="colEditModal = false">
-            <h3 class="text-lg font-bold mb-5">Ubah Kolom</h3>
-            <form method="POST" action="{{ route('pelaksanaan.kolom.edit', $id) }}">
-                @csrf
-                <input type="hidden" name="column_id" :value="editCol.id">
-                @include('partials.kanban-column-fields', ['model' => 'editCol'])
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" @click="colEditModal = false" class="px-5 py-2 bg-gray-200 rounded-xl text-sm font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold">Simpan</button>
-                </div>
-            </form>
+    {{-- Progress --}}
+    <div class="mb-5">
+        <div class="flex justify-between text-xs mb-1">
+            <span>{{ $completedTask }}/{{ $totalTask }}</span>
+            <span>{{ $progress }}%</span>
         </div>
-    </div>
 
-    <!-- MODAL HAPUS KOLOM -->
-    <div x-show="colDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center" @click.outside="colDeleteModal = false">
-            <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-500">
-                <i class="fas fa-trash"></i>
+        <div class="w-full h-2 rounded-full bg-gray-300">
+            <div
+                class="h-2 rounded-full bg-blue-500"
+                style="width: {{ $progress }}%">
             </div>
-            <h3 class="text-lg font-bold mb-2">Hapus Kolom</h3>
-            <p class="text-sm text-gray-500 mb-6">
-                Kolom "<span x-text="delCol.label" class="font-semibold"></span>" akan dihapus.
-                Tugas di dalamnya dipindahkan ke kolom pertama.
+        </div>
+    </div>
+
+    {{-- TASK LIST --}}
+    <div
+        class="task-list flex-1 space-y-3"
+        data-board-id="{{ $board->id }}"
+    >
+
+        @forelse($board->tasks as $task)
+
+        <div
+            data-task-id="{{ $task->id }}"
+            class="task-card bg-white rounded-2xl shadow p-4 border">
+
+            <div class="flex justify-between">
+
+                <h4 class="font-semibold">
+                    {{ $task->task_title }}
+                </h4>
+
+                <button
+    @click="
+        editModal = true;
+        selectedTask = {
+            id: {{ $task->id }},
+            title: @js($task->task_title),
+            description: @js($task->description),
+             link: @js($task->link),
+            priority: '{{ $task->priority }}',
+            status: '{{ $task->status }}',
+            progress: {{ $task->progress_percent }},
+            due: '{{ $task->due_date }}',
+            board_id: {{ $task->board_id }}
+        }
+            console.log(selectedTask);
+    "
+    class="text-gray-400 hover:text-blue-600"
+>
+    <i class="fas fa-edit"></i>
+</button>
+<button
+    @click="
+        addComment=true;
+        selectedTask.id={{ $task->id }};
+        selectedTask.title=@js($task->task_title);
+        selectedTask.comment='';
+    "
+    class="text-blue-600 hover:text-blue-800">
+
+    <i class="fas fa-comment"></i>
+
+</button>
+            </div>
+
+            @if($task->description)
+                <p class="text-xs text-gray-500 mt-2">
+                    {{ $task->description }}
+                </p>
+            @endif
+            {{-- COMMENT --}}
+@if($task->comments->count())
+
+<div class="mt-3 space-y-2">
+
+    @foreach($task->comments as $comment)
+
+    <div class="flex gap-2">
+
+        <div class="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px]">
+            C
+        </div>
+
+        <div class="flex-1 bg-gray-100 rounded-xl px-3 py-2">
+
+            <p class="text-xs">
+                {{ $comment->comment }}
             </p>
-            <form method="POST" action="{{ route('pelaksanaan.kolom.hapus', $id) }}">
-                @csrf
-                <input type="hidden" name="column_id" :value="delCol.id">
-                <div class="flex justify-center gap-3">
-                    <button type="button" @click="colDeleteModal = false" class="px-5 py-2 bg-gray-200 rounded-xl text-sm font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-bold">Hapus</button>
-                </div>
-            </form>
+
+            <small class="text-gray-400">
+                {{ $comment->created_at->diffForHumans() }}
+            </small>
+
         </div>
+
     </div>
 
-    <!-- MODAL PINDAH TUGAS -->
-    <div x-show="moveModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl max-h-[88vh] overflow-y-auto" @click.outside="moveModal = false">
-            <h3 class="text-lg font-bold mb-1">Pindahkan Tugas</h3>
-            <p class="text-xs text-gray-500 mb-4" x-text="moveCtx.name"></p>
+    @endforeach
 
-            <form method="POST" action="{{ route('pelaksanaan.tugas.pindah', $id) }}">
-                @csrf
-                <input type="hidden" name="task_id" :value="moveCtx.id">
-                <input type="hidden" name="column_key" :value="moveTarget">
-                <input type="hidden" name="checklist_confirmed" :value="checklistOk() ? 1 : 0">
+</div>
 
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Kolom Tujuan</label>
-                <select x-model="moveTarget" @change="onTargetChange()" required
-                        class="w-full border rounded-xl p-3 mb-4 outline-none focus:border-blue-400">
-                    <option value="">Pilih kolom...</option>
-                    <template x-for="c in columns.filter(c => c.key !== moveCtx.fromKey)" :key="c.key">
-                        <option :value="c.key" x-text="c.label"></option>
-                    </template>
-                </select>
+@endif
+            <div class="flex justify-between mt-4">
 
-                {{-- Checklist Definition of Done --}}
-                <template x-if="targetColumn() && targetColumn().checklist && targetColumn().checklist.length">
-                    <div class="mb-4 rounded-2xl bg-amber-50 border border-amber-100 p-4">
-                        <p class="text-xs font-bold text-amber-700 mb-2"><i class="fas fa-list-check mr-1"></i>Definition of Done — centang semua</p>
-                        <template x-for="(item, i) in targetColumn().checklist" :key="i">
-                            <label class="flex items-start gap-2 text-sm text-gray-700 py-1 cursor-pointer">
-                                <input type="checkbox" x-model="moveChecks[i]" class="mt-0.5">
-                                <span x-text="item"></span>
-                            </label>
-                        </template>
-                    </div>
-                </template>
+                <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                    {{ strtoupper($task->priority) }}
+                </span>
 
-                {{-- Catatan approval --}}
-                <template x-if="targetColumn() && targetColumn().requires_approval">
-                    <div class="mb-4 flex items-start gap-2 rounded-xl bg-purple-50 border border-purple-100 p-3 text-xs text-purple-700">
-                        <i class="fas fa-user-shield mt-0.5"></i>
-                        <span>Kolom ini perlu <b>persetujuan Dosen</b>. Tugas akan menunggu approval sebelum benar-benar pindah.</span>
-                    </div>
-                </template>
+                <span class="text-xs">
+                    {{ $task->progress_percent }}%
+                </span>
 
-                <div class="flex justify-end gap-3">
-                    <button type="button" @click="moveModal = false" class="px-5 py-2 bg-gray-200 rounded-xl text-sm font-bold">Batal</button>
-                    <button type="submit" :disabled="!canMove()"
-                            :class="canMove() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300 cursor-not-allowed'"
-                            class="px-5 py-2 text-white rounded-xl text-sm font-bold transition">
-                        <span x-show="!targetColumn() || !targetColumn().requires_approval">Pindahkan</span>
-                        <span x-show="targetColumn() && targetColumn().requires_approval">Ajukan ke Dosen</span>
-                    </button>
-                </div>
-            </form>
+            </div>
+
         </div>
+
+        @empty
+
+        <div class="rounded-xl border-2 border-dashed border-gray-300 p-6 text-center text-gray-400 text-sm">
+            Belum ada task
+        </div>
+
+        @endforelse
+
+    </div>
+    {{-- ADD TASK --}}
+    <div class="mt-5" x-data="{adding:false}">
+
+        <button
+            x-show="!adding"
+            @click="adding=true"
+            class="w-full rounded-xl border-2 border-dashed border-blue-300 py-2 text-blue-600 hover:bg-blue-50">
+
+            + Tambah Task
+
+        </button>
+
+        <form
+            x-show="adding"
+            action="{{ route('tasks.store',$board->id) }}"
+            method="POST"
+            class="mt-2">
+
+            @csrf
+
+            <input
+                type="text"
+                name="title"
+                class="w-full rounded-xl border p-2"
+                placeholder="Nama Task">
+            
+        <div class="flex justify-end gap-2">
+
+            {{-- Cancel --}}
+            <button
+                type="button"
+                @click="adding=false"
+                class="px-4 py-2 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300">
+
+                Batal
+
+            </button>
+
+            {{-- Submit --}}
+            <button
+                type="submit"
+                class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">
+
+                Simpan Task
+
+            </button>
+
+        </div>
+        </form>
+
     </div>
 
-    <!-- MODAL KOMENTAR -->
-    @include('partials.task-comment-modal')
+</div>
+
+@endforeach
+<div class="w-[340px] min-w-[340px] bg-green-50 rounded-3xl shadow-md p-5 flex flex-col">
+
+    <div class="flex justify-between items-center mb-4">
+
+        <div class="flex items-center gap-2">
+
+            <div class="w-3 h-3 rounded-full bg-green-600"></div>
+
+            <h3 class="font-bold text-green-700">
+                Complete
+            </h3>
+
+        </div>
+
+    </div>
+
+    <div class="space-y-3">
+
+        @foreach($boards as $board)
+
+            @foreach($board->tasks->where('status','completed') as $task)
+
+                <div class="bg-white rounded-2xl shadow p-4 border border-green-200">
+
+                    <div class="flex justify-between">
+
+                        <h4 class="font-semibold">
+                            {{ $task->task_title }}
+                        </h4>
+
+                        <span class="text-green-600">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+
+                    </div>
+
+                    @if($task->description)
+
+                        <p class="text-xs text-gray-500 mt-2">
+                            {{ $task->description }}
+                        </p>
+
+                    @endif
+
+                    <div class="flex justify-between mt-3">
+
+                        <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                            COMPLETE
+                        </span>
+
+                        <span class="text-xs">
+                            {{ $board->name }}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            @endforeach
+
+        @endforeach
+
+    </div>
+
+</div>
+</div>
+    {{-- ========================================================= --}}
+    {{-- Modal Edit --}}
+    {{-- ========================================================= --}}
+<div x-show="editModal"
+     x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+
+    <div
+        @click.outside="editModal=false"
+        class="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl p-8">
+
+        {{-- HEADER --}}
+        <div class="flex items-center justify-between mb-8">
+
+            <h2 class="text-2xl font-bold text-gray-800">
+                Edit Task
+            </h2>
+
+            <button
+                type="button"
+                @click="editModal=false"
+                class="text-gray-400 hover:text-red-500">
+
+                <i class="fas fa-times text-xl"></i>
+
+            </button>
+
+        </div>
+
+        {{-- FORM --}}
+        <form
+            method="POST"
+            :action="'{{ url('/tasks') }}/' + selectedTask.id + '/update'"
+            class="space-y-5">
+
+            @csrf
+
+            {{-- Nama Task --}}
+            <div>
+
+                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                    Nama Task
+                </label>
+
+                <input
+                    type="text"
+                    name="task_title"
+                    x-model="selectedTask.title"
+                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-blue-500">
+
+            </div>
+
+            {{-- Deskripsi --}}
+            <div>
+
+                <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                    Deskripsi
+                </label>
+
+                <textarea
+                    rows="4"
+                    name="description"
+                    x-model="selectedTask.description"
+                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none resize-none focus:border-blue-500"></textarea>
+
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                  <select
+        name="board_id"
+        x-model="selectedTask.board_id"
+        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+
+        @foreach($allBoards as $board)
+
+            <option value="{{ $board->id }}">
+                {{ $board->name }}
+            </option>
+
+        @endforeach
+
+    </select>
+                {{-- Priority --}}
+                <div>
+
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                        Priority
+                    </label>
+
+                    <select
+                        name="priority"
+                        x-model="selectedTask.priority"
+                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none">
+
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+
+                    </select>
+
+                </div>
+
+                {{-- Status --}}
+             {{-- Status --}}
+    <div>
+
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+            Status
+        </label>
+
+        <select
+            name="status"
+            x-model="selectedTask.status"
+            @change="
+                if(selectedTask.status == 'completed'){
+                    selectedTask.progress = 100;
+                }
+            "
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+
+        </select>
+
+    </div>
+
+    {{-- Progress --}}
+    <div>
+
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+            Progress (%)
+        </label>
+
+        <input
+            type="number"
+            name="progress_percent"
+            min="0"
+            max="100"
+            x-model="selectedTask.progress"
+            :readonly="selectedTask.status == 'completed'"
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none">
+
+    </div>
+
+   <div>
+
+    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+        Link Tugas
+    </label>
+
+    <input
+        type="url"
+        name="link"
+        x-model="selectedTask.link"
+        placeholder="https://..."
+        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-blue-500">
+
+</div>
+                {{-- Deadline --}}
+                <div>
+
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                        Deadline
+                    </label>
+
+                    <input
+                        type="date"
+                        name="due_date"
+                        x-model="selectedTask.due"
+                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none">
+
+                </div>
+
+            </div>
+            
+
+            {{-- BUTTON --}}
+            <div class="flex justify-end gap-3 pt-4">
+
+                <button
+                    type="button"
+                    @click="editModal=false"
+                    class="px-6 py-3 rounded-xl bg-gray-200 text-gray-600 font-semibold hover:bg-gray-300">
+
+                    Batal
+
+                </button>
+
+                <button
+                    type="submit"
+                    class="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700">
+
+                    Simpan
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+{{-- ========================================================= --}}
+{{-- Modal Add Comment --}}
+{{-- ========================================================= --}}
+
+<div x-show="addComment"
+     x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+
+    <div
+        @click.outside="addComment=false"
+        class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
+
+        {{-- HEADER --}}
+        <div class="flex items-center justify-between mb-6">
+
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">
+                    Tambah Komentar
+                </h2>
+
+                <p class="text-sm text-gray-500 mt-1"
+                   x-text="selectedTask.title">
+                </p>
+            </div>
+
+            <button
+                @click="addComment=false"
+                class="text-gray-400 hover:text-red-500">
+
+                <i class="fas fa-times text-xl"></i>
+
+            </button>
+
+        </div>
+
+        {{-- FORM --}}
+        <form
+    method="POST"
+    :action="'{{ url('/tasks') }}/' + selectedTask.id + '/comment'">
+
+    @csrf
+
+    <div>
+
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+            Komentar
+        </label>
+
+        <textarea
+            rows="6"
+            name="comment"
+            x-model="selectedTask.comment"
+            placeholder="Masukkan komentar..."
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none resize-none focus:border-blue-500">
+        </textarea>
+
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+
+        <button
+            type="button"
+            @click="addComment=false"
+            class="px-6 py-3 rounded-xl bg-gray-200 text-gray-600 font-semibold hover:bg-gray-300">
+
+            Batal
+
+        </button>
+
+        <button
+            type="submit"
+            class="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700">
+
+            Simpan
+
+        </button>
+
+    </div>
+
+</form>
+
+    </div>
+
+</div>
+
+{{-- ===================================================== --}}
+{{-- MODAL KOMENTAR --}}
+{{-- ===================================================== --}}
+
+<div x-show="commentModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div @click.outside="commentModal=false" class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold">Komentar</h2>
+            <button @click="commentModal=false"class="text-gray-400 hover:text-red-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <textarea rows="6" placeholder="Tulis komentar..." class="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 outline-none resize-none focus:border-blue-500"></textarea>
+        <div class="flex justify-end mt-5">
+            <button class="px-6 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Kirim Komentar</button>
+        </div>
+    </div>
 </div>
 @endsection
+
+@push('scripts')
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<script>
+
+function taskManager(){
+
+    return{
+
+        saveTask(){
+
+            fetch("/tasks/" + this.selectedTask.id + "/update",{
+
+                method:"POST",
+
+                headers:{
+                    "Content-Type":"application/json",
+                    "Accept":"application/json",
+                    "X-CSRF-TOKEN":"{{ csrf_token() }}"
+                },
+
+                body:JSON.stringify({
+
+                    task_title:this.selectedTask.title,
+                    description:this.selectedTask.description,
+                    priority:this.selectedTask.priority,
+                    status:this.selectedTask.status,
+                    progress_percent:this.selectedTask.progress,
+                    due_date:this.selectedTask.due,
+                    board_id:this.selectedTask.board_id
+
+                })
+
+            })
+
+            .then(r=>r.json())
+
+            .then(data=>{
+
+                if(data.success){
+
+                    this.editModal=false;
+
+                    location.reload();
+
+                }
+
+            });
+
+        },
+
+        deleteTask(id){
+
+            if(!confirm("Hapus task?")) return;
+
+            fetch("/tasks/"+id,{
+
+                method:"DELETE",
+
+                headers:{
+                    "Accept":"application/json",
+                    "X-CSRF-TOKEN":"{{ csrf_token() }}"
+                }
+
+            })
+
+            .then(r=>r.json())
+
+            .then(data=>{
+
+                if(data.success){
+
+                    location.reload();
+
+                }
+
+            });
+
+        }
+
+    }
+
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+
+    document.querySelectorAll(".task-list").forEach(function(board){
+
+        new Sortable(board,{
+
+            group:"kanban",
+
+            animation:180,
+
+            ghostClass:"opacity-50",
+
+            draggable:".task-card",
+
+            onEnd:function(evt){
+
+                let taskId=evt.item.dataset.taskId;
+
+                let boardId=evt.to.dataset.boardId;
+
+                fetch("{{ route('tasks.move') }}",{
+
+                    method:"POST",
+
+                    headers:{
+
+                        "Content-Type":"application/json",
+
+                        "Accept":"application/json",
+
+                        "X-CSRF-TOKEN":"{{ csrf_token() }}"
+
+                    },
+
+                    body:JSON.stringify({
+
+                        task_id:taskId,
+
+                        board_id:boardId
+
+                    })
+
+                })
+
+                .then(r=>r.json())
+
+                .then(data=>{
+
+                    if(data.success){
+
+                        location.reload();
+
+                    }
+
+                });
+
+            }
+
+        });
+
+    });
+
+});
+
+</script>
+@endpush

@@ -308,6 +308,28 @@ Route::get(
                 '/pelaksanaan',
                 [PelaksanaanController::class, 'index']
             )->name('pelaksanaan');
+            
+            Route::post(
+                '/pelaksanaan',
+                [PelaksanaanController::class, 'store']
+            )->name('boards.store');
+             Route::post(
+        '/tasks/{taskId}/comment',
+        [PelaksanaanController::class, 'comment']
+    )->name('tasks.comment');
+    Route::post(
+        '/tasks/{taskId}/update',
+        [PelaksanaanController::class, 'updateTask']
+    )->name('tasks.update');
+    Route::post(
+        '/tasks/move',
+        [PelaksanaanController::class, 'moveTask']
+    )->name('tasks.move');
+      Route::post('/boards/{board}/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::post('/tasks/move', [TaskController::class, 'move'])->name('tasks.move');
+    Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+ 
+
 
             Route::post(
                 '/pelaksanaan/kolom/tambah',
