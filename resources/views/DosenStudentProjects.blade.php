@@ -12,6 +12,25 @@
         <p class="text-sm text-gray-500 mt-1">Semua proyek yang sudah Anda setujui. Gunakan halaman ini untuk memantau, mereview, dan menilai hasil kerja mahasiswa.</p>
     </div>
 
+    @include('partials.filter-bar', [
+        'action' => route('dosen.proyek-mahasiswa'),
+        'search' => [
+            'name' => 'q',
+            'value' => $filterState['q'],
+            'placeholder' => 'Cari judul proyek atau nama kelompok',
+        ],
+        'filters' => [
+            ['name' => 'kelas', 'label' => 'Kelas', 'value' => $filterState['kelas'], 'options' => $classOptions],
+            ['name' => 'matkul', 'label' => 'Mata Kuliah', 'value' => $filterState['matkul'], 'options' => $courseOptions],
+            ['name' => 'status', 'label' => 'Status', 'value' => $filterState['status'], 'options' => $statusOptions],
+            ['name' => 'penilaian', 'label' => 'Penilaian', 'value' => $filterState['penilaian'], 'options' => [
+                'sudah' => 'Sudah dinilai',
+                'belum' => 'Belum dinilai',
+            ]],
+        ],
+        'summary' => 'Menampilkan '.count($approved_projects).' dari '.$totalProjects.' proyek.',
+    ])
+
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <div class="flex justify-between items-center mb-5 border-b pb-3">
             <p class="text-xs font-bold text-gray-500 uppercase">Daftar proyek disetujui</p>

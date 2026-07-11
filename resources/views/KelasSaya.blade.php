@@ -21,12 +21,30 @@
 
     @include('partials.flash-messages')
 
+    @if($totalClasses > 0)
+        @include('partials.filter-bar', [
+            'action' => route('classes.mine'),
+            'search' => [
+                'name' => 'q',
+                'value' => $filterState['q'],
+                'placeholder' => 'Cari nama kelas, dosen, atau kode',
+            ],
+            'filters' => [
+                ['name' => 'matkul', 'label' => 'Mata Kuliah', 'value' => $filterState['matkul'], 'options' => $matkulOptions],
+                ['name' => 'semester', 'label' => 'Semester', 'value' => $filterState['semester'], 'options' => $semesterOptions],
+            ],
+            'summary' => 'Menampilkan '.$classes->count().' dari '.$totalClasses.' kelas.',
+        ])
+    @endif
+
     @if($classes->isEmpty())
         <div class="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center">
             <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                 <i class="fas fa-user-graduate text-xl"></i>
             </div>
-            <p class="text-sm font-semibold text-slate-700">Anda belum bergabung ke kelas mana pun.</p>
+            <p class="text-sm font-semibold text-slate-700">
+                {{ $totalClasses > 0 ? 'Tidak ada kelas yang cocok dengan filter.' : 'Anda belum bergabung ke kelas mana pun.' }}
+            </p>
             <p class="mt-1 text-xs text-slate-500">Minta kode kelas ke dosen, lalu klik <span class="font-semibold">Join Class</span> di sidebar.</p>
         </div>
     @else

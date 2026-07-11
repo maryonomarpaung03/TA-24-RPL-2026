@@ -202,6 +202,34 @@
                     </button>
                 </div>
 
+                {{-- Filter kartu masalah (papan ini interaktif, jadi filter di sisi klien) --}}
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <span class="text-[10px] font-bold uppercase text-slate-400">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </span>
+                    <select x-model="fCategory" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-300">
+                        <option value="">Semua kategori</option>
+                        <option value="Teknik">Teknik</option>
+                        <option value="Diskusi">Diskusi</option>
+                        <option value="Etika">Etika</option>
+                        <option value="Kebutuhan Proyek">Kebutuhan Proyek</option>
+                    </select>
+                    <select x-model="fAuthor" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-300">
+                        <option value="">Semua pembuat</option>
+                        <option value="mine">★ Ide saya</option>
+                        <template x-for="author in authorOptions()" :key="'author-' + author.id">
+                            <option :value="author.id" x-text="author.name"></option>
+                        </template>
+                    </select>
+                    <button type="button" x-show="fCategory || fAuthor"
+                            @click="fCategory = ''; fAuthor = ''"
+                            class="rounded-full px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 transition">
+                        <i class="fas fa-times mr-1"></i>Reset
+                    </button>
+                    <span x-show="fCategory || fAuthor" class="text-[11px] text-slate-400"
+                          x-text="'Menampilkan ' + shownCardCount() + ' dari ' + totalCardCount() + ' masalah.'"></span>
+                </div>
+
                 {{-- Board: horizontal scroll --}}
                 <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-slate-50 p-3 flex-1 min-h-0">
                     <div class="flex gap-3 items-stretch h-full" style="min-width: max-content;">
@@ -221,7 +249,7 @@
                             <div class="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
                                 <p x-show="board.ide.length === 0" class="text-xs text-slate-400 italic py-8 text-center">Belum ada ide masalah.</p>
                                 <template x-for="card in board.ide" :key="'ide-' + card.id">
-                                    <div :data-id="card.id" class="problem-card rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                    <div :data-id="card.id" x-show="cardMatch(card)" class="problem-card rounded-xl border border-slate-200 bg-slate-50 p-3">
                                         {{-- Mode tampil --}}
                                         <template x-if="!card._editing">
                                             <div>
@@ -235,7 +263,7 @@
                                                 <button type="button" @click="proposeVoting(card)" class="mt-2.5 w-full rounded-lg border border-blue-200 bg-blue-50 px-2 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition">
                                                     Ajukan untuk voting
                                                 </button>
-                                                <div x-show="card.created_by === currentUserId || isPm" class="mt-2 flex items-center gap-3 border-t border-slate-200 pt-2 text-[11px]">
+                                                <div x-show="card.created_by === currentUserId" class="mt-2 flex items-center gap-3 border-t border-slate-200 pt-2 text-[11px]">
                                                     <button type="button" @click="startEditIdea(card)" class="font-semibold text-slate-500 hover:text-blue-600 transition">
                                                         <i class="fas fa-pen"></i> Edit
                                                     </button>
@@ -300,7 +328,7 @@
                             <div class="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
                                 <p x-show="board.voting.length === 0" class="text-xs text-slate-400 italic py-8 text-center">Belum ada yang divoting.</p>
                                 <template x-for="card in sortedVotingCards()" :key="'vote-' + card.id">
-                                    <div :data-id="card.id" class="problem-card rounded-xl border p-3"
+                                    <div :data-id="card.id" x-show="cardMatch(card)" class="problem-card rounded-xl border p-3"
                                          :class="card.is_my_vote ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50'">
                                         <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="card.title"></p>
                                         <div class="flex items-center gap-1.5 mt-1.5">
@@ -336,7 +364,7 @@
                                     </div>
                                 </template>
                             </div>
-                            <div x-show="isPm && board.voting.length > 0" class="p-2.5 border-t border-blue-100 shrink-0">
+                            <div x-show="board.voting.length > 0" class="p-2.5 border-t border-blue-100 shrink-0">
                                 <button type="button" @click="submitToLecturer()" :disabled="loading"
                                         class="w-full rounded-xl bg-slate-900 px-2 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50">
                                     <i class="fas fa-paper-plane mr-1.5"></i> Ajukan ke Dosen
@@ -360,7 +388,7 @@
                             <div class="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
                                 <p x-show="board.diajukan.length === 0" class="text-xs text-slate-400 italic py-8 text-center">Belum ada pengajuan.</p>
                                 <template x-for="card in board.diajukan" :key="'aju-' + card.id">
-                                    <div :data-id="card.id" class="problem-card rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                    <div :data-id="card.id" x-show="cardMatch(card)" class="problem-card rounded-xl border border-amber-200 bg-amber-50 p-3">
                                         <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="card.title"></p>
                                         <div class="flex items-center gap-1.5 mt-2">
                                             <i class="fas fa-hourglass-half text-[10px] text-amber-500"></i>
@@ -386,19 +414,17 @@
                             <div class="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
                                 <p x-show="board.perbaiki.length === 0" class="text-xs text-slate-400 italic py-8 text-center">Tidak ada revisi.</p>
                                 <template x-for="card in board.perbaiki" :key="'fix-' + card.id">
-                                    <div :data-id="card.id" class="problem-card rounded-xl border border-red-200 bg-red-50 p-3">
+                                    <div :data-id="card.id" x-show="cardMatch(card)" class="problem-card rounded-xl border border-red-200 bg-red-50 p-3">
                                         <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="card.title"></p>
                                         <p class="text-xs text-red-700 mt-1.5 font-semibold">Catatan dosen:</p>
                                         <p class="text-xs text-red-600 mt-0.5 line-clamp-3" x-text="card.note || card.feedback"></p>
-                                        <template x-if="isPm">
-                                            <div class="mt-2.5 space-y-1.5 border-t border-red-100 pt-2.5">
-                                                <input x-model="card._editTitle" type="text" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400" :placeholder="card.title">
-                                                <textarea x-model="card._editDesc" rows="2" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400 resize-none" :placeholder="card.description"></textarea>
-                                                <button type="button" @click="resubmitCard(card)" class="w-full rounded-lg bg-blue-600 px-2 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition">
-                                                    Ajukan ulang ke dosen
-                                                </button>
-                                            </div>
-                                        </template>
+                                        <div class="mt-2.5 space-y-1.5 border-t border-red-100 pt-2.5">
+                                            <input x-model="card._editTitle" type="text" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400" :placeholder="card.title">
+                                            <textarea x-model="card._editDesc" rows="2" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-400 resize-none" :placeholder="card.description"></textarea>
+                                            <button type="button" @click="resubmitCard(card)" class="w-full rounded-lg bg-blue-600 px-2 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition">
+                                                Ajukan ulang ke dosen
+                                            </button>
+                                        </div>
                                     </div>
                                 </template>
                             </div>
@@ -419,7 +445,7 @@
                             <div class="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
                                 <p x-show="board.selesai.length === 0" class="text-xs text-slate-400 italic py-8 text-center">Belum ada yang selesai.</p>
                                 <template x-for="card in board.selesai" :key="'done-' + card.id">
-                                    <div :data-id="card.id" class="problem-card rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                    <div :data-id="card.id" x-show="cardMatch(card)" class="problem-card rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                                         <p class="text-sm font-semibold text-slate-800 leading-snug" x-text="card.title"></p>
                                         <div class="flex items-center gap-1.5 mt-2">
                                             <i class="fas fa-check-circle text-[10px] text-emerald-500"></i>
@@ -538,8 +564,33 @@ function problemBoardApp(config) {
         replyingTo: null,
         replyDraft: '',
         generalDraft: '',
+        fCategory: '',
+        fAuthor: '',
         form: { title: '', description: '', category: 'Teknik', priority: 'Sedang', attachments: [{ type: 'link', value: '', preview: null }] },
         get votingOpen() { return this.board.voting.length > 0; },
+        allCards() {
+            return ['ide', 'voting', 'diajukan', 'perbaiki', 'selesai']
+                .flatMap(col => this.board[col] || []);
+        },
+        authorOptions() {
+            const seen = new Map();
+            this.allCards().forEach(card => {
+                if (card.created_by) seen.set(card.created_by, card.author_name || 'Anggota');
+            });
+            return [...seen].map(([id, name]) => ({ id, name }));
+        },
+        cardMatch(card) {
+            if (this.fCategory && card.category !== this.fCategory) return false;
+            if (this.fAuthor === 'mine' && String(card.created_by) !== String(this.currentUserId)) return false;
+            if (this.fAuthor && this.fAuthor !== 'mine' && String(card.created_by) !== String(this.fAuthor)) return false;
+            return true;
+        },
+        shownCardCount() {
+            return this.allCards().filter(card => this.cardMatch(card)).length;
+        },
+        totalCardCount() {
+            return this.allCards().length;
+        },
         init() {
             this.board.perbaiki.forEach(c => {
                 c._editTitle = c.title;
@@ -753,7 +804,6 @@ function problemBoardApp(config) {
             return board.voting.length;
         },
         async submitToLecturer() {
-            if (!this.isPm) return;
             this.loading = true;
             try {
                 const data = await this.apiPost(this.routes.submit, {});

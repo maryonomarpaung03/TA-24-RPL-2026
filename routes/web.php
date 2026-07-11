@@ -16,6 +16,7 @@ use App\Http\Controllers\ProjekSayaController;
 use App\Http\Controllers\BuatProjekController;
 use App\Http\Controllers\WaktuProgresController;
 use App\Http\Controllers\PelaksanaanController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\NilaiKelompokController;
 use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
@@ -195,6 +196,18 @@ Route::get(
     Route::post('/dosen/proyek/{id}/pelaksanaan/approval/{approvalId}/reject', [\App\Http\Controllers\DosenProjectMonitorController::class, 'reject'])
         ->name('dosen.pelaksanaan.reject');
 
+    Route::get('/dosen/proyek/{id}/penilaian', [\App\Http\Controllers\DosenPenilaianController::class, 'show'])
+        ->name('dosen.penilaian');
+
+    Route::post('/dosen/proyek/{id}/penilaian', [\App\Http\Controllers\DosenPenilaianController::class, 'store'])
+        ->name('dosen.penilaian.store');
+
+    Route::post('/dosen/proyek/{id}/penilaian/komposisi', [\App\Http\Controllers\DosenPenilaianController::class, 'addComponent'])
+        ->name('dosen.penilaian.komposisi.tambah');
+
+    Route::delete('/dosen/proyek/{id}/penilaian/komposisi', [\App\Http\Controllers\DosenPenilaianController::class, 'deleteComponent'])
+        ->name('dosen.penilaian.komposisi.hapus');
+
     Route::get('/dosen/proyek/{id}/problem-identification', [\App\Http\Controllers\DosenProblemReviewController::class, 'show'])
         ->name('dosen.problem-review');
 
@@ -313,53 +326,16 @@ Route::get(
                 '/pelaksanaan',
                 [PelaksanaanController::class, 'store']
             )->name('boards.store');
-             Route::post(
-        '/tasks/{taskId}/comment',
-        [PelaksanaanController::class, 'comment']
-    )->name('tasks.comment');
-    Route::post(
-        '/tasks/{taskId}/update',
-        [PelaksanaanController::class, 'updateTask']
-    )->name('tasks.update');
-    Route::post(
-        '/tasks/move',
-        [PelaksanaanController::class, 'moveTask']
-    )->name('tasks.move');
-      Route::post('/boards/{board}/tasks', [TaskController::class, 'store'])->name('tasks.store');
-    Route::post('/tasks/move', [TaskController::class, 'move'])->name('tasks.move');
-    Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
- 
-
-
-            Route::post(
-                '/pelaksanaan/kolom/tambah',
-                [PelaksanaanController::class, 'addColumn']
-            )->name('pelaksanaan.kolom.tambah');
-
-            Route::post(
-                '/pelaksanaan/kolom/edit',
-                [PelaksanaanController::class, 'updateColumn']
-            )->name('pelaksanaan.kolom.edit');
-
-            Route::post(
-                '/pelaksanaan/kolom/hapus',
-                [PelaksanaanController::class, 'deleteColumn']
-            )->name('pelaksanaan.kolom.hapus');
-
-            Route::post(
-                '/pelaksanaan/tugas/pindah',
-                [PelaksanaanController::class, 'moveTask']
-            )->name('pelaksanaan.tugas.pindah');
-
-            Route::post(
-                '/pelaksanaan/tugas/cepat',
-                [PelaksanaanController::class, 'quickAddTask']
-            )->name('pelaksanaan.tugas.cepat');
 
             Route::get(
                 '/penilaian-kelompok',
                 [NilaiKelompokController::class, 'index']
             )->name('penilaian-kelompok');
+
+            Route::post(
+                '/penilaian-kelompok',
+                [NilaiKelompokController::class, 'store']
+            )->name('penilaian-kelompok.store');
 
             Route::get(
                 '/penilaian-individu',
@@ -396,6 +372,18 @@ Route::get(
                 [ProjectChatController::class, 'deleteMessage']
             )->name('project-chat.delete');
         });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Papan Pelaksanaan (task board) - tanpa prefix projek/{id}
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/boards/{board}/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::post('/tasks/move', [PelaksanaanController::class, 'moveTask'])->name('tasks.move');
+    Route::post('/tasks/{taskId}/update', [PelaksanaanController::class, 'updateTask'])->name('tasks.update');
+    Route::post('/tasks/{taskId}/comment', [PelaksanaanController::class, 'comment'])->name('tasks.comment');
+    Route::delete('/tasks/{taskId}', [PelaksanaanController::class, 'destroyTask'])->name('tasks.destroy');
         /*
 
 

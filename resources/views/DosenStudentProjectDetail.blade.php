@@ -117,6 +117,22 @@
                 <h3 class="font-bold text-gray-900 mt-3 group-hover:text-orange-700">Execution &amp; Evaluation</h3>
                 <p class="text-xs text-gray-500 mt-1">Pantau papan kanban, progres, dan kontribusi tiap mahasiswa.</p>
             </a>
+
+            <a href="{{ route('dosen.penilaian', $project['id']) }}"
+               class="rounded-2xl border p-4 hover:border-purple-300 hover:bg-purple-50/50 transition group">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    @if($project['is_evaluated'])
+                        <span class="text-[10px] font-bold text-emerald-600 uppercase">Sudah dinilai</span>
+                    @elseif(! $project['tasks_finalized'])
+                        <span class="text-[10px] font-bold text-red-600 uppercase">Belum final</span>
+                    @endif
+                </div>
+                <h3 class="font-bold text-gray-900 mt-3 group-hover:text-purple-700">Penilaian</h3>
+                <p class="text-xs text-gray-500 mt-1">Beri nilai kelompok dan individu, lengkap dengan catatan untuk mahasiswa.</p>
+            </a>
         </div>
     </div>
 </div>

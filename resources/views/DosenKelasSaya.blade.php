@@ -14,13 +14,34 @@
 
     @include('partials.flash-messages')
 
+    @if($totalClasses > 0)
+        @include('partials.filter-bar', [
+            'action' => route('dosen.kelas'),
+            'search' => [
+                'name' => 'q',
+                'value' => $filterState['q'],
+                'placeholder' => 'Cari nama kelas, mata kuliah, atau kode',
+            ],
+            'filters' => [
+                ['name' => 'jurusan', 'label' => 'Jurusan', 'value' => $filterState['jurusan'], 'options' => $jurusanOptions],
+                ['name' => 'semester', 'label' => 'Semester', 'value' => $filterState['semester'], 'options' => $semesterOptions],
+                ['name' => 'tahun', 'label' => 'Tahun Akademik', 'value' => $filterState['tahun'], 'options' => $tahunOptions],
+            ],
+            'summary' => 'Menampilkan '.$classes->count().' dari '.$totalClasses.' kelas.',
+        ])
+    @endif
+
     @if($classes->isEmpty())
         <div class="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center">
             <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                 <i class="fas fa-chalkboard-teacher text-xl"></i>
             </div>
-            <p class="text-sm font-semibold text-slate-700">Belum ada kelas.</p>
-            <p class="mt-1 text-xs text-slate-500">Buat kelas baru lewat menu <span class="font-semibold">Kelas</span> di sidebar.</p>
+            <p class="text-sm font-semibold text-slate-700">
+                {{ $totalClasses > 0 ? 'Tidak ada kelas yang cocok dengan filter.' : 'Belum ada kelas.' }}
+            </p>
+            <p class="mt-1 text-xs text-slate-500">
+                {{ $totalClasses > 0 ? 'Coba ubah kata kunci atau reset filter.' : 'Buat kelas baru lewat menu Kelas di sidebar.' }}
+            </p>
         </div>
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">

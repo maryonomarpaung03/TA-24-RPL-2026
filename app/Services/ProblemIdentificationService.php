@@ -519,7 +519,7 @@ class ProblemIdentificationService
   }
 
   /**
-   * Pastikan ide masih boleh diubah/dihapus: status idea & oleh pembuat atau PM.
+   * Pastikan ide masih boleh diubah/dihapus: status idea & hanya oleh pembuatnya.
    */
   private function assertIdeaEditable(int $projectId, object $problem, User $user, string $verb): void
   {
@@ -529,11 +529,9 @@ class ProblemIdentificationService
       ]);
     }
 
-    $project = Project::query()->findOrFail($projectId);
-
-    if ((int) $problem->created_by !== (int) $user->id && ! $this->isPm($project, $user->id)) {
+    if ((int) $problem->created_by !== (int) $user->id) {
       throw ValidationException::withMessages([
-        'role' => 'Hanya pembuat ide atau Project Manager yang dapat ' . $verb . ' ide ini.',
+        'role' => 'Ide ini hanya dapat ' . $verb . ' oleh pembuatnya.',
       ]);
     }
   }
@@ -604,15 +602,9 @@ class ProblemIdentificationService
     ];
   }
 
-  public function submitToLecturer(int $projectId, User $user, bool $forcePm = true): array
+  public function submitToLecturer(int $projectId, User $user): array
   {
     $project = $this->assertStudentAccess($projectId, $user);
-
-    if ($forcePm && ! $this->isPm($project, $user->id)) {
-      throw ValidationException::withMessages([
-        'role' => 'Hanya Project Manager yang dapat mengajukan ke dosen.',
-      ]);
-    }
 
     $winnerId = $this->topVotingProblemId($projectId);
 
@@ -696,12 +688,6 @@ class ProblemIdentificationService
     if ($problem->board_status !== 'revision') {
       throw ValidationException::withMessages([
         'problem' => 'Hanya masalah di kolom Perbaiki yang dapat diajukan ulang.',
-      ]);
-    }
-
-    if (! $this->isPm(Project::query()->findOrFail($projectId), $user->id)) {
-      throw ValidationException::withMessages([
-        'role' => 'Hanya Project Manager yang dapat mengajukan ulang ke dosen.',
       ]);
     }
 

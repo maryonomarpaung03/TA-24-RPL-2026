@@ -31,9 +31,7 @@
                                 <p class="text-[11px] font-semibold opacity-80">
                                     {{ $message['author'] }}
                                     <span class="ml-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide
-                                        {{ $message['role'] === 'PM'
-                                            ? ($message['mine'] ? 'bg-white/20' : 'bg-indigo-100 text-indigo-700')
-                                            : ($message['mine'] ? 'bg-white/20' : 'bg-blue-100 text-blue-600') }}">
+                                        {{ $message['mine'] ? 'bg-white/20' : 'bg-blue-100 text-blue-600' }}">
                                         {{ $message['role'] }}
                                     </span>
                                 </p>
@@ -167,11 +165,11 @@
             <ul class="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
                 @foreach($members as $member)
                     <li class="flex items-center gap-2.5 py-2">
-                        <div class="h-6 w-6 shrink-0 {{ ($member['role'] ?? '') === 'Project Manager' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700' }} flex items-center justify-center text-[10px] font-bold">
+                        <div class="h-6 w-6 shrink-0 bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
                             {{ $member['initials'] ?? collect(explode(' ', $member['name']))->map(fn($p) => strtoupper(substr($p, 0, 1)))->take(2)->join('') }}
                         </div>
                         <p class="text-sm text-slate-700 truncate">{{ $member['name'] }}</p>
-                        <span class="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide {{ ($member['role'] ?? '') === 'Project Manager' ? 'text-indigo-500' : 'text-slate-400' }}">{{ ($member['role'] ?? '') === 'Project Manager' ? 'PM' : 'Anggota' }}</span>
+                        <span class="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Anggota</span>
                     </li>
                 @endforeach
             </ul>

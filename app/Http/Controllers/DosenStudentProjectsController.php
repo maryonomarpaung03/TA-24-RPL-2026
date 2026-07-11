@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Services\ProjectTaskService;
 use App\Support\ProjectAccess;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -12,22 +14,99 @@ class DosenStudentProjectsController extends Controller
     /** @var list<string> */
     private const APPROVED_STATUSES = ['active', 'completed'];
 
-    public function index()
+    public function __construct(private readonly ProjectTaskService $tasks) {}
+
+    public function index(Request $request)
     {
         $this->ensureLecturer();
 
         $email = strtolower(trim((string) Auth::user()->email));
 
-        $projects = Project::query()
+        $base = Project::query()
             ->where('lecturer_email', $email)
-            ->whereIn('status', self::APPROVED_STATUSES)
+            ->whereIn('status', self::APPROVED_STATUSES);
+
+        $total = (clone $base)->count();
+
+        $keyword = trim((string) $request->query('q', ''));
+        $classId = (string) $request->query('kelas', '');
+        $course = (string) $request->query('matkul', '');
+        $status = (string) $request->query('status', '');
+        $penilaian = (string) $request->query('penilaian', '');
+
+        $query = clone $base;
+
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'LIKE', '%'.$keyword.'%')
+                    ->orWhere('group_name', 'LIKE', '%'.$keyword.'%');
+            });
+        }
+
+        if ($classId !== '') {
+            $query->where('academic_class_id', $classId);
+        }
+
+        if ($course !== '') {
+            $query->where('course_name', $course);
+        }
+
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+
+        if ($penilaian === 'sudah') {
+            $query->whereIn('id', DB::table('project_evaluations')->select('project_id'));
+        } elseif ($penilaian === 'belum') {
+            $query->whereNotIn('id', DB::table('project_evaluations')->select('project_id'));
+        }
+
+        $projects = $query
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn (Project $p) => $this->mapListRow($p));
 
+        $all = (clone $base)->get();
+
         return view('DosenStudentProjects', [
             'approved_projects' => $projects,
+            'totalProjects' => $total,
+            'filterState' => [
+                'q' => $keyword,
+                'kelas' => $classId,
+                'matkul' => $course,
+                'status' => $status,
+                'penilaian' => $penilaian,
+            ],
+            'classOptions' => $this->classOptions($all),
+            'courseOptions' => $all
+                ->pluck('course_name')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->mapWithKeys(fn ($c) => [$c => $c])
+                ->all(),
+            'statusOptions' => ['active' => 'Berjalan', 'completed' => 'Selesai'],
         ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Project>  $projects
+     * @return array<int|string, string>
+     */
+    private function classOptions($projects): array
+    {
+        $ids = $projects->pluck('academic_class_id')->filter()->unique();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return DB::table('academic_classes')
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 
     public function show(int $id)
@@ -120,6 +199,12 @@ class DosenStudentProjectsController extends Controller
             ->where('board_status', 'submitted')
             ->exists();
 
+        $progress = $this->tasks->progressForProject((int) $project->id);
+        $pendingApproval = $this->tasks->pendingApprovalCount((int) $project->id);
+        $isEvaluated = DB::table('project_evaluations')
+            ->where('project_id', $project->id)
+            ->exists();
+
         return [
             'id' => $project->id,
             'name' => $project->title,
@@ -139,6 +224,12 @@ class DosenStudentProjectsController extends Controller
             'members' => $members,
             'attachment_url' => $attachmentUrl,
             'pending_problem_review' => $pendingProblemReview,
+            'task_progress' => $progress,
+            'pending_task_approval' => $pendingApproval,
+            'tasks_finalized' => $progress['total'] > 0
+                && $progress['done'] === $progress['total']
+                && $pendingApproval === 0,
+            'is_evaluated' => $isEvaluated,
         ];
     }
 }

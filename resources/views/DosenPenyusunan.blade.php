@@ -25,6 +25,16 @@
     </div>
 
     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
+        @include('partials.filter-bar', [
+            'action' => route('dosen.penyusunan', $id),
+            'filters' => [
+                ['name' => 'status', 'label' => 'Status', 'value' => $filterState['status'], 'options' => $statusOptions],
+                ['name' => 'pj', 'label' => 'Penanggung Jawab', 'value' => $filterState['pj'], 'options' => $pjOptions],
+                ['name' => 'tenggat', 'label' => 'Tenggat', 'value' => $filterState['tenggat'], 'options' => $tenggatOptions],
+            ],
+            'summary' => 'Menampilkan '.count($tasks).' dari '.$totalTasks.' tugas.',
+        ])
+
         <div class="overflow-x-auto">
             <table class="w-full border-collapse text-sm">
                 <thead>
@@ -35,6 +45,7 @@
                         <th class="p-4 text-center">Mulai</th>
                         <th class="p-4 text-center">Selesai</th>
                         <th class="p-4 text-center">Penanggung Jawab</th>
+                        <th class="p-4 text-center">Status</th>
                         <th class="p-4 text-center">Komentar</th>
                     </tr>
                 </thead>
@@ -48,6 +59,20 @@
                         <td class="p-4 text-center">{{ $task['selesai'] }}</td>
                         <td class="p-4 text-center font-semibold">{{ $task['pj'] }}</td>
                         <td class="p-4 text-center">
+                            @php
+                                $tone = $task['status']['tone'];
+                                $toneClass = match ($tone) {
+                                    'emerald' => 'bg-emerald-100 text-emerald-700',
+                                    'red' => 'bg-red-100 text-red-700',
+                                    'amber' => 'bg-amber-100 text-amber-700',
+                                    default => 'bg-slate-100 text-slate-600',
+                                };
+                            @endphp
+                            <span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold {{ $toneClass }}">
+                                {{ $task['status']['label'] }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">
                             <button type="button"
                                     @click="commentTask = { id: {{ $task['id'] }}, name: @js($task['judul']), comments: @js($task['comments'] ?? []) }; commentModal = true"
                                     class="relative text-blue-500 hover:text-blue-700 transition" title="Komentar tugas">
@@ -60,7 +85,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center py-10 text-gray-400">Belum ada tugas.</td>
+                        <td colspan="8" class="text-center py-10 text-gray-400">Belum ada tugas.</td>
                     </tr>
                     @endforelse
                 </tbody>

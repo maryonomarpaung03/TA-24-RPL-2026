@@ -5,6 +5,15 @@
 @section('content')
 <div class="w-full space-y-6">
 
+    @include('partials.filter-bar', [
+        'action' => route('dosen.dashboard'),
+        'filters' => [
+            ['name' => 'kelas', 'label' => 'Kelas', 'value' => $filterState['kelas'], 'options' => $classOptions],
+            ['name' => 'periode', 'label' => 'Periode', 'value' => $filterState['periode'], 'options' => $periodOptions],
+        ],
+        'summary' => 'Ringkasan dihitung dari proyek yang cocok dengan filter di atas.',
+    ])
+
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         @foreach ($statistics as $key => $value)
         <div class="bg-white p-6 rounded shadow border-l-4 border-blue-500 text-center">

@@ -15,7 +15,7 @@ class DosenProblemReviewController extends Controller
     private ProblemIdentificationService $service
   ) {}
 
-  public function show(int $id)
+  public function show(Request $request, int $id)
   {
     if (Auth::user()->role !== 'lecturer') {
       abort(403);
@@ -40,6 +40,14 @@ class DosenProblemReviewController extends Controller
 
     $activeReview = $pending->firstWhere('board_status', 'submitted');
 
+    // Filter hanya memengaruhi daftar riwayat, bukan masalah yang sedang direview.
+    $statusFilter = (string) $request->query('status', '');
+    $totalHistory = $pending->count();
+
+    $history = $statusFilter === ''
+      ? $pending
+      : $pending->where('board_status', $statusFilter)->values();
+
     $parsed = ProjectAccess::parseProjectDescription($project->description);
     $creator = DB::table('users')->where('id', $project->created_by)->first();
 
@@ -62,7 +70,9 @@ class DosenProblemReviewController extends Controller
         'creator_name' => $creator->full_name ?? $creator->name ?? '-',
       ],
       'activeReview' => $activeReview,
-      'history' => $pending,
+      'history' => $history,
+      'totalHistory' => $totalHistory,
+      'statusFilter' => $statusFilter,
       'voters' => $voters,
       'comments' => $comments,
       'participantCount' => $participantCount,

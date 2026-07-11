@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Services\ProjectTaskService;
 use App\Support\ProjectAccess;
+use App\Support\TaskFilter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class PenyusunanController extends Controller
         private readonly ProjectTaskService $tasks
     ) {}
 
-    public function index($id)
+    public function index(Request $request, $id)
     {
         $project = Project::query()->find($id);
 
@@ -60,8 +61,10 @@ class PenyusunanController extends Controller
             }
         }
 
-        $tasks = $taskData->map(function ($task, $index) use ($commentsByTask) {
-            $urgency = \App\Services\ProjectTaskService::urgencyMeta($task->due_date);
+        $doneKeys = $this->tasks->doneKeysForProject((int) $project->id);
+
+        $tasks = $taskData->map(function ($task, $index) use ($commentsByTask, $doneKeys) {
+            $urgency = ProjectTaskService::urgencyMeta($task->due_date);
 
             return [
                 'id' => $task->id,
@@ -76,6 +79,7 @@ class PenyusunanController extends Controller
                     : '-',
                 'pj' => $task->full_name ?? 'Belum Ditentukan',
                 'assigned_to' => (int) $task->assigned_to,
+                'status' => ProjectTaskService::taskStatusMeta($task->status, $task->due_date, $doneKeys),
                 'days_left' => $urgency['days_left'],
                 'urgency' => $urgency['urgency'],
                 'urgency_label' => $urgency['label'],
@@ -83,12 +87,37 @@ class PenyusunanController extends Controller
             ];
         })->toArray();
 
+        $filters = [
+            'status' => (string) $request->query('status', ''),
+            'pj' => (string) $request->query('pj', ''),
+            'tenggat' => (string) $request->query('tenggat', ''),
+        ];
+
+        $currentUserId = (int) Auth::id();
+
+        // Tugas yang jatuh tempo hari ini & belum selesai — dipakai untuk banner
+        // peringatan, jadi dihitung dari seluruh tugas (bukan hasil filter).
+        $dueToday = array_values(array_filter(
+            $tasks,
+            fn (array $task) => $task['days_left'] === 0 && $task['status']['key'] !== 'selesai'
+        ));
+
         return view('Penyusunan', [
             'id' => $project->id,
             'namaProjek' => $project->title,
-            'tasks' => $tasks,
+            'tasks' => TaskFilter::apply($tasks, $filters),
+            'dueTodayTasks' => $dueToday,
+            'dueTodayMine' => array_values(array_filter(
+                $dueToday,
+                fn (array $task) => $task['assigned_to'] === $currentUserId
+            )),
+            'totalTasks' => count($tasks),
+            'filterState' => $filters,
+            'statusOptions' => TaskFilter::STATUS_OPTIONS,
+            'tenggatOptions' => TaskFilter::DEADLINE_OPTIONS,
+            'pjOptions' => TaskFilter::assigneeOptions($tasks),
             'users' => $this->tasks->assignableMembers((int) $project->id),
-            'currentUserId' => (int) Auth::id(),
+            'currentUserId' => $currentUserId,
         ]);
     }
 

@@ -5,8 +5,8 @@
 @section('content')
 <div class="w-full space-y-6">
 
-    <a href="{{ route('dosen.dashboard') }}" class="text-blue-600 text-xs font-bold hover:underline mb-4 inline-block">
-        &larr; Kembali ke dashboard dosen
+    <a href="{{ route('dosen.proyek-mahasiswa.show', $project['id']) }}" class="text-blue-600 text-xs font-bold hover:underline mb-4 inline-block">
+        &larr; Kembali ke detail proyek
     </a>
 
     @include('partials.flash-messages')
@@ -109,6 +109,20 @@
     <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600 text-center mb-6">
         Tidak ada masalah yang menunggu review saat ini.
     </div>
+    @endif
+
+    @if($totalHistory > 0)
+    @include('partials.filter-bar', [
+        'action' => route('dosen.problem-review', $project['id']),
+        'filters' => [
+            ['name' => 'status', 'label' => 'Status Masalah', 'value' => $statusFilter, 'options' => [
+                'submitted' => 'Menunggu review',
+                'revision' => 'Perlu perbaikan',
+                'done' => 'Disetujui',
+            ]],
+        ],
+        'summary' => 'Menampilkan '.$history->count().' dari '.$totalHistory.' masalah pada riwayat.',
+    ])
     @endif
 
     @if($history->isNotEmpty())

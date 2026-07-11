@@ -12,17 +12,7 @@ x-data="{
     deleteModal:false,
     confirmEdit:false,
     selectedTask:{id:'',judul:'',deskripsi:'',mulai:'',selesai:'',pj:''},
-    fAssignee:'all',
-    fDeadline:'all',
-    myId: {{ $currentUserId ?? 0 }},
-    taskMatch(assigned, days) {
-        if (this.fAssignee === 'mine' && String(assigned) !== String(this.myId)) return false;
-        if (this.fAssignee !== 'all' && this.fAssignee !== 'mine' && String(assigned) !== String(this.fAssignee)) return false;
-        if (this.fDeadline === 'overdue' && !(days !== null && days < 0)) return false;
-        if (this.fDeadline === 'urgent' && !(days !== null && days >= 0 && days <= 3)) return false;
-        if (this.fDeadline === 'soon' && !(days !== null && days >= 0 && days <= 7)) return false;
-        return true;
-    }
+    myId: {{ $currentUserId ?? 0 }}
 }">
 
 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center mb-6">
@@ -39,9 +29,22 @@ x-data="{
     </button>
 </div>
 
-<div class="mb-6">
-    @include('partials.task-filter-bar')
-</div>
+@include('partials.due-today-alert')
+
+@include('partials.filter-bar', [
+    'action' => route('penyusunan', $id),
+    'filters' => [
+        ['name' => 'status', 'label' => 'Status', 'value' => $filterState['status'], 'options' => $statusOptions],
+        ['name' => 'pj', 'label' => 'Penanggung Jawab', 'value' => $filterState['pj'], 'options' => $pjOptions],
+        ['name' => 'tenggat', 'label' => 'Tenggat', 'value' => $filterState['tenggat'], 'options' => $tenggatOptions],
+    ],
+    'summary' => 'Menampilkan '.count($tasks).' dari '.$totalTasks.' tugas.',
+    'extraAction' => [
+        'url' => route('penyusunan', ['id' => $id, 'pj' => $currentUserId]),
+        'label' => 'Tampilkan tugas saya',
+        'icon' => 'fas fa-user',
+    ],
+])
 
 <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
     <div class="overflow-x-auto">
@@ -54,6 +57,7 @@ x-data="{
                     <th class="p-4 text-center">Mulai</th>
                     <th class="p-4 text-center">Selesai</th>
                     <th class="p-4 text-center">Penanggung Jawab</th>
+                    <th class="p-4 text-center">Status</th>
                     <th class="p-4 text-center">Alat Bantu</th>
                 </tr>
             </thead>
@@ -61,8 +65,7 @@ x-data="{
             <tbody>
                 @forelse($tasks as $task)
                 @php $isMine = (int) $task['assigned_to'] === (int) ($currentUserId ?? 0); @endphp
-                <tr class="border-t hover:bg-gray-50 transition {{ $isMine ? 'bg-blue-50/40' : '' }}"
-                    x-show="taskMatch({{ (int) $task['assigned_to'] }}, {{ $task['days_left'] === null ? 'null' : (int) $task['days_left'] }})">
+                <tr class="border-t hover:bg-gray-50 transition {{ $isMine ? 'bg-blue-50/40' : '' }}">
                     <td class="p-4 text-center">{{ $task['no'] }}</td>
                     <td class="p-4 font-bold">{{ $task['judul'] }}</td>
                     <td class="p-4 text-gray-500">{{ $task['deskripsi'] }}</td>
@@ -71,7 +74,15 @@ x-data="{
                         <div class="flex flex-col items-center gap-1">
                             <span>{{ $task['selesai'] }}</span>
                             @if(!empty($task['urgency_label']))
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold {{ $task['urgency'] === 'overdue' ? 'bg-red-100 text-red-600' : ($task['urgency'] === 'urgent' ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-600') }}">
+                            @php
+                                $urgencyClass = match ($task['urgency']) {
+                                    'overdue' => 'bg-red-100 text-red-600',
+                                    'today' => 'bg-rose-600 text-white',
+                                    'urgent' => 'bg-orange-100 text-orange-600',
+                                    default => 'bg-amber-100 text-amber-600',
+                                };
+                            @endphp
+                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold {{ $urgencyClass }}">
                                 <i class="fas fa-clock mr-0.5"></i>{{ $task['urgency_label'] }}
                             </span>
                             @endif
@@ -82,6 +93,19 @@ x-data="{
                         @if($isMine)
                         <span class="ml-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-600 align-middle">Saya</span>
                         @endif
+                    </td>
+                    <td class="p-4 text-center">
+                        @php
+                            $toneClass = match ($task['status']['tone']) {
+                                'emerald' => 'bg-emerald-100 text-emerald-700',
+                                'red' => 'bg-red-100 text-red-700',
+                                'amber' => 'bg-amber-100 text-amber-700',
+                                default => 'bg-slate-100 text-slate-600',
+                            };
+                        @endphp
+                        <span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold {{ $toneClass }}">
+                            {{ $task['status']['label'] }}
+                        </span>
                     </td>
                     <td class="p-4">
                         <div class="flex justify-center gap-4">
@@ -132,8 +156,8 @@ x-data="{
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="text-center py-10 text-gray-400">
-                        Belum ada tugas.
+                    <td colspan="8" class="text-center py-10 text-gray-400">
+                        {{ $totalTasks > 0 ? 'Tidak ada tugas yang cocok dengan filter.' : 'Belum ada tugas.' }}
                     </td>
                 </tr>
                 @endforelse

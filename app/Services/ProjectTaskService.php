@@ -528,6 +528,40 @@ class ProjectTaskService
     }
 
     /**
+     * Key kolom "Selesai" milik proyek, untuk dipakai controller lain.
+     *
+     * @return list<string>
+     */
+    public function doneKeysForProject(int $projectId): array
+    {
+        return $this->doneColumnKeys($projectId);
+    }
+
+    /**
+     * Status pemantauan sebuah tugas: selesai, terlewat (lewat tenggat & belum
+     * selesai), sedang dikerjakan, atau belum dikerjakan.
+     *
+     * @param  list<string>  $doneKeys
+     * @return array{key: string, label: string, tone: string}
+     */
+    public static function taskStatusMeta(?string $status, ?string $dueDate, array $doneKeys): array
+    {
+        if ($status !== null && in_array($status, $doneKeys, true)) {
+            return ['key' => 'selesai', 'label' => 'Selesai', 'tone' => 'emerald'];
+        }
+
+        if ($dueDate && \Carbon\Carbon::parse($dueDate)->endOfDay()->isPast()) {
+            return ['key' => 'terlewat', 'label' => 'Terlewat', 'tone' => 'red'];
+        }
+
+        if ($status === self::STATUS_DOING) {
+            return ['key' => 'dikerjakan', 'label' => 'Sedang Dikerjakan', 'tone' => 'amber'];
+        }
+
+        return ['key' => 'belum', 'label' => 'Belum Dikerjakan', 'tone' => 'slate'];
+    }
+
+    /**
      * Key kolom yang ditandai sebagai "Selesai". Selalu berisi minimal 1 elemen
      * agar whereIn/whereNotIn tidak kosong.
      *
@@ -860,6 +894,7 @@ class ProjectTaskService
 
         $urgency = match (true) {
             $days < 0 => 'overdue',
+            $days === 0 => 'today',
             $days <= 3 => 'urgent',
             $days <= 7 => 'soon',
             default => 'normal',
@@ -867,6 +902,7 @@ class ProjectTaskService
 
         $label = match ($urgency) {
             'overdue' => 'Terlewat',
+            'today' => 'Jatuh Tempo Hari Ini',
             'urgent' => 'Urgent',
             'soon' => 'Mendekati',
             default => null,

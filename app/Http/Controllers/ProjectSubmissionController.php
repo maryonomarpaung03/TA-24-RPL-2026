@@ -22,10 +22,6 @@ class ProjectSubmissionController extends Controller
             abort(403);
         }
 
-        if ((int) $project->created_by !== (int) Auth::id()) {
-            return back()->with('error', 'Hanya pembuat proyek yang dapat mengajukan ke dosen.');
-        }
-
         if ($project->status !== 'draft') {
             if ($project->status === 'pending_approval') {
                 return redirect()

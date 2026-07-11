@@ -7,13 +7,17 @@
                         editModal: false, 
                         addComment: false,
                         activeColumn:null, 
-                        selectedTask:{ 
-                            id:null, 
-                            title:"", 
-                            description:"", 
-                            priority:"medium", 
-                            status:"pending", 
-                            progress:0, due:""}, 
+                        selectedTask:{
+                            id:null,
+                            title:"",
+                            description:"",
+                            priority:"medium",
+                            status:"pending",
+                            progress:0, due:"",
+                            link:"",
+                            submission_type:"link",
+                            attachment_name:"",
+                            attachment_url:""},
                         }')
 
 @section('content')
@@ -36,47 +40,60 @@
             <i class="fas fa-cog"></i>
         </button>
     </div>
-    <div class="flex justify-between items-center mb-5">
+    @include('partials.filter-bar', [
+        'action' => route('pelaksanaan', $id),
+        'search' => [
+            'name' => 'q',
+            'value' => $filterState['q'],
+            'placeholder' => 'Cari judul atau deskripsi tugas',
+        ],
+        'filters' => [
+            ['name' => 'pj', 'label' => 'Penanggung Jawab', 'value' => $filterState['pj'], 'options' => $pjOptions],
+            ['name' => 'prioritas', 'label' => 'Prioritas', 'value' => $filterState['prioritas'], 'options' => $prioritasOptions],
+            ['name' => 'tenggat', 'label' => 'Tenggat', 'value' => $filterState['tenggat'], 'options' => $tenggatOptions],
+        ],
+        'summary' => 'Menampilkan '.$shownTasks.' dari '.$totalTasks.' tugas di papan.',
+        'extraButton' => [
+            'click' => 'boardModal = true',
+            'label' => '+ Dashboard',
+        ],
+    ])
 
-    <div></div>
+    {{-- Modal: tambah kolom papan --}}
+    <div x-show="boardModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(15,23,42,0.45);"
+         @keydown.escape.window="boardModal = false">
+        <div @click.outside="boardModal = false"
+             class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md p-6">
+            <h3 class="text-lg font-bold text-slate-900">Tambah Dashboard</h3>
+            <p class="text-sm text-slate-400 mt-1">Buat kolom baru pada papan pelaksanaan.</p>
 
-    <form action="{{ route('boards.store',$id) }}" method="POST" class="flex gap-2">
-        @csrf
+            <form action="{{ route('boards.store', $id) }}" method="POST" class="mt-5 space-y-4">
+                @csrf
+                <input type="text" name="name" required maxlength="100"
+                       placeholder="Nama dashboard, mis. Review"
+                       class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:bg-white transition">
 
-        <input
-            type="text"
-            name="name"
-            placeholder="Nama Dashboard"
-            class="rounded-xl border px-3 py-2 text-sm">
-
-        <button
-            class="bg-blue-600 text-white px-4 rounded-xl">
-            + Dashboard
-        </button>
-    </form>
-
-</div>
-
-    {{-- ========================================================= --}}
-    {{-- TEAM MEMBER --}}
-    {{-- ========================================================= --}}
-
-    <div class="flex justify-end">
-        <div class="flex -space-x-2">
-            @forelse($teamInitials as $avatar)
-                <div class="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-700 shadow">{{ $avatar }}</div>
-            @empty
-                <span class="text-xs text-gray-400">Belum ada anggota</span>
-            @endforelse
+                <div class="flex justify-end gap-2">
+                    <button type="button" @click="boardModal = false"
+                            class="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition">
+                        Simpan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-
 
     {{-- ========================================================= --}}
     {{-- KANBAN BOARD --}}
     {{-- ========================================================= --}}
 
-    <div class="flex gap-6 overflow-x-auto pb-4">
+    <div class="flex gap-6 overflow-x-auto pb-4 w-full">
 
 @foreach($boards as $board)
 
@@ -86,7 +103,7 @@ $completedTask = $board->tasks->where('status','completed')->count();
 $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 @endphp
 
-<div class="w-[340px] min-w-[340px] bg-gray-100 rounded-3xl shadow-md p-5 flex flex-col">
+<div class="flex-1 basis-0 min-w-[280px] bg-white border border-gray-100 rounded-3xl shadow-md p-5 flex flex-col">
 
     {{-- HEADER --}}
     <div class="flex justify-between items-center mb-4">
@@ -107,7 +124,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
             <span>{{ $progress }}%</span>
         </div>
 
-        <div class="w-full h-2 rounded-full bg-gray-300">
+        <div class="w-full h-2 rounded-full bg-gray-200">
             <div
                 class="h-2 rounded-full bg-blue-500"
                 style="width: {{ $progress }}%">
@@ -125,7 +142,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
         <div
             data-task-id="{{ $task->id }}"
-            class="task-card bg-white rounded-2xl shadow p-4 border">
+            class="task-card bg-white rounded-2xl shadow-sm p-4 border border-gray-200 hover:shadow-md transition">
 
             <div class="flex justify-between">
 
@@ -140,14 +157,16 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
             id: {{ $task->id }},
             title: @js($task->task_title),
             description: @js($task->description),
-             link: @js($task->link),
+            link: @js($task->link),
+            submission_type: @js($task->submission_type ?: ($task->attachment_path ? 'file' : 'link')),
+            attachment_name: @js($task->attachment_name),
+            attachment_url: @js($task->attachment_path ? asset('storage/'.$task->attachment_path) : null),
             priority: '{{ $task->priority }}',
             status: '{{ $task->status }}',
             progress: {{ $task->progress_percent }},
             due: '{{ $task->due_date }}',
             board_id: {{ $task->board_id }}
         }
-            console.log(selectedTask);
     "
     class="text-gray-400 hover:text-blue-600"
 >
@@ -172,6 +191,22 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
                     {{ $task->description }}
                 </p>
             @endif
+
+            {{-- HASIL SUBMIT: link atau berkas --}}
+            @if($task->attachment_path)
+                <a href="{{ asset('storage/'.$task->attachment_path) }}" target="_blank"
+                   class="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-100">
+                    <i class="fas {{ str_starts_with((string) $task->attachment_mime, 'image/') ? 'fa-image' : 'fa-file-alt' }}"></i>
+                    <span class="truncate">{{ $task->attachment_name }}</span>
+                </a>
+            @elseif($task->link)
+                <a href="{{ $task->link }}" target="_blank"
+                   class="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-100">
+                    <i class="fas fa-link"></i>
+                    <span class="truncate">Link tugas</span>
+                </a>
+            @endif
+
             {{-- COMMENT --}}
 @if($task->comments->count())
 
@@ -380,6 +415,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
         {{-- FORM --}}
         <form
             method="POST"
+            enctype="multipart/form-data"
             :action="'{{ url('/tasks') }}/' + selectedTask.id + '/update'"
             class="space-y-5">
 
@@ -494,20 +530,78 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
     </div>
 
-   <div>
+                {{-- Submit Tugas: link atau berkas (foto/dokumen) --}}
+                <div class="col-span-2 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 space-y-4">
 
-    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-        Link Tugas
-    </label>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                            Submit Tugas
+                        </label>
 
-    <input
-        type="url"
-        name="link"
-        x-model="selectedTask.link"
-        placeholder="https://..."
-        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none focus:border-blue-500">
+                        <select
+                            name="submission_type"
+                            x-model="selectedTask.submission_type"
+                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-blue-500">
 
-</div>
+                            <option value="link">Link</option>
+                            <option value="file">File (foto / dokumen)</option>
+
+                        </select>
+                    </div>
+
+                    {{-- Pilihan: Link --}}
+                    <div x-show="selectedTask.submission_type === 'link'" x-cloak>
+
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                            Link Tugas
+                        </label>
+
+                        <input
+                            type="url"
+                            name="link"
+                            x-model="selectedTask.link"
+                            :disabled="selectedTask.submission_type !== 'link'"
+                            placeholder="https://..."
+                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-blue-500">
+
+                        <p class="mt-1 text-[11px] text-gray-400">
+                            Contoh: tautan Google Drive, GitHub, atau Figma.
+                        </p>
+
+                    </div>
+
+                    {{-- Pilihan: File --}}
+                    <div x-show="selectedTask.submission_type === 'file'" x-cloak>
+
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                            Unggah Berkas
+                        </label>
+
+                        <input
+                            type="file"
+                            name="attachment"
+                            :disabled="selectedTask.submission_type !== 'file'"
+                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                            class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white file:font-semibold hover:file:bg-blue-700">
+
+                        <p class="mt-1 text-[11px] text-gray-400">
+                            Foto (JPG/PNG/WEBP/GIF) atau dokumen (PDF/DOC/XLS/PPT/TXT/ZIP), maks. 10 MB.
+                        </p>
+
+                        <template x-if="selectedTask.attachment_url">
+                            <p class="mt-2 text-xs text-gray-500">
+                                Berkas saat ini:
+                                <a :href="selectedTask.attachment_url" target="_blank"
+                                   class="font-bold text-blue-600 hover:underline"
+                                   x-text="selectedTask.attachment_name"></a>
+                                <span class="text-gray-400">— unggah berkas baru untuk menggantinya.</span>
+                            </p>
+                        </template>
+
+                    </div>
+
+                </div>
+
                 {{-- Deadline --}}
                 <div>
 
@@ -667,6 +761,8 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 function taskManager(){
 
     return{
+
+        boardModal: false,
 
         saveTask(){
 

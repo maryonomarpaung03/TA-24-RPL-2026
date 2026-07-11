@@ -274,24 +274,23 @@ class ProjectAccess
     }
 
     /**
+     * Semua peserta projek ditampilkan sebagai "Anggota"; label ini murni untuk
+     * tampilan dan tidak memengaruhi hak akses (lihat isProjectManager()).
+     *
      * @return list<array{initials: string, name: string, role: string}>
      */
     public static function teamMembersForProject(int $projectId): array
     {
-        $creatorId = (int) (Project::query()->where('id', $projectId)->value('created_by') ?? 0);
-
         $members = DB::table('project_members')
             ->join('users', 'project_members.user_id', '=', 'users.id')
             ->where('project_members.project_id', $projectId)
-            ->select('users.full_name', 'users.name', 'project_members.role', 'project_members.user_id')
+            ->select('users.full_name', 'users.name', 'project_members.user_id')
             ->orderBy('project_members.id')
             ->get()
             ->map(fn ($row) => [
                 'initials' => self::initialsFromName($row->full_name ?: $row->name),
                 'name' => $row->full_name ?: $row->name ?: 'Anggota',
-                'role' => ($row->role === 'owner' || (int) $row->user_id === $creatorId)
-                    ? 'Project Manager'
-                    : 'Anggota',
+                'role' => 'Anggota',
             ])
             ->values()
             ->all();
@@ -310,7 +309,7 @@ class ProjectAccess
             return [[
                 'initials' => self::initialsFromName($creator->full_name ?: $creator->name),
                 'name' => $creator->full_name ?: $creator->name,
-                'role' => 'Project Manager',
+                'role' => 'Anggota',
             ]];
         }
 

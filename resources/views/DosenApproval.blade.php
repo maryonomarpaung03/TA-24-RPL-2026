@@ -7,6 +7,27 @@
 
     @include('partials.flash-messages')
 
+    @include('partials.filter-bar', [
+        'action' => route('dosen.persetujuan'),
+        'search' => [
+            'name' => 'q',
+            'value' => $filterState['q'],
+            'placeholder' => 'Cari judul proyek atau nama kelompok',
+        ],
+        'filters' => [
+            ['name' => 'kelas', 'label' => 'Kelas', 'value' => $filterState['kelas'], 'options' => $classOptions],
+            ['name' => 'jenis', 'label' => 'Jenis Pengajuan', 'value' => $filterState['jenis'], 'options' => [
+                'pending_approval' => 'Pengajuan baru',
+                'pending_revision' => 'Review perubahan',
+            ]],
+            ['name' => 'urut', 'label' => 'Urutkan', 'value' => $filterState['urut'], 'options' => [
+                'terbaru' => 'Terbaru diajukan',
+                'terlama' => 'Terlama diajukan',
+            ]],
+        ],
+        'summary' => 'Menampilkan '.count($pending_projects).' dari '.$totalPending.' pengajuan.',
+    ])
+
     <div class="bg-white p-5 rounded shadow">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
             <div>

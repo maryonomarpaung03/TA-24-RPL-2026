@@ -78,7 +78,15 @@
                         <span class="text-[8px] px-2 py-0.5 rounded-full font-bold text-white {{ $task['level'] == 'Sulit' ? 'bg-red-500' : ($task['level'] == 'Sedang' ? 'bg-blue-500' : 'bg-green-500') }}">{{ $task['level'] }}</span>
                     </div>
                     @if(!empty($task['urgency_label']))
-                    <span class="text-[8px] px-2 py-0.5 rounded-full font-bold {{ $task['urgency'] === 'overdue' ? 'bg-red-100 text-red-600' : ($task['urgency'] === 'urgent' ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-600') }}">
+                    @php
+                        $urgencyClass = match ($task['urgency']) {
+                            'overdue' => 'bg-red-100 text-red-600',
+                            'today' => 'bg-rose-600 text-white',
+                            'urgent' => 'bg-orange-100 text-orange-600',
+                            default => 'bg-amber-100 text-amber-600',
+                        };
+                    @endphp
+                    <span class="text-[8px] px-2 py-0.5 rounded-full font-bold {{ $urgencyClass }}">
                         <i class="fas fa-clock mr-0.5"></i>{{ $task['urgency_label'] }}
                     </span>
                     @endif

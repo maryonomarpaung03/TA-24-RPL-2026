@@ -54,14 +54,27 @@
                             <a href="{{ route('penilaian-dosen-status', $id) }}" class="text-gray-400 pb-2 hover:text-blue-600 transition-all">Penilaian Dosen</a>
                         </div>
 
+                        @include('partials.flash-messages')
+
                         <!-- Card Container -->
                         <div class="bg-white rounded-[2.5rem] p-12 shadow-sm border border-gray-100 w-full">
-                            <form action="#" class="space-y-10">
+                            @if($existing)
+                            <div class="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800">
+                                Anda sudah mengisi penilaian ini. Mengubah nilai di bawah akan memperbarui jawaban sebelumnya.
+                            </div>
+                            @endif
+
+                            <form action="{{ route('penilaian-kelompok.store', $id) }}" method="POST" class="space-y-10">
+                                @csrf
+
                                 <!-- Bagian 1: Penilaian Kelompok -->
                                 <div class="space-y-2">
                                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest">Penilaian Kelompok</label>
                                     <hr class="border-gray-400 w-full mb-4">
-                                    <input type="number" min="10" max="100" class="border border-gray-400 rounded-lg p-2 w-16 text-center outline-none focus:border-blue-400 shadow-inner">
+                                    <input type="number" min="0" max="100" name="group_score" required
+                                           value="{{ old('group_score', $existing->group_score ?? '') }}"
+                                           class="border border-gray-400 rounded-lg p-2 w-20 text-center outline-none focus:border-blue-400 shadow-inner">
+                                    @error('group_score')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                                 </div>
 
                                 <!-- Bagian 2: Penilaian Individu -->
@@ -74,11 +87,14 @@
                                                 <th class="p-3 text-left font-bold border-r border-gray-400 uppercase w-2/3">Nama</th>
                                                 <th class="p-3 text-left font-bold uppercase">Nilai</th>
                                             </tr>
-                                            @forelse($anggotaList as $nama)
+                                            @forelse($memberList as $member)
                                             <tr class="border-b border-gray-400 last:border-b-0">
-                                                <td class="p-3 border-r border-gray-400 font-medium">{{ $nama }}</td>
+                                                <td class="p-3 border-r border-gray-400 font-medium">{{ $member->full_name }}</td>
                                                 <td class="p-1">
-                                                    <input type="number" min="10" max="100" class="w-full p-2 outline-none text-center bg-transparent">
+                                                    <input type="number" min="0" max="100" required
+                                                           name="members[{{ $member->id }}]"
+                                                           value="{{ old('members.'.$member->id, $existing->member_scores[$member->id] ?? '') }}"
+                                                           class="w-full p-2 outline-none text-center bg-transparent">
                                                 </td>
                                             </tr>
                                             @empty
@@ -88,22 +104,41 @@
                                             @endforelse
                                         </table>
                                     </div>
+                                    @error('members')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                                 </div>
 
                                 <!-- Bagian 3: Refleksi -->
                                 <div class="space-y-2">
                                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest">Refleksi</label>
                                     <hr class="border-gray-400 w-full mb-4">
-                                    <textarea maxlength="500" placeholder="Ketikkkan refleksi anda disini..." 
-                                              class="w-full border border-gray-400 rounded-2xl p-4 h-28 resize-none outline-none focus:border-blue-400 transition text-xs italic shadow-inner"></textarea>
+                                    <textarea name="reflection" maxlength="500" placeholder="Ketikkkan refleksi anda disini..."
+                                              class="w-full border border-gray-400 rounded-2xl p-4 h-28 resize-none outline-none focus:border-blue-400 transition text-xs italic shadow-inner">{{ old('reflection', $existing->reflection ?? '') }}</textarea>
                                 </div>
 
                                 <!-- Action Buttons -->
                                 <div class="flex justify-end space-x-4 pt-4">
-                                    <button type="button" class="bg-gray-300 px-8 py-2 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-400 transition">Batal</button>
+                                    <a href="{{ route('pelaksanaan', $id) }}" class="bg-gray-300 px-8 py-2 rounded-full text-xs font-bold text-gray-700 hover:bg-gray-400 transition">Batal</a>
                                     <button type="submit" class="bg-blue-600 px-8 py-2 rounded-full text-xs font-bold text-white hover:bg-blue-700 transition shadow-lg shadow-blue-200">Submit</button>
                                 </div>
                             </form>
+                        </div>
+
+                        <!-- Rekap penilaian tim -->
+                        <div class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 w-full mt-6">
+                            <h3 class="text-sm font-bold text-gray-800 mb-4">Rekap Penilaian Tim</h3>
+                            @if($peer['submitted'] === 0)
+                                <p class="text-xs text-slate-400 italic">Belum ada anggota yang mengisi penilaian.</p>
+                            @else
+                                <p class="text-xs text-slate-500 mb-4">{{ $peer['submitted'] }} dari {{ $peer['total'] }} anggota sudah mengisi &middot; rata-rata nilai kelompok <strong>{{ $peer['group_average'] }}</strong></p>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    @foreach($peer['members'] as $member)
+                                    <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <span class="text-xs font-semibold text-slate-700">{{ $member['name'] }}</span>
+                                        <span class="text-sm font-bold text-blue-700">{{ $member['average'] ?? '-' }}</span>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

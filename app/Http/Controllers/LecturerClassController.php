@@ -14,17 +14,44 @@ class LecturerClassController extends Controller
     /**
      * Daftar kelas yang dibuat dosen untuk dikelola.
      */
-    public function index()
+    public function index(Request $request)
     {
         if (Auth::user()->role !== 'lecturer') {
             abort(403);
         }
 
-        $classes = AcademicClass::query()
-            ->where('lecturer_id', Auth::id())
-            ->withCount('members')
-            ->latest()
-            ->get();
+        $base = AcademicClass::query()->where('lecturer_id', Auth::id());
+
+        $all = (clone $base)->get();
+
+        $keyword = trim((string) $request->query('q', ''));
+        $jurusan = (string) $request->query('jurusan', '');
+        $semester = (string) $request->query('semester', '');
+        $tahun = (string) $request->query('tahun', '');
+
+        $query = (clone $base)->withCount('members');
+
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'LIKE', '%'.$keyword.'%')
+                    ->orWhere('course_name', 'LIKE', '%'.$keyword.'%')
+                    ->orWhere('join_code', 'LIKE', '%'.$keyword.'%');
+            });
+        }
+
+        if ($jurusan !== '') {
+            $query->where('jurusan', $jurusan);
+        }
+
+        if ($semester !== '') {
+            $query->where('semester', $semester);
+        }
+
+        if ($tahun !== '') {
+            $query->where('academic_year', $tahun);
+        }
+
+        $classes = $query->latest()->get();
 
         // Snapshot jumlah baru untuk ditampilkan, lalu tandai semua terbaca.
         $unreadMap = ClassActivity::summary(Auth::user())['by_class'];
@@ -33,7 +60,34 @@ class LecturerClassController extends Controller
         return view('DosenKelasSaya', [
             'classes' => $classes,
             'unreadMap' => $unreadMap,
+            'totalClasses' => $all->count(),
+            'filterState' => [
+                'q' => $keyword,
+                'jurusan' => $jurusan,
+                'semester' => $semester,
+                'tahun' => $tahun,
+            ],
+            'jurusanOptions' => $this->optionsFrom($all, 'jurusan'),
+            'semesterOptions' => $this->optionsFrom($all, 'semester'),
+            'tahunOptions' => $this->optionsFrom($all, 'academic_year'),
         ]);
+    }
+
+    /**
+     * Nilai unik sebuah kolom untuk dijadikan opsi filter.
+     *
+     * @param  \Illuminate\Support\Collection<int, AcademicClass>  $classes
+     * @return array<string, string>
+     */
+    private function optionsFrom($classes, string $column): array
+    {
+        return $classes
+            ->pluck($column)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->mapWithKeys(fn ($value) => [$value => $value])
+            ->all();
     }
 
     /**

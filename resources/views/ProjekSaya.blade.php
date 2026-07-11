@@ -4,7 +4,7 @@
 @section('body_class', 'bg-gray-50 font-sans')
 
 @section('content')
-<div class="w-full" x-data="{ statusFilter: 'all' }">
+<div class="w-full">
     <div class="flex justify-between items-center mb-8">
         <div>
             <h2 class="text-3xl font-bold text-gray-900">Projek Saya</h2>
@@ -13,66 +13,35 @@
         <a href="{{ route('buat-projek') }}" class="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition">+ Buat Projek</a>
     </div>
 
-    <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex items-center space-x-4 mb-8">
-        <div class="flex-1 relative" x-data="{ openHistory: false }">
-            <form method="GET" action="{{ route('my-project') }}">
-                <div class="flex items-center bg-gray-50 rounded-full px-6 py-2 border border-transparent focus-within:border-blue-300 transition">
-                    <i class="fas fa-search text-gray-400 mr-3"></i>
-                    <input 
-                        type="text"
-                        name="search"
-                        value="{{ $keyword ?? '' }}"
-                        placeholder="Cari projek"
-                        class="bg-transparent w-full outline-none text-sm py-1"
-                    >
-                    
-                </div>
-            </form>
-            <div class="flex-1 relative" x-data="{ openHistory: false }">
-                    <div
-                        x-show="openHistory"
-                        @click.outside="openHistory = false"
-                        class="absolute left-0 right-0 mt-2 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden"
-                    >
-                        <p class="px-4 py-2 text-[10px] uppercase font-bold text-gray-400 border-b">Pencarian Terakhir</p>
+    @include('partials.filter-bar', [
+        'action' => route('my-project'),
+        'search' => [
+            'name' => 'search',
+            'value' => $keyword,
+            'placeholder' => 'Cari judul, kelompok, atau mata kuliah',
+        ],
+        'filters' => [
+            ['name' => 'status', 'label' => 'Status', 'value' => $filterState['status'], 'options' => $statusOptions],
+            ['name' => 'kelas', 'label' => 'Kelas', 'value' => $filterState['kelas'], 'options' => $classOptions],
+            ['name' => 'dosen', 'label' => 'Dosen', 'value' => $filterState['dosen'], 'options' => $lecturerOptions],
+            ['name' => 'peran', 'label' => 'Peran Saya', 'value' => $filterState['peran'], 'options' => [
+                'pm' => 'Project Manager',
+                'anggota' => 'Anggota',
+            ]],
+        ],
+        'summary' => 'Menampilkan '.count($projects).' dari '.$totalProjects.' proyek.',
+    ])
 
-                        @forelse($searchHistory as $h)
-                            <a href="{{ route('my-project', ['search' => $h]) }}"class="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 border-b border-gray-50">{{ $h }}</a>
-                        @empty
-                            <p class="px-4 py-3 text-sm text-gray-400">Belum ada riwayat pencarian</p>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-        <div class="relative" x-data="{ openStatus: false }">
-            <button @click="openStatus = !openStatus" class="bg-gray-50 px-6 py-3 rounded-full text-sm font-bold text-gray-700 border flex items-center space-x-2 hover:bg-gray-100">
-                <span>Status</span>
-                <i class="fas fa-chevron-down text-[10px]"></i>
-            </button>
-            <div x-show="openStatus" @click.outside="openStatus = false" class="absolute right-0 mt-2 w-48 bg-white border rounded-2xl shadow-xl z-50">
-                <button @click="statusFilter = 'all'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">Semua</button>
-                <button @click="statusFilter = 'draft'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">Draft</button>
-                <button @click="statusFilter = 'in_progress'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">On Progress</button>
-                <button @click="statusFilter = 'on_review'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">In Review</button>
-                <button @click="statusFilter = 'planning'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b">Planning</button>
-                <button @click="statusFilter = 'done'; openStatus = false" class="w-full text-left px-4 py-3 text-sm hover:bg-gray-50">Selesai</button>
-            </div>
-        </div>
-    </div>
-    
     @if(count($projects) === 0)
                 <div class="bg-white rounded-2xl border p-10 text-center">
                     <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
                     <h3 class="font-bold text-gray-700">Proyek tidak ditemukan</h3>
-                    <p class="text-gray-500 mt-2">Coba gunakan kata kunci lain.</p>
+                    <p class="text-gray-500 mt-2">Coba ubah kata kunci atau reset filter.</p>
                 </div>
-            @else            
+            @else
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         @foreach($projects as $p)
-        <article
-            x-show="statusFilter === 'all' || statusFilter === '{{ $p['filter_key'] }}'"
-            class="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition"
-        >
+        <article class="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
             <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Draft' ? 'text-slate-500' : ($p['status'] === 'In Review' || $p['status'] === 'Review Perubahan' ? 'text-amber-600' : ($p['status'] === 'Done' ? 'text-orange-500' : ($p['status'] === 'Planning' || $p['status'] === 'Rejected' || $p['status'] === 'Archived' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $p['label'] }}</div>
             <a href="{{ route('problem-identification', $p['id']) }}" class="font-bold text-gray-900 hover:text-blue-600 transition line-clamp-2">{{ $p['name'] }}</a>
             <p class="text-xs text-gray-500 mt-2 mb-4 line-clamp-2">{{ $p['description'] }}</p>

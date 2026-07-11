@@ -24,7 +24,6 @@ class ProjectChatController extends Controller
         }
 
         $canManage = (int) $project->created_by === (int) Auth::id();
-        $creatorId = (int) $project->created_by;
         $currentId = (int) Auth::id();
 
         $members = ProjectAccess::teamMembersForProject((int) $id);
@@ -37,7 +36,7 @@ class ProjectChatController extends Controller
             ->map(fn (ProjectMessage $m) => [
                 'id' => (int) $m->id,
                 'author' => $m->user ? $this->displayName($m->user) : 'Pengguna',
-                'role' => $m->user_id === $creatorId ? 'PM' : 'Anggota',
+                'role' => 'Anggota',
                 'text' => $m->body,
                 'time' => optional($m->created_at)->format('d M · H:i'),
                 'edited' => $m->updated_at && $m->created_at && $m->updated_at->gt($m->created_at),

@@ -13,14 +13,41 @@ class StudentClassController extends Controller
     /**
      * Daftar kelas yang diikuti mahasiswa.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $classes = ClassMember::query()
+        $all = ClassMember::query()
             ->with(['academicClass.lecturer'])
             ->where('user_id', (int) Auth::id())
             ->latest('joined_at')
             ->get()
             ->filter(fn (ClassMember $m) => $m->academicClass !== null);
+
+        $keyword = trim((string) $request->query('q', ''));
+        $matkul = (string) $request->query('matkul', '');
+        $semester = (string) $request->query('semester', '');
+
+        $classes = $all->filter(function (ClassMember $m) use ($keyword, $matkul, $semester) {
+            $class = $m->academicClass;
+            $lecturer = $class->lecturer?->full_name ?? '';
+
+            if ($keyword !== '') {
+                $haystack = mb_strtolower($class->name.' '.$class->course_name.' '.$lecturer.' '.$class->join_code);
+
+                if (! str_contains($haystack, mb_strtolower($keyword))) {
+                    return false;
+                }
+            }
+
+            if ($matkul !== '' && $class->course_name !== $matkul) {
+                return false;
+            }
+
+            if ($semester !== '' && $class->semester !== $semester) {
+                return false;
+            }
+
+            return true;
+        });
 
         // Snapshot jumlah baru untuk ditampilkan, lalu tandai semua terbaca.
         $unreadMap = ClassActivity::summary(Auth::user())['by_class'];
@@ -29,6 +56,22 @@ class StudentClassController extends Controller
         return view('KelasSaya', [
             'classes' => $classes,
             'unreadMap' => $unreadMap,
+            'totalClasses' => $all->count(),
+            'filterState' => [
+                'q' => $keyword,
+                'matkul' => $matkul,
+                'semester' => $semester,
+            ],
+            'matkulOptions' => $all
+                ->map(fn (ClassMember $m) => $m->academicClass->course_name)
+                ->filter()->unique()->sort()
+                ->mapWithKeys(fn ($v) => [$v => $v])
+                ->all(),
+            'semesterOptions' => $all
+                ->map(fn (ClassMember $m) => $m->academicClass->semester)
+                ->filter()->unique()->sort()
+                ->mapWithKeys(fn ($v) => [$v => $v])
+                ->all(),
         ]);
     }
 

@@ -2,12 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DosenDashboardController extends Controller
 {
-  public function index()
+  /** Rentang waktu => jumlah hari ke belakang. */
+  private const PERIODS = [
+    '7' => '7 hari terakhir',
+    '30' => '30 hari terakhir',
+    '90' => '90 hari terakhir',
+  ];
+
+  public function index(Request $request)
   {
     if (Auth::user()->role !== 'lecturer') {
       abort(403, 'Halaman ini hanya untuk dosen.');
@@ -15,16 +24,36 @@ class DosenDashboardController extends Controller
 
     $email = strtolower(trim((string) Auth::user()->email));
 
+    $classId = (string) $request->query('kelas', '');
+    $period = (string) $request->query('periode', '');
+    $since = isset(self::PERIODS[$period])
+      ? Carbon::now()->subDays((int) $period)
+      : null;
+
+    // Kelas milik dosen dipakai sebagai opsi filter.
+    $classOptions = DB::table('academic_classes')
+      ->where('lecturer_id', Auth::id())
+      ->orderBy('name')
+      ->pluck('name', 'id')
+      ->all();
+
+    $projects = fn () => DB::table('projects')
+      ->where('projects.lecturer_email', $email)
+      ->when($classId !== '', fn ($q) => $q->where('projects.academic_class_id', $classId))
+      ->when($since, fn ($q) => $q->where('projects.created_at', '>=', $since));
+
     $statistics = [
-      'total_proyek' => DB::table('projects')->where('lecturer_email', $email)->count(),
-      'proyek_berjalan' => DB::table('projects')->where('lecturer_email', $email)->where('status', 'active')->count(),
-      'mahasiswa_kelas' => 0,
-      'mata_kuliah' => 0,
+      'total_proyek' => $projects()->count(),
+      'proyek_berjalan' => $projects()->where('projects.status', 'active')->count(),
+      'mahasiswa_kelas' => DB::table('class_members')
+        ->whereIn('academic_class_id', $classId !== '' ? [$classId] : array_keys($classOptions))
+        ->distinct()
+        ->count('user_id'),
+      'mata_kuliah' => $projects()->distinct()->count('projects.course_name'),
     ];
 
-    $pending_approvals = DB::table('projects')
+    $pending_approvals = $projects()
       ->join('users', 'users.id', '=', 'projects.created_by')
-      ->where('projects.lecturer_email', $email)
       ->where('projects.status', 'pending_approval')
       ->orderByDesc('projects.submitted_at')
       ->select(
@@ -42,7 +71,7 @@ class DosenDashboardController extends Controller
         'creator_name' => $row->creator_name ?? 'Mahasiswa',
         'course' => $row->course ?? '-',
         'submitted_at' => $row->submitted_at
-          ? \Carbon\Carbon::parse($row->submitted_at)->format('d M Y')
+          ? Carbon::parse($row->submitted_at)->format('d M Y')
           : '-',
       ])
       ->all();
@@ -55,6 +84,8 @@ class DosenDashboardController extends Controller
       })
       ->where('project_notifications.recipient_email', $email)
       ->whereIn('project_notifications.type', ['problem_submitted_for_review', 'problem_resubmitted'])
+      ->when($classId !== '', fn ($q) => $q->where('projects.academic_class_id', $classId))
+      ->when($since, fn ($q) => $q->where('project_notifications.created_at', '>=', $since))
       ->orderByDesc('project_notifications.created_at')
       ->select(
         'project_notifications.id',
@@ -70,26 +101,29 @@ class DosenDashboardController extends Controller
         'project_id' => $row->project_id,
         'project_name' => $row->project_name,
         'problem_title' => $row->problem_title ?? 'Masalah utama',
-        'time_ago' => \Carbon\Carbon::parse($row->created_at)->diffForHumans(),
+        'time_ago' => Carbon::parse($row->created_at)->diffForHumans(),
       ])
       ->all();
 
-    $pending_total = DB::table('projects')
-      ->where('lecturer_email', $email)
-      ->where('status', 'pending_approval')
-      ->count();
+    $pending_total = $projects()->where('projects.status', 'pending_approval')->count();
 
     $notifications_total = DB::table('project_notifications')
       ->where('recipient_email', $email)
       ->whereNull('read_at')
       ->count();
 
+    $filterState = ['kelas' => $classId, 'periode' => $period];
+    $periodOptions = self::PERIODS;
+
     return view('DosenDashboard', compact(
       'statistics',
       'pending_approvals',
       'problem_voting_notifications',
       'pending_total',
-      'notifications_total'
+      'notifications_total',
+      'filterState',
+      'classOptions',
+      'periodOptions'
     ));
   }
 }

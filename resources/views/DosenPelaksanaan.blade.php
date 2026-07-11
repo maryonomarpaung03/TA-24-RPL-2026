@@ -123,6 +123,22 @@
             <h3 class="text-sm font-bold text-gray-800 uppercase">Papan Kanban</h3>
             <span class="text-[10px] text-gray-400"><i class="fas fa-comment-dots mr-1"></i>Klik ikon komentar pada tugas untuk memberi masukan</span>
         </div>
+
+        @include('partials.filter-bar', [
+            'action' => route('dosen.pelaksanaan', $id),
+            'search' => [
+                'name' => 'q',
+                'value' => $filterState['q'],
+                'placeholder' => 'Cari judul atau deskripsi tugas',
+            ],
+            'filters' => [
+                ['name' => 'pj', 'label' => 'Penanggung Jawab', 'value' => $filterState['pj'], 'options' => $pjOptions],
+                ['name' => 'prioritas', 'label' => 'Prioritas', 'value' => $filterState['prioritas'], 'options' => $prioritasOptions],
+                ['name' => 'tenggat', 'label' => 'Tenggat', 'value' => $filterState['tenggat'], 'options' => $tenggatOptions],
+            ],
+            'summary' => 'Menampilkan '.$shownTasks.' dari '.$totalTasks.' tugas di papan.',
+        ])
+
         @include('partials.kanban-board', ['editable' => false, 'id' => $id, 'kanban' => $kanban])
     </div>
 

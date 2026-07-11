@@ -5,122 +5,166 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Support\ProjectAccess;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ProjekSayaController extends Controller
 {
-    public function index()
+    /** status DB => label UI */
+    private const STATUS_LABELS = [
+        'draft' => 'Draft',
+        'pending_approval' => 'In Review',
+        'pending_revision' => 'Review Perubahan',
+        'active' => 'In Progress',
+        'completed' => 'Done',
+        'rejected' => 'Rejected',
+        'archived' => 'Archived',
+    ];
+
+    public function index(Request $request)
     {
-        $searchHistory = [];
         $currentUserId = (int) Auth::id();
 
-        $ownedIds = Project::query()
+        $projectIds = Project::query()
             ->where('created_by', $currentUserId)
-            ->pluck('id');
+            ->pluck('id')
+            ->merge(
+                DB::table('project_members')
+                    ->where('user_id', $currentUserId)
+                    ->pluck('project_id')
+            )
+            ->unique();
 
-        $memberIds = DB::table('project_members')
-            ->where('user_id', $currentUserId)
-            ->pluck('project_id');
+        $keyword = trim((string) $request->query('search', ''));
+        $status = (string) $request->query('status', '');
+        $classId = (string) $request->query('kelas', '');
+        $lecturer = (string) $request->query('dosen', '');
+        $role = (string) $request->query('peran', '');
 
-        $keyword = request('search');
+        $searchHistory = $this->rememberSearch($keyword);
 
-        $searchHistory = session(
-            'search_history',
-            []
-        );
+        // Opsi filter diambil dari proyek milik user sendiri.
+        $ownProjects = Project::query()->whereIn('id', $projectIds)->get();
 
-        if (!empty($keyword)) {
+        $query = Project::query()->whereIn('id', $projectIds);
 
-            array_unshift(
-                $searchHistory,
-                $keyword
-            );
-
-            $searchHistory = array_unique(
-                $searchHistory
-            );
-
-            $searchHistory = array_slice(
-                $searchHistory,
-                0,
-                5
-            );
-
-            session([
-                'search_history' => $searchHistory
-            ]);
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'LIKE', '%'.$keyword.'%')
+                    ->orWhere('group_name', 'LIKE', '%'.$keyword.'%')
+                    ->orWhere('course_name', 'LIKE', '%'.$keyword.'%');
+            });
         }
 
-
-        $projectQuery = Project::query()
-            ->whereIn(
-                'id',
-                $ownedIds->merge($memberIds)->unique()
-            );
-
-        if (!empty($keyword)) {
-            $projectQuery->where(
-                'title',
-                'LIKE',
-                '%' . $keyword . '%'
-            );
+        if ($status !== '') {
+            $query->where('status', $status);
         }
 
-        $projectData = $projectQuery
+        if ($classId !== '') {
+            $query->where('academic_class_id', $classId);
+        }
+
+        if ($lecturer !== '') {
+            $query->where('lecturer_email', $lecturer);
+        }
+
+        if ($role === 'pm') {
+            $query->where('created_by', $currentUserId);
+        } elseif ($role === 'anggota') {
+            $query->where('created_by', '!=', $currentUserId);
+        }
+
+        $projects = $query
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->map(fn (Project $project) => $this->mapCard($project, $currentUserId))
+            ->all();
 
-        $projects = $projectData->map(function ($project) use ($currentUserId) {
-            $statusMap = [
-                'draft' => 'Draft',
-                'pending_approval' => 'In Review',
-                'pending_revision' => 'Review Perubahan',
-                'active' => 'In Progress',
-                'completed' => 'Done',
-                'rejected' => 'Rejected',
-                'archived' => 'Archived',
-            ];
+        return view('ProjekSaya', [
+            'projects' => $projects,
+            'searchHistory' => $searchHistory,
+            'keyword' => $keyword,
+            'totalProjects' => $ownProjects->count(),
+            'filterState' => [
+                'status' => $status,
+                'kelas' => $classId,
+                'dosen' => $lecturer,
+                'peran' => $role,
+            ],
+            'statusOptions' => self::STATUS_LABELS,
+            'classOptions' => $this->classOptions($ownProjects),
+            'lecturerOptions' => $ownProjects
+                ->filter(fn (Project $p) => $p->lecturer_email)
+                ->mapWithKeys(fn (Project $p) => [$p->lecturer_email => $p->lecturer_name ?: $p->lecturer_email])
+                ->sort()
+                ->all(),
+        ]);
+    }
 
-            $filterMap = [
-                'draft' => 'draft',
-                'pending_approval' => 'on_review',
-                'pending_revision' => 'on_review',
-                'active' => 'in_progress',
-                'completed' => 'done',
-                'rejected' => 'planning',
-                'archived' => 'planning',
-            ];
+    /**
+     * @param  \Illuminate\Support\Collection<int, Project>  $projects
+     * @return array<int|string, string>
+     */
+    private function classOptions($projects): array
+    {
+        $ids = $projects->pluck('academic_class_id')->filter()->unique();
 
-            $uiStatus = $statusMap[$project->status] ?? 'Planning';
-            $filterKey = $filterMap[$project->status] ?? 'planning';
-            $members = ProjectAccess::memberInitials($project->id);
-            $memberCount = max(1, count($members));
+        if ($ids->isEmpty()) {
+            return [];
+        }
 
-            return [
-                'id' => $project->id,
-                'name' => $project->title,
-                'status' => $uiStatus,
-                'label' => $uiStatus,
-                'filter_key' => $filterKey,
-                'db_status' => $project->status,
-                'progress' => match ($project->status) {
-                    'draft' => 10,
-                    'pending_approval' => 25,
-                    'pending_revision' => 55,
-                    'active' => 60,
-                    'completed' => 100,
-                    default => 0,
-                },
-                'can_manage' => (int) $project->created_by === $currentUserId,
-                'description' => ProjectAccess::shortDescription($project->description),
-                'created_at' => Carbon::parse($project->created_at)->format('d/m/Y'),
-                'member_count' => $memberCount,
-                'members' => $members,
-                'lecturer_email' => $project->lecturer_email,
-            ];
-        })->toArray();
+        return DB::table('academic_classes')
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
 
-        return view('ProjekSaya', compact('projects', 'searchHistory'));
+    /** @return list<string> */
+    private function rememberSearch(string $keyword): array
+    {
+        $history = session('search_history', []);
+
+        if ($keyword === '') {
+            return $history;
+        }
+
+        array_unshift($history, $keyword);
+        $history = array_values(array_slice(array_unique($history), 0, 5));
+        session(['search_history' => $history]);
+
+        return $history;
+    }
+
+    /** @return array<string, mixed> */
+    private function mapCard(Project $project, int $currentUserId): array
+    {
+        $uiStatus = self::STATUS_LABELS[$project->status] ?? 'Planning';
+        $members = ProjectAccess::memberInitials($project->id);
+
+        return [
+            'id' => $project->id,
+            'name' => $project->title,
+            'status' => $uiStatus,
+            'label' => $uiStatus,
+            'db_status' => $project->status,
+            'progress' => match ($project->status) {
+                'draft' => 10,
+                'pending_approval' => 25,
+                'pending_revision' => 55,
+                'active' => 60,
+                'completed' => 100,
+                default => 0,
+            },
+            'can_manage' => (int) $project->created_by === $currentUserId,
+            'description' => ProjectAccess::shortDescription($project->description),
+            'created_at' => Carbon::parse($project->created_at)->format('d/m/Y'),
+            'member_count' => max(1, count($members)),
+            'members' => $members,
+            'lecturer_email' => $project->lecturer_email,
+            'lecturer_name' => $project->lecturer_name,
+            'group_name' => $project->group_name,
+        ];
     }
 }

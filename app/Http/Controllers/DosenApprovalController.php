@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Support\ProjectAccess;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DosenApprovalController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         if (Auth::user()->role !== 'lecturer') {
             abort(403, 'Halaman ini hanya untuk dosen.');
@@ -17,15 +18,56 @@ class DosenApprovalController extends Controller
 
         $email = strtolower(trim((string) Auth::user()->email));
 
-        $pending = Project::query()
+        $base = Project::query()
             ->where('lecturer_email', $email)
-            ->whereIn('status', ['pending_approval', 'pending_revision'])
-            ->orderByDesc('submitted_at')
+            ->whereIn('status', ['pending_approval', 'pending_revision']);
+
+        $total = (clone $base)->count();
+        $all = (clone $base)->get();
+
+        $keyword = trim((string) $request->query('q', ''));
+        $classId = (string) $request->query('kelas', '');
+        $jenis = (string) $request->query('jenis', '');
+        $urut = (string) $request->query('urut', 'terbaru');
+
+        $query = clone $base;
+
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'LIKE', '%'.$keyword.'%')
+                    ->orWhere('group_name', 'LIKE', '%'.$keyword.'%');
+            });
+        }
+
+        if ($classId !== '') {
+            $query->where('academic_class_id', $classId);
+        }
+
+        if ($jenis !== '') {
+            $query->where('status', $jenis);
+        }
+
+        $pending = $query
+            ->orderBy('submitted_at', $urut === 'terlama' ? 'asc' : 'desc')
             ->get()
             ->map(fn (Project $p) => $this->mapListRow($p));
 
+        $classIds = $all->pluck('academic_class_id')->filter()->unique();
+
         return view('DosenApproval', [
             'pending_projects' => $pending,
+            'totalPending' => $total,
+            'filterState' => [
+                'q' => $keyword,
+                'kelas' => $classId,
+                'jenis' => $jenis,
+                'urut' => $urut,
+            ],
+            'classOptions' => $classIds->isEmpty() ? [] : DB::table('academic_classes')
+                ->whereIn('id', $classIds)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
         ]);
     }
 
