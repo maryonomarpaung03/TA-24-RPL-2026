@@ -2,19 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\ProjectBoard;
 use App\Models\Task;
-use App\Models\TaskComment;
+use App\Services\FinalizationService;
 use App\Services\ProjectTaskService;
 use App\Support\PjblContext;
+use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use App\Support\TaskFilter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PelaksanaanController extends Controller
 {
+    public function __construct(private readonly FinalizationService $finalization) {}
+
     public function index(Request $request, $id)
     {
         $selected = ProjectCatalog::find($id);
@@ -27,12 +32,13 @@ class PelaksanaanController extends Controller
 
         }
 
-        $boards = ProjectBoard::with(['tasks.comments'])
+        $boards = ProjectBoard::with('tasks')
             ->where('project_id', $id)
             ->orderBy('position')
             ->get();
 
         $members = app(ProjectTaskService::class)->assignableMembers((int) $id);
+        $comments = $this->commentsByTask((int) $id);
 
         $filters = [
             'q' => trim((string) $request->query('q', '')),
@@ -52,6 +58,8 @@ class PelaksanaanController extends Controller
 
         $shownTasks = $boards->sum(fn (ProjectBoard $board) => $board->tasks->count());
 
+        $locked = ProjectAccess::isFinalized($selected['status'] ?? null);
+
         return view('Pelaksanaan', [
 
             'user' => PjblContext::viewer(),
@@ -64,6 +72,8 @@ class PelaksanaanController extends Controller
 
             'allBoards' => $boards,
 
+            'comments' => $comments,
+
             'filterState' => $filters,
             'totalTasks' => $totalTasks,
             'shownTasks' => $shownTasks,
@@ -75,7 +85,70 @@ class PelaksanaanController extends Controller
             ],
             'tenggatOptions' => TaskFilter::DEADLINE_OPTIONS,
 
+            // Finalisasi proyek
+            'projectStatus' => $selected['status'] ?? null,
+            'locked' => $locked,
+            'readiness' => $this->finalization->readiness((int) $id),
+            'lastSubmission' => $this->finalization->latestSubmission((int) $id),
+
         ]);
+    }
+
+    /**
+     * Komentar tugas diambil dari tabel discussions supaya thread mahasiswa
+     * dan dosen menjadi satu (lihat TaskCommentController).
+     *
+     * @return array<int, list<array{from: string, text: string, time: string, is_lecturer: bool}>>
+     */
+    private function commentsByTask(int $projectId): array
+    {
+        $rows = DB::table('discussions')
+            ->leftJoin('users', 'users.id', '=', 'discussions.user_id')
+            ->where('discussions.project_id', $projectId)
+            ->whereNotNull('discussions.task_id')
+            ->orderBy('discussions.created_at')
+            ->select(
+                'discussions.task_id',
+                'discussions.message',
+                'discussions.created_at',
+                'users.full_name',
+                'users.name',
+                'users.role'
+            )
+            ->get();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $isLecturer = $row->role === 'lecturer';
+            $name = $row->full_name ?: $row->name ?: 'Anggota';
+
+            $map[(int) $row->task_id][] = [
+                'from' => $name.($isLecturer ? ' (Dosen)' : ''),
+                'initials' => ProjectAccess::initialsFromName($name),
+                'text' => $row->message,
+                'time' => Carbon::parse($row->created_at)->diffForHumans(),
+                'is_lecturer' => $isLecturer,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Papan tugas terkunci setelah tim mengirim finalisasi ke dosen.
+     */
+    private function ensureNotLocked(int $projectId): ?\Illuminate\Http\RedirectResponse
+    {
+        $status = Project::query()->where('id', $projectId)->value('status');
+
+        if (! ProjectAccess::isFinalized($status)) {
+            return null;
+        }
+
+        return redirect()
+            ->route('pelaksanaan', $projectId)
+            ->with('error', 'Proyek sudah difinalisasi dan sedang dinilai dosen. Papan tugas terkunci.');
     }
 
     /** @param array<string, string> $filters */
@@ -120,6 +193,13 @@ class PelaksanaanController extends Controller
 
         $task = Task::findOrFail($request->task_id);
 
+        if (ProjectAccess::isFinalized(Project::query()->where('id', $task->project_id)->value('status'))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proyek sudah difinalisasi. Papan tugas terkunci.',
+            ], 422);
+        }
+
         $task->board_id = $request->board_id;
         $task->save();
 
@@ -129,6 +209,10 @@ class PelaksanaanController extends Controller
     }
     public function store(Request $request, $projectId)
     {
+        if ($locked = $this->ensureNotLocked((int) $projectId)) {
+            return $locked;
+        }
+
         $request->validate([
             'name' => 'required|max:100'
         ]);
@@ -145,25 +229,16 @@ class PelaksanaanController extends Controller
             ->route('pelaksanaan', $projectId)
             ->with('success', 'Board berhasil ditambahkan.');
     }
-    public function comment(Request $request, $taskId)
-    {
-        $request->validate([
-            'comment' => 'required|string|max:1000',
-        ]);
-
-        $task = Task::findOrFail($taskId);
-
-        TaskComment::create([
-            'task_id' => $task->id,
-            'comment' => $request->comment,
-        ]);
-
-        return redirect()
-            ->route('pelaksanaan', $task->project_id)
-            ->with('success', 'Komentar berhasil ditambahkan.');
-    }
     public function updateTask(Request $request, $taskId)
     {
+        $task = Task::findOrFail($taskId);
+
+        if ($locked = $this->ensureNotLocked((int) $task->project_id)) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Proyek sudah difinalisasi.'], 422)
+                : $locked;
+        }
+
         $request->validate([
             'task_title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -186,7 +261,11 @@ class PelaksanaanController extends Controller
             'attachment.max' => 'Ukuran berkas maksimal 10 MB.',
         ]);
 
-        $task = Task::findOrFail($taskId);
+        $submission = $this->submissionPayload($request, $task);
+
+        // Pengumpulan diganti setelah dosen mereview: review lama tidak lagi berlaku.
+        $submissionChanged = ($submission['link'] ?? $task->link) !== $task->link
+            || ($submission['attachment_path'] ?? $task->attachment_path) !== $task->attachment_path;
 
         $task->update([
             'board_id' => $request->board_id,
@@ -196,7 +275,7 @@ class PelaksanaanController extends Controller
             'status' => $request->status,
             'progress_percent' => $request->progress_percent,
             'due_date' => $request->due_date,
-        ] + $this->submissionPayload($request, $task));
+        ] + $submission + ($submissionChanged ? ['reviewed_at' => null, 'reviewed_by' => null] : []));
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true]);
@@ -265,8 +344,16 @@ class PelaksanaanController extends Controller
         $task = Task::findOrFail($taskId);
         $projectId = $task->project_id;
 
+        if ($locked = $this->ensureNotLocked((int) $projectId)) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Proyek sudah difinalisasi.'], 422)
+                : $locked;
+        }
+
         $this->deleteAttachment($task);
-        $task->comments()->delete();
+
+        DB::table('discussions')->where('task_id', $task->id)->delete();
+
         $task->delete();
 
         if ($request->expectsJson()) {

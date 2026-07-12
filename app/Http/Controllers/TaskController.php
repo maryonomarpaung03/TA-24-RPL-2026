@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\ProjectBoard;
+use App\Support\ProjectAccess;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -18,6 +20,16 @@ class TaskController extends Controller
 
         $projectBoard =
             ProjectBoard::findOrFail($board);
+
+        $status = Project::query()->where('id', $projectBoard->project_id)->value('status');
+
+        if (ProjectAccess::isFinalized($status)) {
+            return back()->with(
+                'error',
+                'Proyek sudah difinalisasi dan sedang dinilai dosen. Papan tugas terkunci.'
+            );
+        }
+
         Task::create([
             'project_id' => $projectBoard->project_id,
             'board_id' => $board,

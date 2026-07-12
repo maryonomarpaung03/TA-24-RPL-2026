@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Services\EvaluationService;
+use App\Services\FinalizationService;
 use App\Services\ProjectTaskService;
 use App\Support\ProjectAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class DosenPenilaianController extends Controller
 {
     public function __construct(
         private readonly EvaluationService $evaluations,
-        private readonly ProjectTaskService $tasks
+        private readonly ProjectTaskService $tasks,
+        private readonly FinalizationService $finalization
     ) {}
 
     public function show(int $id)
@@ -55,10 +58,35 @@ class DosenPenilaianController extends Controller
             'peer' => $this->evaluations->peerSummary($id),
             'progress' => $progress,
             'pendingApproval' => $pendingApproval,
-            'tasksFinalized' => $progress['total'] > 0
-                && $progress['done'] === $progress['total']
-                && $pendingApproval === 0,
+
+            // Finalisasi: berkas akhir yang dikirim tim, plus riwayat revisinya.
+            'projectStatus' => $project->status,
+            'finalSubmission' => $this->finalization->latestSubmission($id),
+            'finalHistory' => $this->finalization->submissionHistory($id),
+            'tasksFinalized' => ProjectAccess::isFinalized($project->status),
         ]);
+    }
+
+    /** Dosen meminta tim memperbaiki finalisasinya; proyek dibuka kembali. */
+    public function requestRevision(Request $request, int $id)
+    {
+        $project = $this->authorizeProject($id);
+
+        $validated = $request->validate([
+            'note' => 'required|string|max:1000',
+        ], [
+            'note.required' => 'Tuliskan catatan perbaikan agar mahasiswa tahu yang harus diperbaiki.',
+        ]);
+
+        try {
+            $this->finalization->requestRevision($project, (int) Auth::id(), $validated['note']);
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
+
+        return redirect()
+            ->route('dosen.penilaian', $project->id)
+            ->with('success', 'Permintaan revisi dikirim. Tim dapat memperbaiki dan mengirim ulang finalisasi.');
     }
 
     public function store(Request $request, int $id)
@@ -106,6 +134,10 @@ class DosenPenilaianController extends Controller
             $validated['note'] ?? null,
             $students
         );
+
+        // Nilai keluar untuk proyek yang sudah difinalisasi = finalisasi diterima
+        // dan proyek ditutup (status completed).
+        $this->finalization->acceptOnGrading($project, (int) Auth::id());
 
         return redirect()
             ->route('dosen.penilaian', $project->id)

@@ -107,18 +107,21 @@ class ProjectAccess
             'course_name' => $project->course_name,
             'planned_months' => $project->planned_months,
             'submitted_at' => $project->submitted_at,
-            'is_approved' => in_array($status, ['active', 'completed'], true),
+            'is_approved' => in_array($status, ['active', 'completed', 'pending_final_review', 'pending_final_revision'], true),
             'is_pending' => in_array($status, ['pending_approval', 'pending_revision'], true),
             'is_draft' => $status === 'draft',
             'can_access_pjbl' => self::canAccessPjbl($status),
             'is_under_review' => in_array($status, ['pending_approval', 'pending_revision'], true),
             'is_in_review' => in_array($status, ['pending_approval', 'pending_revision'], true),
             'is_pending_revision' => $status === 'pending_revision',
+            'is_locked' => self::isFinalized($status),
             'status_label' => match ($status) {
                 'draft' => 'Draft',
                 'pending_approval' => 'In Review',
                 'pending_revision' => 'Review Perubahan',
                 'active' => 'In Progress',
+                'pending_final_review' => 'Menunggu Penilaian',
+                'pending_final_revision' => 'Revisi Finalisasi',
                 'completed' => 'Done',
                 'rejected' => 'Rejected',
                 'archived' => 'Archived',
@@ -130,7 +133,22 @@ class ProjectAccess
 
     public static function canAccessPjbl(?string $status): bool
     {
-        return in_array($status, ['active', 'completed', 'pending_revision'], true);
+        return in_array($status, [
+            'active',
+            'completed',
+            'pending_revision',
+            'pending_final_review',
+            'pending_final_revision',
+        ], true);
+    }
+
+    /**
+     * Proyek sudah dikirim final ke dosen: seluruh papan tugas dikunci
+     * (hanya bisa dilihat & dikomentari) sampai dosen membuka revisi.
+     */
+    public static function isFinalized(?string $status): bool
+    {
+        return in_array($status, ['pending_final_review', 'completed'], true);
     }
 
     public static function isProjectManager(Project $project, int $userId): bool
@@ -144,6 +162,16 @@ class ProjectAccess
     public static function editableStatuses(): array
     {
         return ['draft', 'active', 'pending_approval', 'pending_revision', 'completed', 'rejected'];
+    }
+
+    /**
+     * Semua status proyek yang boleh dilihat dosen di halaman pemantauan.
+     *
+     * @return list<string>
+     */
+    public static function lecturerVisibleStatuses(): array
+    {
+        return ['active', 'completed', 'pending_final_review', 'pending_final_revision'];
     }
 
     /**

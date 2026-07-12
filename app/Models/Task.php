@@ -26,7 +26,17 @@ class Task extends Model
         'progress_percent',
         'start_date',
         'due_date',
+        'reviewed_at',
+        'reviewed_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'reviewed_at' => 'datetime',
+        ];
+    }
+
     public function comments()
     {
         return $this->hasMany(TaskComment::class, 'task_id');

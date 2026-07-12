@@ -13,3 +13,14 @@
         {{ session('info') }}
     </div>
 @endif
+{{-- Galat validasi: tanpa ini, form yang ditolak akan kembali tanpa penjelasan. --}}
+@if($errors->any())
+    <div class="mb-4 rounded bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
+        <p class="font-bold mb-1">Ada isian yang perlu diperbaiki:</p>
+        <ul class="list-disc list-inside space-y-0.5">
+            @foreach(collect($errors->all())->unique() as $message)
+                <li>{{ $message }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif

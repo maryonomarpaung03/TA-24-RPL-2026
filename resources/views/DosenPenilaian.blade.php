@@ -3,7 +3,7 @@
 @section('title', 'Penilaian Proyek - DELPRO')
 
 @section('content')
-<div class="w-full space-y-6" x-data="{ addGroup: false, addIndividual: false }">
+<div class="w-full space-y-6" x-data="{ addGroup: false, addIndividual: false, revisiModal: false }">
 
     <a href="{{ route('dosen.proyek-mahasiswa.show', $project['id']) }}" class="text-blue-600 text-xs font-bold hover:underline mb-4 inline-block">
         &larr; Kembali ke detail proyek
@@ -13,9 +13,11 @@
 
     @unless($tasksFinalized)
     <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-        <p class="text-sm font-bold text-amber-900">Tim belum memfinalisasi pekerjaannya</p>
+        <p class="text-sm font-bold text-amber-900">Tim belum mengirim finalisasi proyek</p>
         <p class="text-sm text-amber-800 mt-1">
-            @if($progress['total'] === 0)
+            @if($projectStatus === 'pending_final_revision')
+                Anda sudah meminta revisi. Tim sedang memperbaiki dan belum mengirim ulang finalisasinya.
+            @elseif($progress['total'] === 0)
                 Mahasiswa belum menyusun satu pun tugas pada proyek ini.
             @else
                 Baru {{ $progress['done'] }} dari {{ $progress['total'] }} tugas yang selesai ({{ $progress['percent'] }}%).
@@ -23,10 +25,142 @@
                     Ada {{ $pendingApproval }} tugas yang menunggu persetujuan Anda di halaman Pelaksanaan.
                 @endif
             @endif
-            Anda tetap dapat menilai sekarang, tetapi sebaiknya tunggu sampai seluruh tugas rampung.
+            Anda tetap dapat menilai sekarang, tetapi sebaiknya tunggu tim menekan tombol Submit Finalisasi Proyek.
         </p>
     </div>
     @endunless
+
+    {{-- BERKAS FINALISASI DARI TIM --}}
+    @if($finalSubmission)
+    <div class="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+            <div>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">
+                    <i class="fas fa-box-archive mr-1 text-blue-600"></i>Berkas Finalisasi Proyek
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Dikirim {{ $finalSubmission->submitted_at?->format('d M Y H:i') }}
+                    @if($finalHistory->count() > 1)
+                        &middot; pengiriman ke-{{ $finalHistory->count() }}
+                    @endif
+                </p>
+            </div>
+
+            @php
+                $badge = match ($finalSubmission->status) {
+                    'accepted' => ['Diterima & dinilai', 'bg-emerald-100 text-emerald-700'],
+                    'revision_requested' => ['Diminta revisi', 'bg-amber-100 text-amber-700'],
+                    default => ['Menunggu penilaian Anda', 'bg-blue-100 text-blue-700'],
+                };
+            @endphp
+            <span class="rounded-full px-4 py-1.5 text-[11px] font-bold {{ $badge[1] }}">{{ $badge[0] }}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            @if($finalSubmission->report_url)
+            <a href="{{ $finalSubmission->report_url }}" target="_blank" rel="noopener"
+               class="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 hover:bg-blue-100 transition">
+                <i class="fas {{ $finalSubmission->report_type === 'link' ? 'fa-link' : 'fa-file-pdf' }} text-blue-600 text-lg"></i>
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase text-blue-500">Laporan Akhir</p>
+                    <p class="text-xs font-bold text-blue-800 truncate">
+                        {{ $finalSubmission->report_type === 'link' ? 'Buka tautan laporan' : $finalSubmission->report_name }}
+                    </p>
+                </div>
+            </a>
+            @endif
+
+            @if($finalSubmission->presentation_link)
+            <a href="{{ $finalSubmission->presentation_link }}" target="_blank" rel="noopener"
+               class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:bg-slate-100 transition">
+                <i class="fas fa-display text-slate-500 text-lg"></i>
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase text-slate-400">Presentasi</p>
+                    <p class="text-xs font-bold text-slate-700 truncate">Buka tautan</p>
+                </div>
+            </a>
+            @endif
+
+            @if($finalSubmission->repo_link)
+            <a href="{{ $finalSubmission->repo_link }}" target="_blank" rel="noopener"
+               class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:bg-slate-100 transition">
+                <i class="fas fa-code-branch text-slate-500 text-lg"></i>
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase text-slate-400">Repo / Demo</p>
+                    <p class="text-xs font-bold text-slate-700 truncate">Buka tautan</p>
+                </div>
+            </a>
+            @endif
+        </div>
+
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+            <p class="text-[10px] font-bold uppercase text-slate-400 mb-1">Ringkasan Hasil dari Tim</p>
+            <p class="text-sm text-slate-700 whitespace-pre-line">{{ $finalSubmission->summary }}</p>
+        </div>
+
+        @if($finalSubmission->lecturer_note)
+        <div class="mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-4">
+            <p class="text-[10px] font-bold uppercase text-amber-600 mb-1">Catatan Revisi Anda</p>
+            <p class="text-sm text-amber-800 whitespace-pre-line">{{ $finalSubmission->lecturer_note }}</p>
+        </div>
+        @endif
+
+        @if($projectStatus === 'pending_final_review')
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+            <p class="text-xs text-slate-500">
+                Isi penilaian di bawah lalu simpan untuk menutup proyek, atau minta tim memperbaiki finalisasinya.
+            </p>
+            <button type="button" @click="revisiModal = true"
+                    class="rounded-xl bg-amber-50 border border-amber-200 px-5 py-2.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition">
+                <i class="fas fa-rotate-left mr-1"></i>Minta Revisi
+            </button>
+        </div>
+        @endif
+
+        {{-- Riwayat pengiriman sebelumnya --}}
+        @if($finalHistory->count() > 1)
+        <details class="mt-5 border-t border-slate-100 pt-4">
+            <summary class="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-700">
+                Riwayat pengiriman ({{ $finalHistory->count() }})
+            </summary>
+            <ul class="mt-3 space-y-2">
+                @foreach($finalHistory as $item)
+                <li class="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-2.5">
+                    <span class="text-xs text-slate-600">
+                        {{ $item->submitted_at?->format('d M Y H:i') }}
+                        @if($item->report_url)
+                            &middot; <a href="{{ $item->report_url }}" target="_blank" rel="noopener" class="font-bold text-blue-600 hover:underline">laporan</a>
+                        @endif
+                    </span>
+                    <span class="text-[10px] font-bold uppercase text-slate-400">{{ $item->status }}</span>
+                </li>
+                @endforeach
+            </ul>
+        </details>
+        @endif
+    </div>
+
+    {{-- Modal minta revisi --}}
+    <div x-show="revisiModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl" @click.outside="revisiModal = false">
+            <h3 class="text-lg font-bold text-slate-900 mb-1">Minta Revisi Finalisasi</h3>
+            <p class="text-xs text-slate-500 mb-4">
+                Proyek akan dibuka kembali agar tim dapat memperbaiki dan mengirim ulang finalisasinya.
+            </p>
+            <form method="POST" action="{{ route('dosen.finalisasi.revisi', $project['id']) }}">
+                @csrf
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Catatan perbaikan <span class="text-red-500">*</span></label>
+                <textarea name="note" rows="4" required maxlength="1000"
+                          placeholder="Bagian mana yang perlu diperbaiki tim..."
+                          class="w-full border rounded-xl p-3 text-sm outline-none focus:border-amber-400 resize-none mb-5"></textarea>
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="revisiModal = false" class="px-5 py-2 bg-gray-200 rounded-xl text-sm font-bold">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold">Kirim Permintaan Revisi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 
     <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400 font-semibold mb-2">Penilaian Proyek</p>

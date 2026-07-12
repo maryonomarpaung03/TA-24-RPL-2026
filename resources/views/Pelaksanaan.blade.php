@@ -1,12 +1,13 @@
 @extends('layouts.app')
 
 @section('title', 'Pelaksanaan & Evaluasi - DELPRO')
-@section('root_data', '{ 
-                        sidebarOpen: true, 
-                        commentModal: false, 
-                        editModal: false, 
+@section('root_data', '{
+                        sidebarOpen: true,
+                        commentModal: false,
+                        editModal: false,
                         addComment: false,
-                        activeColumn:null, 
+                        finalModal: false,
+                        activeColumn:null,
                         selectedTask:{
                             id:null,
                             title:"",
@@ -17,7 +18,8 @@
                             link:"",
                             submission_type:"link",
                             attachment_name:"",
-                            attachment_url:""},
+                            attachment_url:"",
+                            comments:[]},
                         }')
 
 @section('content')
@@ -28,18 +30,43 @@
     {{-- HEADER PROJECT --}}
     {{-- ========================================================= --}}
 
-    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
+    @include('partials.flash-messages')
+
+    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-wrap justify-between items-center gap-4">
         <div>
             <h2 class="text-3xl font-bold text-gray-900">{{ $namaProjek }}</h2>
             <p class="text-[11px] uppercase tracking-wider text-gray-400 mt-2">Projek Saya /
                 <span class="text-blue-600">Pelaksanaan & Evaluasi</span>
             </p>
         </div>
-        <button
-            class="text-2xl text-gray-400 hover:text-blue-600 transition">
-            <i class="fas fa-cog"></i>
-        </button>
+
+        @if($locked)
+            <div class="flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-5 py-2.5">
+                <i class="fas fa-lock text-emerald-600"></i>
+                <span class="text-sm font-bold text-emerald-700">
+                    {{ $projectStatus === 'completed' ? 'Proyek selesai & sudah dinilai' : 'Finalisasi terkirim — menunggu penilaian dosen' }}
+                </span>
+            </div>
+        @else
+            <button type="button" @click="finalModal = true"
+                    class="flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-blue-700 transition">
+                <i class="fas fa-paper-plane"></i>
+                Submit Finalisasi Proyek
+            </button>
+        @endif
     </div>
+
+    @if($projectStatus === 'pending_final_revision' && $lastSubmission?->lecturer_note)
+    <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+        <p class="text-sm font-bold text-amber-900">
+            <i class="fas fa-rotate-left mr-1"></i>Dosen meminta revisi finalisasi
+        </p>
+        <p class="text-sm text-amber-800 mt-1 whitespace-pre-line">{{ $lastSubmission->lecturer_note }}</p>
+        <p class="text-xs text-amber-700 mt-2">
+            Perbaiki yang diminta, lalu kirim ulang lewat tombol <span class="font-bold">Submit Finalisasi Proyek</span>.
+        </p>
+    </div>
+    @endif
     @include('partials.filter-bar', [
         'action' => route('pelaksanaan', $id),
         'search' => [
@@ -53,7 +80,7 @@
             ['name' => 'tenggat', 'label' => 'Tenggat', 'value' => $filterState['tenggat'], 'options' => $tenggatOptions],
         ],
         'summary' => 'Menampilkan '.$shownTasks.' dari '.$totalTasks.' tugas di papan.',
-        'extraButton' => [
+        'extraButton' => $locked ? null : [
             'click' => 'boardModal = true',
             'label' => '+ Dashboard',
         ],
@@ -140,6 +167,8 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
         @forelse($board->tasks as $task)
 
+        @php $taskComments = $comments[$task->id] ?? []; @endphp
+
         <div
             data-task-id="{{ $task->id }}"
             class="task-card bg-white rounded-2xl shadow-sm p-4 border border-gray-200 hover:shadow-md transition">
@@ -150,6 +179,8 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
                     {{ $task->task_title }}
                 </h4>
 
+                <div class="flex items-start gap-2 shrink-0">
+                @unless($locked)
                 <button
     @click="
         editModal = true;
@@ -165,30 +196,45 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
             status: '{{ $task->status }}',
             progress: {{ $task->progress_percent }},
             due: '{{ $task->due_date }}',
-            board_id: {{ $task->board_id }}
+            board_id: {{ $task->board_id }},
+            comments: []
         }
     "
     class="text-gray-400 hover:text-blue-600"
 >
     <i class="fas fa-edit"></i>
 </button>
+                @endunless
 <button
     @click="
         addComment=true;
         selectedTask.id={{ $task->id }};
         selectedTask.title=@js($task->task_title);
-        selectedTask.comment='';
+        selectedTask.comments=@js($taskComments);
     "
-    class="text-blue-600 hover:text-blue-800">
+    class="relative text-blue-600 hover:text-blue-800">
 
     <i class="fas fa-comment"></i>
 
+    @if(count($taskComments))
+    <span class="absolute -top-1.5 -right-2 inline-flex min-w-[14px] h-3.5 items-center justify-center rounded-full bg-blue-600 px-1 text-[8px] font-bold text-white">{{ count($taskComments) }}</span>
+    @endif
+
 </button>
+                </div>
             </div>
 
             @if($task->description)
                 <p class="text-xs text-gray-500 mt-2">
                     {{ $task->description }}
+                </p>
+            @endif
+
+            {{-- Dosen sudah meninjau pengumpulan tugas ini --}}
+            @if($task->reviewed_at)
+                <p class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
+                    <i class="fas fa-circle-check"></i>
+                    Sudah direview dosen
                 </p>
             @endif
 
@@ -207,27 +253,31 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
                 </a>
             @endif
 
-            {{-- COMMENT --}}
-@if($task->comments->count())
+            {{-- KOMENTAR: satu thread berisi anggota tim & dosen --}}
+@if(count($taskComments))
 
 <div class="mt-3 space-y-2">
 
-    @foreach($task->comments as $comment)
+    @foreach(array_slice($taskComments, -3) as $comment)
 
     <div class="flex gap-2">
 
-        <div class="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px]">
-            C
+        <div class="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold text-white {{ $comment['is_lecturer'] ? 'bg-purple-600' : 'bg-blue-500' }}">
+            {{ $comment['initials'] }}
         </div>
 
-        <div class="flex-1 bg-gray-100 rounded-xl px-3 py-2">
+        <div class="flex-1 rounded-xl px-3 py-2 {{ $comment['is_lecturer'] ? 'bg-purple-50 border border-purple-100' : 'bg-gray-100' }}">
 
-            <p class="text-xs">
-                {{ $comment->comment }}
+            <p class="text-[10px] font-bold {{ $comment['is_lecturer'] ? 'text-purple-700' : 'text-gray-600' }}">
+                {{ $comment['from'] }}
+            </p>
+
+            <p class="text-xs text-gray-700">
+                {{ $comment['text'] }}
             </p>
 
             <small class="text-gray-400">
-                {{ $comment->created_at->diffForHumans() }}
+                {{ $comment['time'] }}
             </small>
 
         </div>
@@ -235,6 +285,14 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
     </div>
 
     @endforeach
+
+    @if(count($taskComments) > 3)
+    <button type="button"
+            @click="addComment=true; selectedTask.id={{ $task->id }}; selectedTask.title=@js($task->task_title); selectedTask.comments=@js($taskComments);"
+            class="text-[11px] font-bold text-blue-600 hover:underline">
+        Lihat semua {{ count($taskComments) }} komentar
+    </button>
+    @endif
 
 </div>
 
@@ -263,6 +321,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
     </div>
     {{-- ADD TASK --}}
+    @unless($locked)
     <div class="mt-5" x-data="{adding:false}">
 
         <button
@@ -313,6 +372,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
         </form>
 
     </div>
+    @endunless
 
 </div>
 
@@ -664,7 +724,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">
-                    Tambah Komentar
+                    Komentar Tugas
                 </h2>
 
                 <p class="text-sm text-gray-500 mt-1"
@@ -682,23 +742,44 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
         </div>
 
-        {{-- FORM --}}
+        {{-- Riwayat komentar: anggota tim & dosen dalam satu thread --}}
+        <div class="max-h-64 overflow-y-auto space-y-2 mb-5 pr-1">
+
+            <template x-if="!selectedTask.comments || selectedTask.comments.length === 0">
+                <p class="text-sm text-gray-400 italic py-2">Belum ada komentar pada tugas ini.</p>
+            </template>
+
+            <template x-for="(c, i) in (selectedTask.comments || [])" :key="i">
+                <div class="rounded-xl px-3 py-2 border"
+                     :class="c.is_lecturer ? 'bg-purple-50 border-purple-100' : 'bg-gray-50 border-gray-100'">
+                    <div class="flex items-center justify-between gap-2 text-[11px]">
+                        <span class="font-bold" :class="c.is_lecturer ? 'text-purple-700' : 'text-gray-700'" x-text="c.from"></span>
+                        <span class="shrink-0 text-gray-400" x-text="c.time"></span>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-0.5 whitespace-pre-line" x-text="c.text"></p>
+                </div>
+            </template>
+
+        </div>
+
+        {{-- FORM: komentar masuk ke thread yang sama dengan komentar dosen --}}
         <form
     method="POST"
-    :action="'{{ url('/tasks') }}/' + selectedTask.id + '/comment'">
+    :action="`{{ url('projek/'.$id.'/tugas') }}/${selectedTask.id}/komentar`">
 
     @csrf
 
     <div>
 
         <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-            Komentar
+            Tulis Komentar
         </label>
 
         <textarea
-            rows="6"
-            name="comment"
-            x-model="selectedTask.comment"
+            rows="4"
+            name="komentar"
+            required
+            maxlength="2000"
             placeholder="Masukkan komentar..."
             class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 outline-none resize-none focus:border-blue-500">
         </textarea>
@@ -720,7 +801,7 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
             type="submit"
             class="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700">
 
-            Simpan
+            <i class="fas fa-paper-plane mr-1"></i>Kirim Komentar
 
         </button>
 
@@ -733,23 +814,12 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 </div>
 
 {{-- ===================================================== --}}
-{{-- MODAL KOMENTAR --}}
+{{-- MODAL FINALISASI PROYEK --}}
 {{-- ===================================================== --}}
 
-<div x-show="commentModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div @click.outside="commentModal=false" class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold">Komentar</h2>
-            <button @click="commentModal=false"class="text-gray-400 hover:text-red-500">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <textarea rows="6" placeholder="Tulis komentar..." class="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 outline-none resize-none focus:border-blue-500"></textarea>
-        <div class="flex justify-end mt-5">
-            <button class="px-6 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Kirim Komentar</button>
-        </div>
-    </div>
-</div>
+@unless($locked)
+    @include('partials.finalisasi-modal')
+@endunless
 @endsection
 
 @push('scripts')
@@ -840,6 +910,11 @@ function taskManager(){
 }
 
 document.addEventListener("DOMContentLoaded",function(){
+
+    // Proyek yang sudah difinalisasi terkunci: tugas tidak boleh dipindah lagi.
+    @if($locked)
+        return;
+    @endif
 
     document.querySelectorAll(".task-list").forEach(function(board){
 

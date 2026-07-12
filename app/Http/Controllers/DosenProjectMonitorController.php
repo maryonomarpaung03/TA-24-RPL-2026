@@ -13,9 +13,6 @@ use Illuminate\Support\Facades\DB;
 
 class DosenProjectMonitorController extends Controller
 {
-    /** @var list<string> */
-    private const APPROVED_STATUSES = ['active', 'completed'];
-
     /** Label prioritas seperti yang dipakai ProjectTaskService::priorityLabel(). */
     private const PRIORITY_OPTIONS = [
         'Sulit' => 'Sulit',
@@ -194,6 +191,23 @@ class DosenProjectMonitorController extends Controller
         return back()->with('success', 'Tugas disetujui dan dipindahkan.');
     }
 
+    /** Tandai sebuah tugas sudah ditinjau dosen (bukan approve/tolak). */
+    public function markReviewed(int $id, int $taskId)
+    {
+        $project = $this->authorizeLecturerProject($id);
+        if (! $project instanceof Project) {
+            return $project;
+        }
+
+        try {
+            $this->tasks->markReviewed((int) $project->id, $taskId, (int) Auth::id());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
+
+        return back()->with('success', 'Tugas ditandai sudah direview. Mahasiswa akan mendapat notifikasi.');
+    }
+
     public function reject(\Illuminate\Http\Request $request, int $id, int $approvalId)
     {
         $request->validate(['note' => 'nullable|string|max:1000']);
@@ -292,7 +306,7 @@ class DosenProjectMonitorController extends Controller
             abort(403, 'Anda tidak memiliki akses ke proyek ini.');
         }
 
-        if (! in_array($project->status, self::APPROVED_STATUSES, true)) {
+        if (! in_array($project->status, ProjectAccess::lecturerVisibleStatuses(), true)) {
             return redirect()
                 ->route('dosen.proyek-mahasiswa')
                 ->with('error', 'Proyek ini belum disetujui atau masih menunggu persetujuan.');

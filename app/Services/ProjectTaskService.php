@@ -140,6 +140,12 @@ class ProjectTaskService
                 'tasks.status',
                 'tasks.due_date',
                 'tasks.assigned_to',
+                'tasks.link',
+                'tasks.submission_type',
+                'tasks.attachment_path',
+                'tasks.attachment_name',
+                'tasks.attachment_mime',
+                'tasks.reviewed_at',
                 'users.full_name',
                 'users.name as user_name'
             )
@@ -170,10 +176,89 @@ class ProjectTaskService
                 'pending_to' => $pending
                     ? ($columnLabels[$pending->to_column_key] ?? $pending->to_column_key)
                     : null,
+                'submission' => self::submissionMeta($row),
+                'reviewed_at' => $row->reviewed_at
+                    ? \Carbon\Carbon::parse($row->reviewed_at)->format('d M Y H:i')
+                    : null,
             ];
         }
 
         return array_values($board);
+    }
+
+    /**
+     * Bukti pengumpulan tugas: berkas unggahan atau tautan. Null bila mahasiswa
+     * belum mengumpulkan apa pun.
+     *
+     * @return array{kind: string, label: string, url: string, is_image: bool}|null
+     */
+    public static function submissionMeta(object $row): ?array
+    {
+        if (! empty($row->attachment_path)) {
+            return [
+                'kind' => 'file',
+                'label' => $row->attachment_name ?: 'Berkas tugas',
+                // asset() mengikuti host permintaan, sama seperti papan mahasiswa.
+                // Storage::url() akan terkunci ke APP_URL dan putus di host lain.
+                'url' => asset('storage/'.$row->attachment_path),
+                'is_image' => str_starts_with((string) $row->attachment_mime, 'image/'),
+            ];
+        }
+
+        if (! empty($row->link)) {
+            return [
+                'kind' => 'link',
+                'label' => $row->link,
+                'url' => $row->link,
+                'is_image' => false,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Tandai tugas sudah direview dosen. Idempoten: memanggil ulang hanya
+     * memperbarui waktu review.
+     */
+    public function markReviewed(int $projectId, int $taskId, int $lecturerId): void
+    {
+        $task = DB::table('tasks')
+            ->where('id', $taskId)
+            ->where('project_id', $projectId)
+            ->first();
+
+        if (! $task) {
+            throw ValidationException::withMessages(['task' => 'Tugas tidak ditemukan.']);
+        }
+
+        DB::table('tasks')
+            ->where('id', $taskId)
+            ->update([
+                'reviewed_at' => now(),
+                'reviewed_by' => $lecturerId,
+                'updated_at' => now(),
+            ]);
+
+        if (! $task->assigned_to) {
+            return;
+        }
+
+        $email = DB::table('users')->where('id', $task->assigned_to)->value('email');
+
+        if (! $email) {
+            return;
+        }
+
+        DB::table('project_notifications')->insert([
+            'project_id' => $projectId,
+            'recipient_email' => strtolower(trim((string) $email)),
+            'type' => 'task_reviewed',
+            'title' => 'Tugas Anda sudah direview dosen',
+            'message' => 'Dosen telah mereview tugas "'.$task->task_title.'". Cek komentar pada tugas tersebut.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

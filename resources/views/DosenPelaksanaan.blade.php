@@ -121,7 +121,7 @@
     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-bold text-gray-800 uppercase">Papan Kanban</h3>
-            <span class="text-[10px] text-gray-400"><i class="fas fa-comment-dots mr-1"></i>Klik ikon komentar pada tugas untuk memberi masukan</span>
+            <span class="text-[10px] text-gray-400"><i class="fas fa-comment-dots mr-1"></i>Buka bukti pengumpulan, beri komentar, lalu tandai sudah direview</span>
         </div>
 
         @include('partials.filter-bar', [
@@ -139,7 +139,7 @@
             'summary' => 'Menampilkan '.$shownTasks.' dari '.$totalTasks.' tugas di papan.',
         ])
 
-        @include('partials.kanban-board', ['editable' => false, 'id' => $id, 'kanban' => $kanban])
+        @include('partials.kanban-board', ['editable' => false, 'lecturer' => true, 'id' => $id, 'kanban' => $kanban])
     </div>
 
     <!-- KONTRIBUSI PER MAHASISWA -->

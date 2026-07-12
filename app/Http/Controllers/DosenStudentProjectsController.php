@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class DosenStudentProjectsController extends Controller
 {
-    /** @var list<string> */
-    private const APPROVED_STATUSES = ['active', 'completed'];
-
     public function __construct(private readonly ProjectTaskService $tasks) {}
 
     public function index(Request $request)
@@ -24,7 +21,7 @@ class DosenStudentProjectsController extends Controller
 
         $base = Project::query()
             ->where('lecturer_email', $email)
-            ->whereIn('status', self::APPROVED_STATUSES);
+            ->whereIn('status', ProjectAccess::lecturerVisibleStatuses());
 
         $total = (clone $base)->count();
 
@@ -86,7 +83,12 @@ class DosenStudentProjectsController extends Controller
                 ->sort()
                 ->mapWithKeys(fn ($c) => [$c => $c])
                 ->all(),
-            'statusOptions' => ['active' => 'Berjalan', 'completed' => 'Selesai'],
+            'statusOptions' => [
+                'active' => 'Berjalan',
+                'pending_final_review' => 'Menunggu Penilaian',
+                'pending_final_revision' => 'Revisi Finalisasi',
+                'completed' => 'Selesai',
+            ],
         ]);
     }
 
@@ -119,7 +121,7 @@ class DosenStudentProjectsController extends Controller
             abort(403, 'Anda tidak memiliki akses ke proyek ini.');
         }
 
-        if (! in_array($project->status, self::APPROVED_STATUSES, true)) {
+        if (! in_array($project->status, ProjectAccess::lecturerVisibleStatuses(), true)) {
             return redirect()
                 ->route('dosen.proyek-mahasiswa')
                 ->with('error', 'Proyek ini belum disetujui atau masih menunggu persetujuan.');
@@ -155,7 +157,7 @@ class DosenStudentProjectsController extends Controller
             'id' => $project->id,
             'name' => $project->title,
             'status' => $project->status,
-            'status_label' => $project->status === 'completed' ? 'Selesai' : 'Berjalan',
+            'status_label' => ProjectAccess::toSelectedArray($project)['status_label'],
             'description' => ProjectAccess::displayDescription($project->description, 120),
             'group_name' => $project->group_name ?? '-',
             'course_name' => $project->course_name ?? '-',
@@ -209,7 +211,7 @@ class DosenStudentProjectsController extends Controller
             'id' => $project->id,
             'name' => $project->title,
             'status' => $project->status,
-            'status_label' => $project->status === 'completed' ? 'Selesai' : 'Berjalan',
+            'status_label' => ProjectAccess::toSelectedArray($project)['status_label'],
             'group_name' => $project->group_name,
             'course_name' => $project->course_name,
             'masalah' => $parsed['masalah'],
@@ -226,9 +228,9 @@ class DosenStudentProjectsController extends Controller
             'pending_problem_review' => $pendingProblemReview,
             'task_progress' => $progress,
             'pending_task_approval' => $pendingApproval,
-            'tasks_finalized' => $progress['total'] > 0
-                && $progress['done'] === $progress['total']
-                && $pendingApproval === 0,
+            // Finalisasi kini dinyatakan tim lewat tombol Submit Finalisasi,
+            // bukan ditebak dari jumlah tugas yang selesai.
+            'tasks_finalized' => ProjectAccess::isFinalized($project->status),
             'is_evaluated' => $isEvaluated,
         ];
     }

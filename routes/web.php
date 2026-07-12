@@ -196,6 +196,12 @@ Route::get(
     Route::post('/dosen/proyek/{id}/pelaksanaan/approval/{approvalId}/reject', [\App\Http\Controllers\DosenProjectMonitorController::class, 'reject'])
         ->name('dosen.pelaksanaan.reject');
 
+    Route::post('/dosen/proyek/{id}/pelaksanaan/tugas/{taskId}/reviewed', [\App\Http\Controllers\DosenProjectMonitorController::class, 'markReviewed'])
+        ->name('dosen.pelaksanaan.tandai-review');
+
+    Route::post('/dosen/proyek/{id}/finalisasi/revisi', [\App\Http\Controllers\DosenPenilaianController::class, 'requestRevision'])
+        ->name('dosen.finalisasi.revisi');
+
     Route::get('/dosen/proyek/{id}/penilaian', [\App\Http\Controllers\DosenPenilaianController::class, 'show'])
         ->name('dosen.penilaian');
 
@@ -327,6 +333,11 @@ Route::get(
                 [PelaksanaanController::class, 'store']
             )->name('boards.store');
 
+            Route::post(
+                '/finalisasi',
+                [\App\Http\Controllers\FinalisasiController::class, 'submit']
+            )->name('finalisasi.submit');
+
             Route::get(
                 '/penilaian-kelompok',
                 [NilaiKelompokController::class, 'index']
@@ -382,7 +393,6 @@ Route::get(
     Route::post('/boards/{board}/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::post('/tasks/move', [PelaksanaanController::class, 'moveTask'])->name('tasks.move');
     Route::post('/tasks/{taskId}/update', [PelaksanaanController::class, 'updateTask'])->name('tasks.update');
-    Route::post('/tasks/{taskId}/comment', [PelaksanaanController::class, 'comment'])->name('tasks.comment');
     Route::delete('/tasks/{taskId}', [PelaksanaanController::class, 'destroyTask'])->name('tasks.destroy');
         /*
 

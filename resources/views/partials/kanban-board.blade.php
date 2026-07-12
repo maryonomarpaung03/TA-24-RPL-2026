@@ -1,5 +1,7 @@
 @php
     $editable = $editable ?? false;
+    // Mode dosen: bisa membuka bukti pengumpulan & menandai tugas sudah direview.
+    $lecturer = $lecturer ?? false;
     $board = $kanban ?? [];
 @endphp
 
@@ -91,6 +93,36 @@
                     </span>
                     @endif
                 </div>
+
+                {{-- Bukti pengumpulan mahasiswa: berkas unggahan atau tautan --}}
+                @if(!empty($task['submission']))
+                <div class="mt-3 space-y-1.5">
+                    <a href="{{ $task['submission']['url'] }}" target="_blank" rel="noopener"
+                       class="flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-1.5 text-[9px] font-bold text-blue-700 hover:bg-blue-100 transition">
+                        <i class="fas {{ $task['submission']['kind'] === 'link' ? 'fa-link' : ($task['submission']['is_image'] ? 'fa-image' : 'fa-file-arrow-down') }} shrink-0"></i>
+                        <span class="truncate">{{ $task['submission']['kind'] === 'link' ? 'Buka link tugas' : $task['submission']['label'] }}</span>
+                    </a>
+
+                    @if(!empty($task['reviewed_at']))
+                    <div class="flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1.5 text-[9px] font-bold text-emerald-700">
+                        <i class="fas fa-circle-check"></i>
+                        Sudah direview &middot; {{ $task['reviewed_at'] }}
+                    </div>
+                    @elseif($lecturer)
+                    <form method="POST" action="{{ route('dosen.pelaksanaan.tandai-review', [$id, $task['id']]) }}">
+                        @csrf
+                        <button type="submit"
+                                class="w-full rounded-lg border border-emerald-200 bg-white px-2 py-1.5 text-[9px] font-bold text-emerald-700 hover:bg-emerald-50 transition">
+                            <i class="fas fa-check mr-1"></i>Tandai Sudah Direview
+                        </button>
+                    </form>
+                    @endif
+                </div>
+                @elseif($lecturer)
+                <p class="mt-3 rounded-lg border border-dashed border-gray-200 px-2 py-1.5 text-[9px] font-bold text-gray-400">
+                    <i class="fas fa-inbox mr-1"></i>Belum ada bukti pengumpulan
+                </p>
+                @endif
 
                 @if(!empty($task['pending_to']))
                 <div class="mt-3 flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-100 px-2 py-1.5 text-[9px] font-bold text-purple-700">
