@@ -37,11 +37,21 @@ return new class extends Migration
         if (! Schema::hasTable('task_comments')) {
             Schema::create('task_comments', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('task_id')->constrained('tasks')->cascadeOnDelete();
+
+                
+                $table->bigInteger('task_id');
+
+                $table->foreign('task_id')
+                    ->references('id')
+                    ->on('tasks')
+                    ->cascadeOnDelete();
+
                 $table->text('comment');
+
                 $table->timestamps();
             });
         }
+
     }
 
     public function down(): void
