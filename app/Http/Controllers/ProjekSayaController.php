@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Services\StageProgressService;
 use App\Support\ProjectAccess;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class ProjekSayaController extends Controller
 {
+    public function __construct(private readonly StageProgressService $stages) {}
+
     /** status DB => label UI */
     private const STATUS_LABELS = [
         'draft' => 'Draft',
@@ -149,14 +152,10 @@ class ProjekSayaController extends Controller
             'status' => $uiStatus,
             'label' => $uiStatus,
             'db_status' => $project->status,
-            'progress' => match ($project->status) {
-                'draft' => 10,
-                'pending_approval' => 25,
-                'pending_revision' => 55,
-                'active' => 60,
-                'completed' => 100,
-                default => 0,
-            },
+            // Dihitung dari tahapan CT yang benar-benar diselesaikan, bukan ditebak
+            // dari status proyek (dulu semua proyek "active" selalu tampil 60%).
+            'progress' => $this->stages->percent((int) $project->id, $project->status),
+            'progress_stage' => StageProgressService::label($this->stages->currentStage((int) $project->id)),
             'can_manage' => (int) $project->created_by === $currentUserId,
             'description' => ProjectAccess::shortDescription($project->description),
             'created_at' => Carbon::parse($project->created_at)->format('d/m/Y'),

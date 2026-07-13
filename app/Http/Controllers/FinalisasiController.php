@@ -13,7 +13,7 @@ class FinalisasiController extends Controller
 {
     public function __construct(private readonly FinalizationService $finalization) {}
 
-    /** Kirim finalisasi proyek ke dosen dari halaman Pelaksanaan & Evaluasi. */
+    /** Kirim finalisasi proyek ke dosen dari tahapan Assessment & Reflection. */
     public function submit(Request $request, int $id)
     {
         $project = Project::query()->findOrFail($id);
@@ -62,7 +62,7 @@ class FinalisasiController extends Controller
         }
 
         return redirect()
-            ->route('pelaksanaan', $project->id)
+            ->route('penilaian-individu', $project->id)
             ->with('success', 'Finalisasi proyek berhasil dikirim ke dosen. Proyek kini terkunci sampai dosen menilai.');
     }
 }

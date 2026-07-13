@@ -17,7 +17,10 @@ class FinalizationService
     /** Dosen meminta perbaikan; tim boleh mengubah proyek lagi. */
     public const STATUS_REVISION = 'pending_final_revision';
 
-    public function __construct(private readonly ProjectTaskService $tasks) {}
+    public function __construct(
+        private readonly ProjectTaskService $tasks,
+        private readonly StageProgressService $stages,
+    ) {}
 
     /**
      * Status proyek yang berarti "berkas final sudah dikirim & terkunci".
@@ -35,8 +38,8 @@ class FinalizationService
     }
 
     /**
-     * Prasyarat yang dicek sistem sebelum tim boleh finalisasi. Tiap item
-     * dipakai langsung oleh modal pra-finalisasi di halaman Pelaksanaan.
+     * Prasyarat yang dicek sistem sebelum tim boleh finalisasi. Tiap item dipakai
+     * langsung oleh modal pra-finalisasi di tahapan Assessment & Reflection.
      *
      * @return array{items: list<array{key: string, label: string, detail: string, passed: bool}>, passed: bool}
      */
@@ -190,10 +193,14 @@ class FinalizationService
             $attributes['report_mime'] = $report->getMimeType();
         }
 
-        return DB::transaction(function () use ($project, $attributes) {
+        return DB::transaction(function () use ($project, $attributes, $userId) {
             $submission = FinalSubmission::create($attributes);
 
             $project->update(['status' => self::STATUS_REVIEW]);
+
+            // Mengirim laporan akhir sekaligus menutup tahap Assessment & Reflection:
+            // tahap itu tidak punya tombol finalisasi sendiri.
+            $this->stages->finalizeOnFinalSubmission($project, $userId);
 
             $this->notifyLecturer($project, $submission);
 

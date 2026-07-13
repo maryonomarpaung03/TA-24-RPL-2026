@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Services\ProjectTaskService;
+use App\Services\StageProgressService;
 use App\Support\ProjectAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,7 +12,23 @@ use Illuminate\Support\Facades\DB;
 
 class DosenStudentProjectsController extends Controller
 {
-    public function __construct(private readonly ProjectTaskService $tasks) {}
+    public function __construct(
+        private readonly ProjectTaskService $tasks,
+        private readonly StageProgressService $stages,
+    ) {}
+
+    /**
+     * Status DB => label UI. Kosakatanya mengikuti filter mahasiswa
+     * (lihat ProjekSayaController), dibatasi ke status yang memang terlihat dosen.
+     *
+     * @var array<string, string>
+     */
+    private const STATUS_LABELS = [
+        'active' => 'In Progress',
+        'pending_final_review' => 'Menunggu Penilaian',
+        'pending_final_revision' => 'Revisi Finalisasi',
+        'completed' => 'Done',
+    ];
 
     public function index(Request $request)
     {
@@ -83,12 +100,7 @@ class DosenStudentProjectsController extends Controller
                 ->sort()
                 ->mapWithKeys(fn ($c) => [$c => $c])
                 ->all(),
-            'statusOptions' => [
-                'active' => 'Berjalan',
-                'pending_final_review' => 'Menunggu Penilaian',
-                'pending_final_revision' => 'Revisi Finalisasi',
-                'completed' => 'Selesai',
-            ],
+            'statusOptions' => self::STATUS_LABELS,
         ]);
     }
 
@@ -129,6 +141,8 @@ class DosenStudentProjectsController extends Controller
 
         return view('DosenStudentProjectDetail', [
             'project' => $this->mapDetailRow($project),
+            'stage_overview' => $this->stages->overview((int) $project->id),
+            'reopen_requests' => $this->stages->reopenRequests((int) $project->id),
         ]);
     }
 

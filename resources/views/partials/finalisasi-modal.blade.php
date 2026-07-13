@@ -1,5 +1,10 @@
-{{-- Modal pra-finalisasi proyek. Butuh state Alpine `finalModal` di ancestor,
-     serta $id, $readiness, dan $lastSubmission dari PelaksanaanController. --}}
+{{-- Modal pra-finalisasi proyek, dirender dari bar aksi tahap Assessment & Reflection.
+     Butuh state Alpine `finalModal` di ancestor; $finalReadiness dan $selected_project
+     disiapkan AppServiceProvider, jadi modal ini tidak terikat ke satu controller. --}}
+@php
+    $id = $selected_project['id'];
+    $readiness = $finalReadiness;
+@endphp
 <div x-show="finalModal" x-cloak
      class="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-10"
      @keydown.escape.window="finalModal = false">

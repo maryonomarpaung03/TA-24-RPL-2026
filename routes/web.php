@@ -220,32 +220,43 @@ Route::get(
     Route::post('/dosen/proyek/{id}/problem-identification/{problemId}/review', [\App\Http\Controllers\DosenProblemReviewController::class, 'review'])
         ->name('dosen.problem-review.submit');
 
-    Route::post('/problem-identification/{id}/store', [\App\Http\Controllers\ProblemIdentificationController::class, 'store'])
-        ->name('problem.store');
+    Route::post('/dosen/proyek/{id}/tahapan/{requestId}/setujui', [\App\Http\Controllers\DosenStageController::class, 'approve'])
+        ->name('dosen.stage.reopen.approve');
 
-    Route::post('/problem-identification/{id}/update-problem', [\App\Http\Controllers\ProblemIdentificationController::class, 'updateProblem'])
-        ->name('problem.update');
+    Route::post('/dosen/proyek/{id}/tahapan/{requestId}/tolak', [\App\Http\Controllers\DosenStageController::class, 'reject'])
+        ->name('dosen.stage.reopen.reject');
 
-    Route::post('/problem-identification/{id}/delete-problem', [\App\Http\Controllers\ProblemIdentificationController::class, 'deleteProblem'])
-        ->name('problem.delete');
+    // Tahap Problem Identification terkunci begitu difinalisasi: aksi tulis di
+    // bawah ini ditolak middleware sampai dosen menyetujui perbaikan.
+    Route::middleware('stage.waterfall')->group(function () {
 
-    Route::post('/problem-identification/{id}/propose-voting', [\App\Http\Controllers\ProblemIdentificationController::class, 'proposeForVoting'])
-        ->name('problem.propose-voting');
+        Route::post('/problem-identification/{id}/store', [\App\Http\Controllers\ProblemIdentificationController::class, 'store'])
+            ->name('problem.store');
 
-    Route::post('/problem-identification/{id}/vote', [\App\Http\Controllers\ProblemIdentificationController::class, 'vote'])
-        ->name('problem.vote');
+        Route::post('/problem-identification/{id}/update-problem', [\App\Http\Controllers\ProblemIdentificationController::class, 'updateProblem'])
+            ->name('problem.update');
 
-    Route::post('/problem-identification/{id}/comment', [\App\Http\Controllers\ProblemIdentificationController::class, 'comment'])
-        ->name('problem.comment');
+        Route::post('/problem-identification/{id}/delete-problem', [\App\Http\Controllers\ProblemIdentificationController::class, 'deleteProblem'])
+            ->name('problem.delete');
 
-    Route::post('/problem-identification/{id}/discuss', [\App\Http\Controllers\ProblemIdentificationController::class, 'discuss'])
-        ->name('problem.discuss');
+        Route::post('/problem-identification/{id}/propose-voting', [\App\Http\Controllers\ProblemIdentificationController::class, 'proposeForVoting'])
+            ->name('problem.propose-voting');
 
-    Route::post('/problem-identification/{id}/submit-lecturer', [\App\Http\Controllers\ProblemIdentificationController::class, 'submitToLecturer'])
-        ->name('problem.submit-lecturer');
+        Route::post('/problem-identification/{id}/vote', [\App\Http\Controllers\ProblemIdentificationController::class, 'vote'])
+            ->name('problem.vote');
 
-    Route::post('/problem-identification/{id}/resubmit', [\App\Http\Controllers\ProblemIdentificationController::class, 'resubmit'])
-        ->name('problem.resubmit');
+        Route::post('/problem-identification/{id}/comment', [\App\Http\Controllers\ProblemIdentificationController::class, 'comment'])
+            ->name('problem.comment');
+
+        Route::post('/problem-identification/{id}/discuss', [\App\Http\Controllers\ProblemIdentificationController::class, 'discuss'])
+            ->name('problem.discuss');
+
+        Route::post('/problem-identification/{id}/submit-lecturer', [\App\Http\Controllers\ProblemIdentificationController::class, 'submitToLecturer'])
+            ->name('problem.submit-lecturer');
+
+        Route::post('/problem-identification/{id}/resubmit', [\App\Http\Controllers\ProblemIdentificationController::class, 'resubmit'])
+            ->name('problem.resubmit');
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -269,8 +280,29 @@ Route::get(
         });
 
     Route::prefix('projek/{id}')
-        ->middleware('project.pjbl')
+        ->middleware(['project.pjbl', 'stage.waterfall'])
         ->group(function () {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Tahapan CT (waterfall)
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/tahapan/finalisasi',
+                [\App\Http\Controllers\ProjectStageController::class, 'finalize']
+            )->name('stages.finalize');
+
+            Route::post(
+                '/tahapan/lanjut',
+                [\App\Http\Controllers\ProjectStageController::class, 'advance']
+            )->name('stages.advance');
+
+            Route::post(
+                '/tahapan/perbaikan',
+                [\App\Http\Controllers\ProjectStageController::class, 'requestReopen']
+            )->name('stages.reopen');
 
             Route::get(
                 '/dekomposisi',
@@ -353,15 +385,19 @@ Route::get(
                 [NilaiIndividuController::class, 'index']
             )->name('penilaian-individu');
 
-            Route::get(
-                '/penilaian-dosen-status',
-                [BelumDosenNilaiController::class, 'index']
-            )->name('penilaian-dosen-status');
+            // Nilai dari dosen baru bisa dilihat setelah tim mengirim finalisasi proyek.
+            Route::middleware('final.submitted')->group(function () {
 
-            Route::get(
-                '/nilai-dari-dosen',
-                [NilaiDariDosenController::class, 'index']
-            )->name('nilai-dari-dosen');
+                Route::get(
+                    '/penilaian-dosen-status',
+                    [BelumDosenNilaiController::class, 'index']
+                )->name('penilaian-dosen-status');
+
+                Route::get(
+                    '/nilai-dari-dosen',
+                    [NilaiDariDosenController::class, 'index']
+                )->name('nilai-dari-dosen');
+            });
 
             Route::get(
                 '/chat',

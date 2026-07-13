@@ -69,6 +69,12 @@ class NotificationPresenter
                     => route('dosen.problem-review', $projectId),
                 in_array($type, ['project_submitted', 'project_revision_submitted'], true)
                     => route('dosen.persetujuan.show', $projectId),
+                in_array($type, ['final_submitted', 'stage_assessment_ready'], true)
+                    => route('dosen.penilaian', $projectId),
+                // Halaman detail proyek memuat ringkasan tiap tahapan sekaligus
+                // tombol setujui/tolak permintaan perbaikan.
+                str_starts_with($type, 'stage_')
+                    => route('dosen.proyek-mahasiswa.show', $projectId),
                 default => route('dosen.proyek-mahasiswa.show', $projectId),
             };
         }
@@ -91,6 +97,9 @@ class NotificationPresenter
             return match (true) {
                 in_array($type, ['problem_submitted_for_review', 'problem_resubmitted'], true) => 'Review masalah',
                 in_array($type, ['project_submitted', 'project_revision_submitted'], true) => 'Review pengajuan',
+                in_array($type, ['final_submitted', 'stage_assessment_ready'], true) => 'Beri penilaian',
+                $type === 'stage_reopen_requested' => 'Tinjau permintaan',
+                str_starts_with($type, 'stage_') => 'Lihat tahapan',
                 default => 'Lihat proyek',
             };
         }
@@ -98,6 +107,7 @@ class NotificationPresenter
         return match (true) {
             $type === 'task_assigned' => 'Buka tugas',
             in_array($type, ['problem_approved', 'problem_revision'], true) => 'Problem Identification',
+            str_starts_with($type, 'stage_') => 'Buka tahapan',
             default => 'Buka proyek',
         };
     }
@@ -112,6 +122,16 @@ class NotificationPresenter
                 'icon' => 'fa-tasks',
                 'bg' => 'bg-violet-100',
                 'text' => 'text-violet-600',
+            ],
+            in_array($type, ['stage_skipped', 'stage_reopen_requested', 'stage_reopen_rejected'], true) => [
+                'icon' => 'fa-triangle-exclamation',
+                'bg' => 'bg-amber-100',
+                'text' => 'text-amber-600',
+            ],
+            str_starts_with($type, 'stage_') => [
+                'icon' => 'fa-flag-checkered',
+                'bg' => 'bg-emerald-100',
+                'text' => 'text-emerald-600',
             ],
             str_contains($type, 'problem') => [
                 'icon' => 'fa-lightbulb',

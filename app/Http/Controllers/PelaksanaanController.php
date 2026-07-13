@@ -88,7 +88,6 @@ class PelaksanaanController extends Controller
             // Finalisasi proyek
             'projectStatus' => $selected['status'] ?? null,
             'locked' => $locked,
-            'readiness' => $this->finalization->readiness((int) $id),
             'lastSubmission' => $this->finalization->latestSubmission((int) $id),
 
         ]);

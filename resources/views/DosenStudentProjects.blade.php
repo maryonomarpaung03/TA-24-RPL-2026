@@ -42,7 +42,7 @@
             @foreach($approved_projects as $project)
             <article class="rounded-2xl border border-gray-100 p-4 hover:border-blue-200 hover:shadow-md transition">
                 <div class="flex items-start justify-between gap-2 mb-2">
-                    <span class="text-[10px] font-black uppercase {{ $project['status'] === 'completed' ? 'text-orange-500' : 'text-blue-600' }}">
+                    <span class="text-[10px] font-black uppercase {{ $project['status'] === 'completed' ? 'text-emerald-600' : 'text-blue-600' }}">
                         {{ $project['status_label'] }}
                     </span>
                     <span class="text-[10px] text-gray-400">{{ $project['updated_at'] }}</span>

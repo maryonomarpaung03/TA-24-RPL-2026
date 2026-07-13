@@ -24,6 +24,10 @@
 
             @if(!empty($selected_project) && ($selected_project['can_access_pjbl'] ?? false))
                 @include('partials.project-workflow-tabs')
+
+                @if(!empty($stage_overview) && !empty($active_stage))
+                    @include('partials.stage-actions')
+                @endif
             @endif
 
             <div class="@yield('content_wrapper_class', 'w-full min-w-0 flex-1 p-4 lg:p-5')">

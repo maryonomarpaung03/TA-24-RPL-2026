@@ -1,16 +1,16 @@
 @extends('layouts.app')
 
-@section('title', 'Projek Saya - DELPRO')
+@section('title', 'Proyek Saya - DELPRO')
 @section('body_class', 'bg-gray-50 font-sans')
 
 @section('content')
 <div class="w-full">
     <div class="flex justify-between items-center mb-8">
         <div>
-            <h2 class="text-3xl font-bold text-gray-900">Projek Saya</h2>
+            <h2 class="text-3xl font-bold text-gray-900">Proyek Saya</h2>
             <p class="text-gray-500">Kelola semua proyek akademik Anda</p>
         </div>
-        <a href="{{ route('buat-projek') }}" class="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition">+ Buat Projek</a>
+        <a href="{{ route('buat-projek') }}" class="bg-black text-white px-6 py-2.5 rounded-full font-bold hover:bg-gray-800 transition">+ Buat Proyek</a>
     </div>
 
     @include('partials.filter-bar', [
@@ -42,13 +42,31 @@
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         @foreach($projects as $p)
         <article class="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-            <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Draft' ? 'text-slate-500' : ($p['status'] === 'In Review' || $p['status'] === 'Review Perubahan' ? 'text-amber-600' : ($p['status'] === 'Done' ? 'text-orange-500' : ($p['status'] === 'Planning' || $p['status'] === 'Rejected' || $p['status'] === 'Archived' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $p['label'] }}</div>
+            <div class="text-[10px] font-black uppercase mb-2 {{ $p['status'] === 'Draft' ? 'text-slate-500' : ($p['status'] === 'In Review' || $p['status'] === 'Review Perubahan' ? 'text-amber-600' : ($p['status'] === 'Done' ? 'text-emerald-600' : ($p['status'] === 'Planning' || $p['status'] === 'Rejected' || $p['status'] === 'Archived' ? 'text-gray-500' : 'text-blue-600'))) }}">{{ $p['label'] }}</div>
             <a href="{{ route('problem-identification', $p['id']) }}" class="font-bold text-gray-900 hover:text-blue-600 transition line-clamp-2">{{ $p['name'] }}</a>
             <p class="text-xs text-gray-500 mt-2 mb-4 line-clamp-2">{{ $p['description'] }}</p>
-            <div class="text-[10px] font-black text-gray-400 uppercase mb-2">Progress</div>
-            <div class="w-full bg-gray-100 h-1.5 rounded-full mb-4">
-                <div class="h-full rounded-full {{ $p['status'] === 'Done' ? 'bg-orange-500' : 'bg-blue-600' }}" style="width: {{ $p['progress'] }}%"></div>
+            @php
+                // Selesai = hijau, di bawah setengah jalan = oranye (perlu perhatian), sisanya biru.
+                [$progressText, $progressBar] = match (true) {
+                    $p['status'] === 'Done' => ['text-emerald-600', 'bg-emerald-500'],
+                    $p['progress'] < 50 => ['text-orange-500', 'bg-orange-500'],
+                    default => ['text-blue-600', 'bg-blue-600'],
+                };
+            @endphp
+            <div class="flex items-baseline justify-between mb-2">
+                <span class="text-[10px] font-black text-gray-400 uppercase">Progress</span>
+                <span class="text-[10px] font-black {{ $progressText }}">{{ $p['progress'] }}%</span>
             </div>
+            <div class="w-full bg-gray-100 h-1.5 rounded-full mb-1.5">
+                <div class="h-full rounded-full {{ $progressBar }}" style="width: {{ $p['progress'] }}%"></div>
+            </div>
+            <p class="text-[10px] text-gray-400 mb-4 truncate">
+                @if($p['status'] === 'Done')
+                    Seluruh tahapan selesai
+                @else
+                    Tahap berjalan: {{ $p['progress_stage'] }}
+                @endif
+            </p>
             <div class="space-y-3">
                 @include('partials.project-manage-actions', [
                     'canManage' => $p['can_manage'] ?? false,
@@ -69,7 +87,7 @@
 
         <a href="{{ route('buat-projek') }}" class="bg-white rounded-2xl border-2 border-dashed border-gray-300 p-6 min-h-[200px] flex flex-col items-center justify-center text-center hover:border-blue-400 hover:bg-blue-50 transition">
             <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4"><i class="fas fa-plus"></i></div>
-            <h3 class="font-bold text-gray-700 mb-2">Mulai Projek Baru</h3>
+            <h3 class="font-bold text-gray-700 mb-2">Mulai Proyek Baru</h3>
             <p class="text-sm text-gray-500">Buat ruang kolaborasi baru untuk ide penelitian Anda.</p>
         </a>
     </div>

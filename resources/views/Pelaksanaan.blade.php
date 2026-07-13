@@ -6,7 +6,6 @@
                         commentModal: false,
                         editModal: false,
                         addComment: false,
-                        finalModal: false,
                         activeColumn:null,
                         selectedTask:{
                             id:null,
@@ -40,6 +39,8 @@
             </p>
         </div>
 
+        {{-- Finalisasi proyek dikirim dari tahap Assessment & Reflection; di sini
+             hanya ditampilkan akibatnya pada papan tugas. --}}
         @if($locked)
             <div class="flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-5 py-2.5">
                 <i class="fas fa-lock text-emerald-600"></i>
@@ -47,12 +48,6 @@
                     {{ $projectStatus === 'completed' ? 'Proyek selesai & sudah dinilai' : 'Finalisasi terkirim — menunggu penilaian dosen' }}
                 </span>
             </div>
-        @else
-            <button type="button" @click="finalModal = true"
-                    class="flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-blue-700 transition">
-                <i class="fas fa-paper-plane"></i>
-                Submit Finalisasi Proyek
-            </button>
         @endif
     </div>
 
@@ -63,7 +58,8 @@
         </p>
         <p class="text-sm text-amber-800 mt-1 whitespace-pre-line">{{ $lastSubmission->lecturer_note }}</p>
         <p class="text-xs text-amber-700 mt-2">
-            Perbaiki yang diminta, lalu kirim ulang lewat tombol <span class="font-bold">Submit Finalisasi Proyek</span>.
+            Perbaiki yang diminta, lalu kirim ulang dari tahapan
+            <a href="{{ route('penilaian-individu', $id) }}" class="font-bold underline">Assessment &amp; Reflection</a>.
         </p>
     </div>
     @endif
@@ -813,13 +809,6 @@ $progress = $totalTask ? round(($completedTask/$totalTask)*100) : 0;
 
 </div>
 
-{{-- ===================================================== --}}
-{{-- MODAL FINALISASI PROYEK --}}
-{{-- ===================================================== --}}
-
-@unless($locked)
-    @include('partials.finalisasi-modal')
-@endunless
 @endsection
 
 @push('scripts')
