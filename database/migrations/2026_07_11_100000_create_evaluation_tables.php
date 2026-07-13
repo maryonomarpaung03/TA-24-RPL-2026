@@ -6,64 +6,124 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
-    {
-        // Penilaian kelompok oleh dosen (satu per proyek).
+    public function up(): void{
+        // Penilaian kelompok oleh dosen
         if (! Schema::hasTable('project_evaluations')) {
             Schema::create('project_evaluations', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
-                $table->foreignId('lecturer_id')->constrained('users')->cascadeOnDelete();
+
+                $table->bigInteger('project_id');
+                $table->bigInteger('lecturer_id');
+
                 $table->unsignedTinyInteger('group_score');
                 $table->json('components')->nullable();
                 $table->text('note')->nullable();
                 $table->timestamp('evaluated_at')->nullable();
                 $table->timestamps();
 
+                $table->foreign('project_id')
+                    ->references('id')
+                    ->on('projects')
+                    ->onDelete('cascade');
+
+                $table->foreign('lecturer_id')
+                    ->references('id')
+                    ->on('users')
+                    ->onDelete('cascade');
+
                 $table->unique('project_id');
             });
         }
 
-        // Penilaian individu oleh dosen (satu per mahasiswa per proyek).
+        // Penilaian individu oleh dosen
         if (! Schema::hasTable('student_evaluations')) {
             Schema::create('student_evaluations', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
-                $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
-                $table->foreignId('lecturer_id')->constrained('users')->cascadeOnDelete();
+
+                $table->bigInteger('project_id');
+                $table->bigInteger('student_id');
+                $table->bigInteger('lecturer_id');
+
                 $table->unsignedTinyInteger('score');
                 $table->json('criteria')->nullable();
                 $table->text('feedback')->nullable();
                 $table->timestamp('evaluated_at')->nullable();
                 $table->timestamps();
 
+                $table->foreign('project_id')
+                    ->references('id')
+                    ->on('projects')
+                    ->onDelete('cascade');
+
+                $table->foreign('student_id')
+                    ->references('id')
+                    ->on('users')
+                    ->onDelete('cascade');
+
+                $table->foreign('lecturer_id')
+                    ->references('id')
+                    ->on('users')
+                    ->onDelete('cascade');
+
                 $table->unique(['project_id', 'student_id']);
             });
         }
 
-        // Penilaian antar anggota oleh mahasiswa (form Penilaian Kelompok).
+        // Penilaian antaranggota
         if (! Schema::hasTable('peer_evaluations')) {
             Schema::create('peer_evaluations', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
-                $table->foreignId('evaluator_id')->constrained('users')->cascadeOnDelete();
+
+                $table->bigInteger('project_id');
+                $table->bigInteger('evaluator_id');
+
                 $table->unsignedTinyInteger('group_score');
                 $table->text('reflection')->nullable();
                 $table->timestamps();
+
+                $table->foreign('project_id')
+                    ->references('id')
+                    ->on('projects')
+                    ->onDelete('cascade');
+
+                $table->foreign('evaluator_id')
+                    ->references('id')
+                    ->on('users')
+                    ->onDelete('cascade');
 
                 $table->unique(['project_id', 'evaluator_id']);
             });
         }
 
+        // Nilai setiap anggota
         if (! Schema::hasTable('peer_member_scores')) {
             Schema::create('peer_member_scores', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('peer_evaluation_id')->constrained('peer_evaluations')->cascadeOnDelete();
-                $table->foreignId('member_id')->constrained('users')->cascadeOnDelete();
+
+                // ID ini tetap unsigned karena peer_evaluations.id
+                // dibuat menggunakan $table->id().
+                $table->unsignedBigInteger('peer_evaluation_id');
+
+                // users.id menggunakan BIGINT signed.
+                $table->bigInteger('member_id');
+
                 $table->unsignedTinyInteger('score');
                 $table->timestamps();
 
-                $table->unique(['peer_evaluation_id', 'member_id']);
+                $table->foreign('peer_evaluation_id')
+                    ->references('id')
+                    ->on('peer_evaluations')
+                    ->onDelete('cascade');
+
+                $table->foreign('member_id')
+                    ->references('id')
+                    ->on('users')
+                    ->onDelete('cascade');
+
+                $table->unique([
+                    'peer_evaluation_id',
+                    'member_id',
+                ]);
             });
         }
     }
