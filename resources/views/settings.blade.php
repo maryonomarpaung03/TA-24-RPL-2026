@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Settings - DELPRO')
+@section('title', 'Settings - PjBL')
 
 @push('head')
 <style>[x-cloak] { display: none !important; }</style>

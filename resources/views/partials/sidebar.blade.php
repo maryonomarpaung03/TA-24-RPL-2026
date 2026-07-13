@@ -27,7 +27,7 @@
             
 
             <h1 class="text-xl font-bold text-blue-600">
-                DELPRO
+                PjBL
             </h1>
 
             <p

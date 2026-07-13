@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Buat Projek - DELPRO')
+@section('title', 'Buat Projek - PjBL')
 @section('body_class', 'bg-gray-50 font-sans')
 
 @php

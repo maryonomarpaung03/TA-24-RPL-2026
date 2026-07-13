@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dekomposisi Masalah - ' . $project->title . ' - DELPRO')
+@section('title', 'Dekomposisi Masalah - ' . $project->title . ' - PjBL')
 
 @push('head')
 <link rel="stylesheet" href="https://unpkg.com/drawflow/dist/drawflow.min.css">

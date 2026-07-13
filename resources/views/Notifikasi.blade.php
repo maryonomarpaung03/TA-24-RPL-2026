@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Semua Notifikasi - DELPRO')
+@section('title', 'Semua Notifikasi - PjBL')
 
 @section('content')
 <div class="w-full space-y-6">

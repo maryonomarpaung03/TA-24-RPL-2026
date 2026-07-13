@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dekomposisi Masalah - DELPRO')
+@section('title', 'Dekomposisi Masalah - PjBL')
 @section('root_data', '{ sidebarOpen: true }')
 @section('main_class', 'flex-1 flex flex-col min-w-0 overflow-y-auto')
 

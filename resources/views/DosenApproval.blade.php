@@ -1,6 +1,6 @@
 ﻿@extends('layouts.app')
 
-@section('title', 'Approval Project - DELPRO')
+@section('title', 'Approval Project - PjBL')
 
 @section('content')
 <div class="w-full">

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $academicClass->name . ' - DELPRO')
+@section('title', $academicClass->name . ' - PjBL')
 @section('root_data', '{ sidebarOpen: true }')
 
 @section('content')
@@ -255,7 +255,7 @@
                     <i class="fas fa-user-plus"></i> Tambah
                 </button>
             </div>
-            <p class="mt-1 text-[11px] text-slate-500">Mahasiswa harus sudah punya akun DELPRO.</p>
+            <p class="mt-1 text-[11px] text-slate-500">Mahasiswa harus sudah punya akun PjBL.</p>
         </form>
         @endif
 

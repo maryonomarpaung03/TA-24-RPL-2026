@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Kelas Saya - DELPRO')
+@section('title', 'Kelas Saya - PjBL')
 @section('root_data', '{ sidebarOpen: true }')
 
 @section('content')

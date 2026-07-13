@@ -11,7 +11,7 @@ class GroupEvaluationSeeder extends Seeder
     {
         // Create Admin User (for created_by)
         $adminId = DB::table('users')->insertGetId([
-            'name' => 'Admin DELPRO',
+            'name' => 'Admin PjBL',
             'email' => 'admin@delpro.com',
             'password' => bcrypt('password'),
             'created_at' => now(),

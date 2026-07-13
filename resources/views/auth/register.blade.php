@@ -1,6 +1,6 @@
 @extends('layouts.guest')
 
-@section('title', 'Daftar - DELPRO')
+@section('title', 'Daftar - PjBL')
 
 @php
     $inputClass = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20';
@@ -13,7 +13,7 @@
 <div class="flex min-h-screen items-center justify-center px-4 py-10">
     <div class="w-full max-w-4xl rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
         <div class="mb-8 text-center">
-            <p class="text-xs font-semibold uppercase tracking-widest text-blue-600">DELPRO</p>
+            <p class="text-xs font-semibold uppercase tracking-widest text-blue-600">PjBL</p>
             <h1 class="mt-1 text-xl font-bold text-slate-900">Daftar Akun Mahasiswa</h1>
             <p class="mt-1 text-sm text-slate-500">Gunakan NIM untuk pendaftaran mahasiswa.</p>
         </div>

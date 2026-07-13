@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Pelaksanaan & Evaluasi - DELPRO')
+@section('title', 'Pelaksanaan & Evaluasi - PjBL')
 @section('root_data', '{
                         sidebarOpen: true,
                         commentModal: false,

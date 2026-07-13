@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Penilaian Individu - DELPRO')
+@section('title', 'Penilaian Individu - PjBL')
 @section('body_class', 'bg-slate-50 font-sans')
 @section('main_class', 'flex-1 flex flex-col min-w-0 overflow-y-auto')
 
@@ -268,7 +268,7 @@ function downloadEvaluationPdf(type) {
     const groupNote = @json($groupLecturerNote);
 
     doc.setFontSize(16);
-    doc.text('DELPRO - Evaluation Report', 14, 16);
+    doc.text('PjBL - Evaluation Report', 14, 16);
     doc.setFontSize(11);
     doc.text(`Nama: ${studentData.name}`, 14, 24);
     doc.text(`Project: ${studentData.project}`, 14, 30);

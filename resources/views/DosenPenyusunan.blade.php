@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Rencana Proyek Mahasiswa - DELPRO')
+@section('title', 'Rencana Proyek Mahasiswa - PjBL')
 
 @section('content')
 <div class="w-full space-y-6"

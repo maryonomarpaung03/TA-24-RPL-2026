@@ -1,6 +1,6 @@
 @extends('layouts.guest')
 
-@section('title', 'Masuk - DELPRO')
+@section('title', 'Masuk - PjBL')
 
 @section('content')
 <div class="flex min-h-screen items-center justify-center px-6 py-10 bg-slate-50">
@@ -10,7 +10,7 @@
         <!-- Logo -->
         <div class="mb-8 text-center">
             <p class="text-sm font-bold uppercase tracking-widest text-blue-600">
-                DELPRO
+                PjBL
             </p>
 
             <h1 class="mt-2 text-3xl font-bold text-slate-900">

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Penilaian - DELPRO')
+@section('title', 'Penilaian - PjBL')
 @section('root_data', '{ sidebarOpen: true, tab: "kelompok" }')
 
 @section('content')

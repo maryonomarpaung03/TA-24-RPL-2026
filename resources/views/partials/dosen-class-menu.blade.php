@@ -161,7 +161,7 @@
                             'people' => $lecturersForInvite,
                             'fieldName' => 'invite_lecturer_emails[]',
                             'label' => 'Undang Dosen',
-                            'hint' => 'Opsional — cari dosen yang sudah punya akun DELPRO.',
+                            'hint' => 'Opsional — cari dosen yang sudah punya akun PjBL.',
                             'placeholder' => 'Nama atau email dosen...',
                             'oldValues' => old('invite_lecturer_emails', []),
                         ])

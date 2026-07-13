@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Waktu Progres - DELPRO')
+@section('title', 'Waktu Progres - PjBL')
 @section('main_class', 'flex-1 flex flex-col overflow-hidden')
 
 @push('head')

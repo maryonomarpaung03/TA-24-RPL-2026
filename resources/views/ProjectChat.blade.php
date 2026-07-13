@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Chat Project - DELPRO')
+@section('title', 'Chat Project - PjBL')
 @section('root_data', '{ sidebarOpen: true }')
 
 @section('content')

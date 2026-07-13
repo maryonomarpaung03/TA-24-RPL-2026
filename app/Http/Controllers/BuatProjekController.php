@@ -317,7 +317,7 @@ class BuatProjekController extends Controller
             return null;
         }
 
-        return 'Email berikut belum terdaftar di DELPRO sehingga belum ditambahkan ke tim: '
+        return 'Email berikut belum terdaftar di PjBL sehingga belum ditambahkan ke tim: '
             .implode(', ', $skippedEmails);
     }
 

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Proyek Saya - DELPRO')
+@section('title', 'Proyek Saya - PjBL')
 @section('body_class', 'bg-gray-50 font-sans')
 
 @section('content')

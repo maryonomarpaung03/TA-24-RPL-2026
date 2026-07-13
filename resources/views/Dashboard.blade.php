@@ -1,6 +1,6 @@
 ﻿@extends('layouts.app')
 
-@section('title', 'Dashboard - DELPRO')
+@section('title', 'Dashboard - PjBL')
 
 @push('head')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
