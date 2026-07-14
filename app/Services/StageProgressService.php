@@ -79,7 +79,7 @@ class StageProgressService
                 'short' => 'Pelaksanaan',
                 'icon' => 'fa-play',
                 'route' => 'pelaksanaan',
-                'routes' => ['pelaksanaan', 'boards.store', 'waktu-progres'],
+                'routes' => ['pelaksanaan', 'pelaksanaan.*', 'waktu-progres'],
                 'lecturer_route' => 'dosen.pelaksanaan',
             ],
             self::ASSESSMENT => [

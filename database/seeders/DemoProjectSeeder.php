@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\ProjectTaskService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -39,8 +40,8 @@ class DemoProjectSeeder extends Seeder
 
         $problems = $this->seedProblems($students, $angel, $now);
         $this->seedDecomposition($students, $now);
-        $boards = $this->seedBoards($now);
-        $tasks = $this->seedTasks($students, $boards, $now);
+        $this->seedColumns($now);
+        $tasks = $this->seedTasks($students, $now);
         $this->seedTaskDiscussions($tasks, $students, $angel, $now);
         $this->seedApprovals($tasks, $students, $now);
         $this->seedChatAndNotifications($students, $now, $problems);
@@ -141,7 +142,6 @@ class DemoProjectSeeder extends Seeder
         DB::table('task_comments')->whereIn('task_id', $taskIds)->delete();
         DB::table('task_approvals')->where('project_id', self::PROJECT_ID)->delete();
         DB::table('tasks')->where('project_id', self::PROJECT_ID)->delete();
-        DB::table('project_boards')->where('project_id', self::PROJECT_ID)->delete();
 
         DB::table('discussions')->where('project_id', self::PROJECT_ID)->delete();
         DB::table('problem_votes')->where('project_id', self::PROJECT_ID)->delete();
@@ -368,44 +368,26 @@ class DemoProjectSeeder extends Seeder
         ]);
     }
 
-    /** @return array<string, int> nama kolom => board id */
-    private function seedBoards(Carbon $now): array
+    /**
+     * Papan kanban: kolom default (pending / in_progress / completed) yang juga
+     * menjadi status tugas.
+     */
+    private function seedColumns(Carbon $now): void
     {
-        // Kolom papan mengikuti key di project_task_columns: pending / in_progress / completed
-        $boards = [
-            'pending' => ['Belum Dikerjakan', 1, false],
-            'in_progress' => ['Sedang Dikerjakan', 2, false],
-            'completed' => ['Selesai', 3, true],
-        ];
-
-        $ids = [];
-
-        foreach ($boards as $key => [$name, $position, $isCompleted]) {
-            $ids[$key] = (int) DB::table('project_boards')->insertGetId([
-                'project_id' => self::PROJECT_ID,
-                'name' => $name,
-                'position' => $position,
-                'is_completed' => $isCompleted,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        }
+        app(ProjectTaskService::class)->ensureColumns(self::PROJECT_ID);
 
         // Kolom "Selesai" butuh persetujuan dosen -> memunculkan antrean approval.
         DB::table('project_task_columns')
             ->where('project_id', self::PROJECT_ID)
             ->where('key', 'completed')
             ->update(['requires_approval' => 1, 'updated_at' => $now]);
-
-        return $ids;
     }
 
     /**
      * @param  array<string, int>  $s
-     * @param  array<string, int>  $boards
      * @return array<string, int>
      */
-    private function seedTasks(array $s, array $boards, Carbon $now): array
+    private function seedTasks(array $s, Carbon $now): array
     {
         $milestoneId = (int) DB::table('milestones')->where('project_id', self::PROJECT_ID)->value('id');
 
@@ -426,7 +408,6 @@ class DemoProjectSeeder extends Seeder
         foreach ($rows as $key => [$title, $desc, $assignee, $status, $priority, $progress, $startOffset, $dueOffset]) {
             $ids[$key] = (int) DB::table('tasks')->insertGetId([
                 'project_id' => self::PROJECT_ID,
-                'board_id' => $boards[$status],
                 'milestone_id' => $milestoneId ?: null,
                 'parent_task_id' => null,
                 'assigned_to' => $assignee,

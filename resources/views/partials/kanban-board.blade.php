@@ -1,7 +1,23 @@
 @php
-    $editable = $editable ?? false;
-    // Mode dosen: bisa membuka bukti pengumpulan & menandai tugas sudah direview.
+    /*
+        Papan kanban bersama (mahasiswa & dosen). Kolomnya adalah project_task_columns,
+        tugasnya dikelompokkan berdasarkan tasks.status.
+
+        Parameter:
+        - $kanban           : keluaran ProjectTaskService::kanbanForProject()
+        - $id               : id proyek
+        - $lecturer         : mode dosen — buka bukti pengumpulan & tandai sudah direview
+        - $canMove          : tombol "Pindahkan" (butuh openMove() di scope Alpine)
+        - $canSubmit        : tombol "Kumpulkan" (butuh openSubmit() di scope Alpine)
+        - $canManageColumns : ubah/hapus/tambah kolom (butuh modal kolom di halamannya)
+
+        Tugas tidak bisa ditambah, diubah, atau dihapus di sini — semuanya lahir di
+        Penyusunan.
+    */
     $lecturer = $lecturer ?? false;
+    $canMove = $canMove ?? false;
+    $canSubmit = $canSubmit ?? false;
+    $canManageColumns = $canManageColumns ?? false;
     $board = $kanban ?? [];
 @endphp
 
@@ -14,7 +30,7 @@
                 <h4 class="text-sm font-bold text-gray-700 truncate">{{ $col['label'] }}</h4>
                 <span class="text-[10px] font-bold text-gray-400 bg-white rounded-full px-2 py-0.5">{{ count($col['tasks']) }}</span>
             </div>
-            @if($editable)
+            @if($canManageColumns)
             <div class="flex items-center gap-1 shrink-0">
                 <button type="button"
                         @click="editCol = { id: {{ $col['id'] }}, label: @js($col['label']), color: '{{ $col['color'] }}', description: @js($col['description'] ?? ''), is_done: {{ $col['is_done'] ? 'true' : 'false' }}, requires_approval: {{ $col['requires_approval'] ? 'true' : 'false' }}, checklist: @js(!empty($col['checklist']) ? $col['checklist'] : ['']) }; colEditModal = true"
@@ -74,6 +90,10 @@
                     </div>
                 </div>
 
+                @if(!empty($task['description']))
+                <p class="text-[10px] text-gray-500 leading-snug mb-3 line-clamp-3">{{ $task['description'] }}</p>
+                @endif
+
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
                         <div class="w-6 h-6 rounded-full bg-blue-100 text-[8px] flex items-center justify-center font-bold text-blue-600 border border-white" title="{{ $task['assignee'] }}">{{ $task['creator'] }}</div>
@@ -131,50 +151,33 @@
                 </div>
                 @endif
 
-                @if($editable)
-                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    @if(empty($task['pending_to']))
+                @if($canMove || $canSubmit)
+                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+                    @if($canMove && empty($task['pending_to']))
                     <button type="button"
                             @click="openMove({{ $task['id'] }}, @js($task['name']), '{{ $col['key'] }}')"
                             class="text-[9px] bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-bold hover:bg-gray-200 transition">
                         <i class="fas fa-arrow-right-arrow-left mr-1"></i>Pindahkan
                     </button>
-                    @else
-                    <span></span>
                     @endif
-                    <form method="POST" action="{{ route('penyusunan.hapus-tugas', $id) }}"
-                          onsubmit="return confirm('Anda yakin ingin menghapus tugas ini?')">
-                        @csrf
-                        <input type="hidden" name="task_id" value="{{ $task['id'] }}">
-                        <button type="submit" class="text-[9px] text-red-400 hover:text-red-600 font-bold">
-                            <i class="fas fa-trash mr-1"></i>Hapus
-                        </button>
-                    </form>
+
+                    @if($canSubmit)
+                    <button type="button"
+                            @click="openSubmit({{ $task['id'] }}, @js($task['name']), @js($task['submission'] ?? null))"
+                            class="ml-auto text-[9px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full font-bold hover:bg-blue-100 transition">
+                        <i class="fas fa-paper-plane mr-1"></i>{{ empty($task['submission']) ? 'Kumpulkan' : 'Ganti Hasil' }}
+                    </button>
+                    @endif
                 </div>
                 @endif
             </div>
             @endforeach
         </div>
-
-        @if($editable)
-        <div class="mt-4" x-data="{ adding: false }">
-            <button x-show="!adding" @click="adding = true" class="text-blue-500 text-[11px] font-bold hover:underline">+ Tambah tugas</button>
-            <form x-show="adding" x-cloak method="POST" action="{{ route('pelaksanaan.tugas.cepat', $id) }}">
-                @csrf
-                <input type="hidden" name="column_key" value="{{ $col['key'] }}">
-                <input type="text" name="judul_tugas" required
-                       x-init="$nextTick(() => {})"
-                       @keydown.escape="adding = false"
-                       placeholder="Ketik tugas & enter"
-                       class="w-full bg-white border border-blue-300 rounded-xl px-4 py-2 text-xs outline-none shadow-inner">
-            </form>
-        </div>
-        @endif
     </div>
     @endforeach
 
-    @if($editable)
-    <button type="button" @click="addCol = { label: '', color: 'blue-600', description: '', is_done: false, requires_approval: false, checklist: [] }; colAddModal = true"
+    @if($canManageColumns)
+    <button type="button" @click="addCol = { label: '', color: 'blue-600', description: '', is_done: false, requires_approval: false, checklist: [''] }; colAddModal = true"
             class="w-72 shrink-0 h-[600px] rounded-[2rem] border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition flex flex-col items-center justify-center gap-2">
         <i class="fas fa-plus text-2xl"></i>
         <span class="text-sm font-bold">Tambah Kolom</span>

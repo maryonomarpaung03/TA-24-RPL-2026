@@ -423,7 +423,9 @@ class BulkDemoSeeder extends Seeder
             return DB::table('tasks')->where('project_id', $projectId)->pluck('id')->all();
         }
 
-        $boards = $this->ensureBoards($projectId, $now);
+        // Kolom papan sekaligus status tugas: pending / in_progress / completed.
+        app(ProjectTaskService::class)->ensureColumns($projectId);
+
         $milestoneId = (int) DB::table('milestones')->where('project_id', $projectId)->value('id');
         $ids = [];
 
@@ -436,7 +438,6 @@ class BulkDemoSeeder extends Seeder
 
             $ids[] = (int) DB::table('tasks')->insertGetId([
                 'project_id' => $projectId,
-                'board_id' => $boards[$status],
                 'milestone_id' => $milestoneId ?: null,
                 'assigned_to' => $teamIds[$i % count($teamIds)],
                 'task_title' => $title,
@@ -449,36 +450,6 @@ class BulkDemoSeeder extends Seeder
                 'created_at' => $now->copy()->subDays(22),
                 'updated_at' => $now,
             ]);
-        }
-
-        return $ids;
-    }
-
-    /** @return array<string, int> */
-    private function ensureBoards(int $projectId, Carbon $now): array
-    {
-        $boards = [
-            'pending' => ['Belum Dikerjakan', 1, false],
-            'in_progress' => ['Sedang Dikerjakan', 2, false],
-            'completed' => ['Selesai', 3, true],
-        ];
-
-        $ids = [];
-
-        foreach ($boards as $key => [$name, $position, $isCompleted]) {
-            $existing = DB::table('project_boards')
-                ->where('project_id', $projectId)
-                ->where('name', $name)
-                ->value('id');
-
-            $ids[$key] = (int) ($existing ?: DB::table('project_boards')->insertGetId([
-                'project_id' => $projectId,
-                'name' => $name,
-                'position' => $position,
-                'is_completed' => $isCompleted,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]));
         }
 
         return $ids;

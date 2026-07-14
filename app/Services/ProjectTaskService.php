@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Support\ProjectAccess;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class ProjectTaskService
@@ -402,16 +403,31 @@ class ProjectTaskService
 
         $fallback = $columns->firstWhere('id', '!=', $columnId);
 
-        // Pindahkan tugas di kolom ini ke kolom pertama tersisa (tidak dihapus).
-        DB::table('tasks')
+        $orphanIds = DB::table('tasks')
             ->where('project_id', $projectId)
             ->where('status', $target->key)
-            ->update(['status' => $fallback->key, 'updated_at' => now()]);
+            ->pluck('id');
+
+        // Pengajuan persetujuan menuju/berasal dari kolom ini tidak lagi bermakna.
+        DB::table('task_approvals')
+            ->where('project_id', $projectId)
+            ->where('status', 'pending')
+            ->where(function ($q) use ($target) {
+                $q->where('to_column_key', $target->key)
+                    ->orWhere('from_column_key', $target->key);
+            })
+            ->delete();
 
         DB::table('project_task_columns')
             ->where('id', $columnId)
             ->where('project_id', $projectId)
             ->delete();
+
+        // Tugas di kolom ini dipindahkan ke kolom tersisa (tidak ikut dihapus).
+        // Dilakukan setelah kolomnya hilang agar progres dihitung dari papan baru.
+        foreach ($orphanIds as $taskId) {
+            $this->applyColumn($projectId, (int) $taskId, (string) $fallback->key);
+        }
     }
 
     /**
@@ -489,54 +505,64 @@ class ProjectTaskService
             return ['pending' => true];
         }
 
-        DB::table('tasks')
-            ->where('id', $taskId)
-            ->where('project_id', $projectId)
-            ->update(['status' => $columnKey, 'updated_at' => now()]);
+        $this->applyColumn($projectId, $taskId, $columnKey);
 
         return ['pending' => false];
     }
 
     /**
-     * @return array{id: int}
+     * Pindahkan tugas ke sebuah kolom. Progres ikut disetel dari posisi kolom,
+     * karena tugas tidak lagi punya form progres manual di Pelaksanaan: kolom
+     * pertama 0%, kolom "Selesai" 100%, kolom di antaranya 50%.
      */
-    public function quickAddTask(int $projectId, string $columnKey, string $title, int $userId): array
+    private function applyColumn(int $projectId, int $taskId, string $columnKey): void
     {
-        $this->ensureColumns($projectId);
+        $columns = $this->columnsForProject($projectId);
+        $firstKey = $columns[0]['key'] ?? self::STATUS_TODO;
 
-        $title = trim($title);
-        if ($title === '') {
-            throw ValidationException::withMessages(['title' => 'Nama tugas tidak boleh kosong.']);
-        }
+        $isDone = collect($columns)
+            ->firstWhere('key', $columnKey)['is_done'] ?? false;
 
-        $columnExists = DB::table('project_task_columns')
+        $progress = match (true) {
+            (bool) $isDone => 100,
+            $columnKey === $firstKey => 0,
+            default => 50,
+        };
+
+        DB::table('tasks')
+            ->where('id', $taskId)
             ->where('project_id', $projectId)
-            ->where('key', $columnKey)
-            ->exists();
+            ->update([
+                'status' => $columnKey,
+                'progress_percent' => $progress,
+                'updated_at' => now(),
+            ]);
+    }
 
-        if (! $columnExists) {
-            throw ValidationException::withMessages(['column' => 'Kolom tidak ditemukan.']);
+    /**
+     * Hapus tugas beserta jejaknya: komentar, pengajuan persetujuan, dan berkas
+     * pengumpulan. Dipakai dari Penyusunan — satu-satunya tempat tugas dihapus.
+     */
+    public function deleteTask(int $projectId, int $taskId): bool
+    {
+        $task = DB::table('tasks')
+            ->where('id', $taskId)
+            ->where('project_id', $projectId)
+            ->first();
+
+        if (! $task) {
+            return false;
         }
 
-        $milestoneId = $this->ensureMilestoneId($projectId);
+        if (! empty($task->attachment_path)) {
+            Storage::disk('public')->delete($task->attachment_path);
+        }
 
-        $taskId = (int) DB::table('tasks')->insertGetId([
-            'project_id' => $projectId,
-            'milestone_id' => $milestoneId,
-            'parent_task_id' => null,
-            'assigned_to' => $userId,
-            'task_title' => $title,
-            'description' => null,
-            'priority' => 'medium',
-            'status' => $columnKey,
-            'progress_percent' => 0,
-            'start_date' => now()->toDateString(),
-            'due_date' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::table('discussions')->where('task_id', $taskId)->delete();
+        DB::table('task_approvals')->where('task_id', $taskId)->delete();
+        DB::table('tasks')->where('id', $taskId)->delete();
 
-        return ['id' => $taskId];
+        return true;
     }
 
     /**
@@ -721,10 +747,7 @@ class ProjectTaskService
     {
         $approval = $this->findPendingApproval($projectId, $approvalId);
 
-        DB::table('tasks')
-            ->where('id', $approval->task_id)
-            ->where('project_id', $projectId)
-            ->update(['status' => $approval->to_column_key, 'updated_at' => now()]);
+        $this->applyColumn($projectId, (int) $approval->task_id, (string) $approval->to_column_key);
 
         DB::table('task_approvals')
             ->where('id', $approvalId)

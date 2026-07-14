@@ -18,7 +18,6 @@ class FinalizationService
     public const STATUS_REVISION = 'pending_final_revision';
 
     public function __construct(
-        private readonly ProjectTaskService $tasks,
         private readonly StageProgressService $stages,
     ) {}
 
@@ -35,86 +34,6 @@ class FinalizationService
     public static function isLocked(?string $status): bool
     {
         return in_array($status, self::lockedStatuses(), true);
-    }
-
-    /**
-     * Prasyarat yang dicek sistem sebelum tim boleh finalisasi. Tiap item dipakai
-     * langsung oleh modal pra-finalisasi di tahapan Assessment & Reflection.
-     *
-     * @return array{items: list<array{key: string, label: string, detail: string, passed: bool}>, passed: bool}
-     */
-    public function readiness(int $projectId): array
-    {
-        $progress = $this->tasks->progressForProject($projectId);
-        $pendingApproval = $this->tasks->pendingApprovalCount($projectId);
-        $submissions = $this->submissionStats($projectId);
-        $peer = $this->peerStats($projectId);
-
-        $items = [
-            [
-                'key' => 'tasks_done',
-                'label' => 'Semua tugas sudah selesai',
-                'detail' => $progress['total'] === 0
-                    ? 'Belum ada tugas pada proyek ini.'
-                    : $progress['done'].' dari '.$progress['total'].' tugas selesai.',
-                'passed' => $progress['total'] > 0 && $progress['done'] === $progress['total'],
-            ],
-            [
-                'key' => 'tasks_submitted',
-                'label' => 'Semua tugas punya bukti pengumpulan',
-                'detail' => $submissions['with_submission'].' dari '.$submissions['total'].' tugas melampirkan berkas atau link.',
-                'passed' => $submissions['total'] > 0 && $submissions['with_submission'] === $submissions['total'],
-            ],
-            [
-                'key' => 'no_pending_approval',
-                'label' => 'Tidak ada tugas yang menunggu persetujuan dosen',
-                'detail' => $pendingApproval === 0
-                    ? 'Tidak ada tugas yang tertahan.'
-                    : $pendingApproval.' tugas masih menunggu dosen.',
-                'passed' => $pendingApproval === 0,
-            ],
-            [
-                'key' => 'peer_filled',
-                'label' => 'Penilaian antar anggota sudah diisi',
-                'detail' => $peer['submitted'].' dari '.$peer['total'].' anggota mengisi penilaian kelompok.',
-                'passed' => $peer['total'] > 0 && $peer['submitted'] >= $peer['total'],
-            ],
-        ];
-
-        return [
-            'items' => $items,
-            'passed' => ! in_array(false, array_column($items, 'passed'), true),
-        ];
-    }
-
-    /**
-     * @return array{total: int, with_submission: int}
-     */
-    private function submissionStats(int $projectId): array
-    {
-        $total = (int) DB::table('tasks')->where('project_id', $projectId)->count();
-
-        $withSubmission = (int) DB::table('tasks')
-            ->where('project_id', $projectId)
-            ->where(function ($q) {
-                $q->whereNotNull('attachment_path')->orWhereNotNull('link');
-            })
-            ->count();
-
-        return ['total' => $total, 'with_submission' => $withSubmission];
-    }
-
-    /**
-     * @return array{submitted: int, total: int}
-     */
-    private function peerStats(int $projectId): array
-    {
-        return [
-            'submitted' => (int) DB::table('peer_evaluations')
-                ->where('project_id', $projectId)
-                ->count(),
-            'total' => count($this->tasks->assignableMembers($projectId)),
-        ];
     }
 
     /** Pengiriman finalisasi terakhir (termasuk yang diminta revisi). */
@@ -140,8 +59,9 @@ class FinalizationService
     }
 
     /**
-     * Kirim finalisasi proyek ke dosen. Prasyarat sistem dicek ulang di sini
-     * supaya tidak bisa dilewati lewat request langsung ke endpoint.
+     * Kirim finalisasi proyek ke dosen. readiness() hanya ditampilkan sebagai
+     * peringatan di modal, bukan gerbang: yang mengunci pengiriman adalah
+     * pernyataan tim (confirm_* divalidasi `accepted` di FinalisasiController).
      *
      * @param  array<string, mixed>  $data  report_type, report_link, presentation_link, repo_link, summary
      */
@@ -150,12 +70,6 @@ class FinalizationService
         if (self::isLocked($project->status)) {
             throw ValidationException::withMessages([
                 'final' => 'Proyek ini sudah difinalisasi dan sedang dinilai dosen.',
-            ]);
-        }
-
-        if (! $this->readiness((int) $project->id)['passed']) {
-            throw ValidationException::withMessages([
-                'final' => 'Prasyarat finalisasi belum terpenuhi. Periksa kembali daftar di modal finalisasi.',
             ]);
         }
 

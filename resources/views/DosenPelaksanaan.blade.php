@@ -139,7 +139,7 @@
             'summary' => 'Menampilkan '.$shownTasks.' dari '.$totalTasks.' tugas di papan.',
         ])
 
-        @include('partials.kanban-board', ['editable' => false, 'lecturer' => true, 'id' => $id, 'kanban' => $kanban])
+        @include('partials.kanban-board', ['lecturer' => true, 'id' => $id, 'kanban' => $kanban])
     </div>
 
     <!-- KONTRIBUSI PER MAHASISWA -->

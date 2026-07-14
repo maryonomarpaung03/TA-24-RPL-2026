@@ -16,7 +16,6 @@ use App\Http\Controllers\ProjekSayaController;
 use App\Http\Controllers\BuatProjekController;
 use App\Http\Controllers\WaktuProgresController;
 use App\Http\Controllers\PelaksanaanController;
-use App\Http\Controllers\TaskController;
 use App\Http\Controllers\NilaiKelompokController;
 use App\Http\Controllers\NilaiIndividuController;
 use App\Http\Controllers\BelumDosenNilaiController;
@@ -355,15 +354,45 @@ Route::get(
                 [WaktuProgresController::class, 'index']
             )->name('waktu-progres');
 
+            /*
+            |--------------------------------------------------------------------------
+            | Pelaksanaan
+            |
+            | Tugas tidak lahir di sini — semuanya masuk dari Penyusunan. Yang bisa
+            | dilakukan tim hanya memindahkan tugas antar kolom, mengumpulkan
+            | hasilnya, dan menata kolom papan sesuai kebutuhan proyek.
+            |--------------------------------------------------------------------------
+            */
+
             Route::get(
                 '/pelaksanaan',
                 [PelaksanaanController::class, 'index']
             )->name('pelaksanaan');
-            
+
             Route::post(
-                '/pelaksanaan',
-                [PelaksanaanController::class, 'store']
-            )->name('boards.store');
+                '/pelaksanaan/tugas/{taskId}/pindah',
+                [PelaksanaanController::class, 'pindahTugas']
+            )->name('pelaksanaan.tugas.pindah');
+
+            Route::post(
+                '/pelaksanaan/tugas/{taskId}/submit',
+                [PelaksanaanController::class, 'submitTugas']
+            )->name('pelaksanaan.tugas.submit');
+
+            Route::post(
+                '/pelaksanaan/kolom',
+                [PelaksanaanController::class, 'tambahKolom']
+            )->name('pelaksanaan.kolom.tambah');
+
+            Route::post(
+                '/pelaksanaan/kolom/{columnId}',
+                [PelaksanaanController::class, 'ubahKolom']
+            )->name('pelaksanaan.kolom.ubah');
+
+            Route::delete(
+                '/pelaksanaan/kolom/{columnId}',
+                [PelaksanaanController::class, 'hapusKolom']
+            )->name('pelaksanaan.kolom.hapus');
 
             Route::post(
                 '/finalisasi',
@@ -419,19 +448,6 @@ Route::get(
                 [ProjectChatController::class, 'deleteMessage']
             )->name('project-chat.delete');
         });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Papan Pelaksanaan (task board) - tanpa prefix projek/{id}
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post('/boards/{board}/tasks', [TaskController::class, 'store'])->name('tasks.store');
-    Route::post('/tasks/move', [PelaksanaanController::class, 'moveTask'])->name('tasks.move');
-    Route::post('/tasks/{taskId}/update', [PelaksanaanController::class, 'updateTask'])->name('tasks.update');
-    Route::delete('/tasks/{taskId}', [PelaksanaanController::class, 'destroyTask'])->name('tasks.destroy');
-        /*
-
 
     /*
     |--------------------------------------------------------------------------

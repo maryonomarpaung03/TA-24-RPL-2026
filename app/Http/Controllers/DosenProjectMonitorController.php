@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Services\ProjectTaskService;
+use App\Support\KanbanFilter;
 use App\Support\ProjectAccess;
 use App\Support\TaskFilter;
 use Carbon\Carbon;
@@ -13,100 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class DosenProjectMonitorController extends Controller
 {
-    /** Label prioritas seperti yang dipakai ProjectTaskService::priorityLabel(). */
-    private const PRIORITY_OPTIONS = [
-        'Sulit' => 'Sulit',
-        'Sedang' => 'Sedang',
-        'Mudah' => 'Mudah',
-    ];
-
-    /** Rentang tenggat di papan kanban dihitung dari sisa hari. */
-    private const KANBAN_DEADLINE_OPTIONS = [
-        'terlewat' => 'Sudah lewat tenggat',
-        'minggu_ini' => 'Jatuh tempo ≤ 7 hari',
-        'bulan_ini' => 'Jatuh tempo ≤ 30 hari',
-        'tanpa_tenggat' => 'Tanpa tenggat',
-    ];
-
-    /**
-     * Saring tugas di papan kanban, kolomnya tetap utuh agar papan tidak berubah bentuk.
-     *
-     * @param  list<array<string, mixed>>  $kanban
-     * @param  array<string, string>  $filters
-     * @return array{0: list<array<string, mixed>>, 1: int, 2: int}
-     */
-    private function filterKanban(array $kanban, array $filters): array
-    {
-        $total = 0;
-        $shown = 0;
-
-        foreach ($kanban as $i => $column) {
-            $tasks = $column['tasks'] ?? [];
-            $total += count($tasks);
-            $isDoneColumn = (bool) ($column['is_done'] ?? false);
-
-            $kept = array_values(array_filter($tasks, function (array $task) use ($filters, $isDoneColumn) {
-                if ($filters['pj'] !== '' && (string) ($task['assigned_to'] ?? '') !== $filters['pj']) {
-                    return false;
-                }
-
-                if ($filters['prioritas'] !== '' && ($task['level'] ?? '') !== $filters['prioritas']) {
-                    return false;
-                }
-
-                if ($filters['q'] !== '') {
-                    $haystack = mb_strtolower(($task['name'] ?? '').' '.($task['description'] ?? ''));
-
-                    if (! str_contains($haystack, mb_strtolower($filters['q']))) {
-                        return false;
-                    }
-                }
-
-                // Tugas yang sudah di kolom Selesai tidak dihitung terlewat.
-                if ($filters['tenggat'] === 'terlewat'
-                    && ($isDoneColumn || ($task['days_left'] ?? null) === null || $task['days_left'] >= 0)) {
-                    return false;
-                }
-
-                if ($filters['tenggat'] === 'tanpa_tenggat' && ($task['due_date'] ?? null) !== null) {
-                    return false;
-                }
-
-                if ($filters['tenggat'] === 'minggu_ini' && ! (($task['days_left'] ?? null) !== null && $task['days_left'] >= 0 && $task['days_left'] <= 7)) {
-                    return false;
-                }
-
-                if ($filters['tenggat'] === 'bulan_ini' && ! (($task['days_left'] ?? null) !== null && $task['days_left'] >= 0 && $task['days_left'] <= 30)) {
-                    return false;
-                }
-
-                return true;
-            }));
-
-            $shown += count($kept);
-            $kanban[$i]['tasks'] = $kept;
-        }
-
-        return [$kanban, $shown, $total];
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $kanban
-     * @return list<array<string, mixed>>
-     */
-    private function flattenKanban(array $kanban): array
-    {
-        $tasks = [];
-
-        foreach ($kanban as $column) {
-            foreach ($column['tasks'] ?? [] as $task) {
-                $tasks[] = $task;
-            }
-        }
-
-        return $tasks;
-    }
-
     public function __construct(
         private readonly ProjectTaskService $tasks
     ) {}
@@ -155,7 +62,7 @@ class DosenProjectMonitorController extends Controller
             'tenggat' => (string) $request->query('tenggat', ''),
         ];
 
-        [$kanbanFiltered, $shown, $total] = $this->filterKanban($kanban, $filters);
+        [$kanbanFiltered, $shown, $total] = KanbanFilter::apply($kanban, $filters);
 
         return view('DosenPelaksanaan', [
             'project' => $project,
@@ -163,9 +70,9 @@ class DosenProjectMonitorController extends Controller
             'shownTasks' => $shown,
             'totalTasks' => $total,
             'filterState' => $filters,
-            'prioritasOptions' => self::PRIORITY_OPTIONS,
-            'tenggatOptions' => self::KANBAN_DEADLINE_OPTIONS,
-            'pjOptions' => TaskFilter::assigneeOptions($this->flattenKanban($kanban)),
+            'prioritasOptions' => KanbanFilter::PRIORITY_OPTIONS,
+            'tenggatOptions' => KanbanFilter::DEADLINE_OPTIONS,
+            'pjOptions' => TaskFilter::assigneeOptions(KanbanFilter::flatten($kanban)),
             'id' => $project->id,
             'columns' => $this->tasks->columnsForProject((int) $project->id),
             'kanban' => $kanbanFiltered,

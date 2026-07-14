@@ -1,9 +1,8 @@
 {{-- Modal pra-finalisasi proyek, dirender dari bar aksi tahap Assessment & Reflection.
-     Butuh state Alpine `finalModal` di ancestor; $finalReadiness dan $selected_project
-     disiapkan AppServiceProvider, jadi modal ini tidak terikat ke satu controller. --}}
+     Butuh state Alpine `finalModal` di ancestor; $selected_project disiapkan
+     AppServiceProvider, jadi modal ini tidak terikat ke satu controller. --}}
 @php
     $id = $selected_project['id'];
-    $readiness = $finalReadiness;
 @endphp
 <div x-show="finalModal" x-cloak
      class="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-10"
@@ -22,9 +21,8 @@
                 return this.reportType === 'file' ? !!this.reportFile : this.reportLink.trim().length > 8;
             },
             get canSubmit() {
-                return {{ $readiness['passed'] ? 'true' : 'false' }}
-                    && this.reportReady
-                    && this.summary.trim().length >= 20
+                return this.reportReady
+                    && this.summary.trim().length > 0
                     && this.confirmComments && this.confirmData && this.confirmFinal;
             }
          }"
@@ -43,36 +41,10 @@
             </button>
         </div>
 
-        {{-- A. Prasyarat yang dicek sistem --}}
-        <div class="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 mb-6">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-3">
-                <i class="fas {{ $readiness['passed'] ? 'fa-circle-check' : 'fa-triangle-exclamation' }} mr-1"></i>
-                Prasyarat sistem
-            </p>
-
-            <ul class="space-y-2.5">
-                @foreach($readiness['items'] as $item)
-                <li class="flex items-start gap-3">
-                    <i class="fas {{ $item['passed'] ? 'fa-circle-check text-emerald-500' : 'fa-circle-xmark text-red-400' }} mt-0.5"></i>
-                    <div class="min-w-0">
-                        <p class="text-sm font-semibold {{ $item['passed'] ? 'text-gray-800' : 'text-gray-500' }}">{{ $item['label'] }}</p>
-                        <p class="text-xs {{ $item['passed'] ? 'text-gray-500' : 'text-red-500' }}">{{ $item['detail'] }}</p>
-                    </div>
-                </li>
-                @endforeach
-            </ul>
-
-            @unless($readiness['passed'])
-            <p class="mt-4 text-xs font-bold text-blue-800">
-                Lengkapi dulu poin bertanda merah di atas. Tombol submit akan aktif setelah semuanya hijau.
-            </p>
-            @endunless
-        </div>
-
         <form method="POST" action="{{ route('finalisasi.submit', $id) }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
 
-            {{-- B. Laporan akhir: unggah berkas ATAU tautan --}}
+            {{-- A. Laporan akhir: unggah berkas ATAU tautan --}}
             <div class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5 space-y-4">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
@@ -136,11 +108,11 @@
                           placeholder="Apa yang berhasil tim capai, kendala utama, dan hasil akhirnya..."
                           class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none resize-none focus:border-blue-500"></textarea>
                 <p class="mt-1 text-[11px] text-gray-400">
-                    Minimal 20 karakter &middot; <span x-text="summary.trim().length"></span>/2000
+                    <span x-text="summary.trim().length"></span>/2000 karakter
                 </p>
             </div>
 
-            {{-- C. Pernyataan tim --}}
+            {{-- B. Pernyataan tim --}}
             <div class="rounded-2xl border border-gray-200 p-5 space-y-3">
                 <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pernyataan tim</p>
 

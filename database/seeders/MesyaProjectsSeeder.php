@@ -204,22 +204,8 @@ class MesyaProjectsSeeder extends Seeder
     /** @return list<int> */
     private function fillTasks(int $projectId, array $teamIds, string $projectName, Carbon $now): array
     {
-        $boards = [];
-
-        foreach ([
-            'pending' => ['Belum Dikerjakan', 1, false],
-            'in_progress' => ['Sedang Dikerjakan', 2, false],
-            'completed' => ['Selesai', 3, true],
-        ] as $key => [$name, $position, $isCompleted]) {
-            $boards[$key] = (int) DB::table('project_boards')->insertGetId([
-                'project_id' => $projectId,
-                'name' => $name,
-                'position' => $position,
-                'is_completed' => $isCompleted,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        }
+        // Kolom papan sekaligus status tugas: pending / in_progress / completed.
+        app(ProjectTaskService::class)->ensureColumns($projectId);
 
         $milestoneId = (int) DB::table('milestones')->where('project_id', $projectId)->value('id');
         $ids = [];
@@ -227,7 +213,6 @@ class MesyaProjectsSeeder extends Seeder
         foreach (self::TASK_TEMPLATES as $i => [$title, $status, $priority]) {
             $ids[] = (int) DB::table('tasks')->insertGetId([
                 'project_id' => $projectId,
-                'board_id' => $boards[$status],
                 'milestone_id' => $milestoneId ?: null,
                 'assigned_to' => $teamIds[$i % count($teamIds)],
                 'task_title' => $title,

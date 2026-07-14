@@ -155,7 +155,7 @@ class PenyusunanController extends Controller
 
         return back()->with(
             'success',
-            'Tugas berhasil ditambahkan dan muncul di Pelaksanaan & Evaluasi (Belum Dikerjakan).'
+            'Tugas berhasil ditambahkan. Setelah Penyusunan difinalisasi, tugas ini muncul di papan Pelaksanaan (Belum Dikerjakan).'
         );
     }
 
@@ -212,10 +212,11 @@ class PenyusunanController extends Controller
             return back()->with('error', 'Akses ditolak.');
         }
 
-        DB::table('tasks')
-            ->where('id', $request->task_id)
-            ->where('project_id', $project->id)
-            ->delete();
+        // Tugas ini mungkin sudah dikerjakan di Pelaksanaan: komentar, pengajuan
+        // persetujuan, dan berkas pengumpulannya ikut terhapus.
+        if (! $this->tasks->deleteTask((int) $project->id, (int) $request->task_id)) {
+            return back()->with('error', 'Tugas tidak ditemukan.');
+        }
 
         return back()->with('success', 'Tugas berhasil dihapus');
     }

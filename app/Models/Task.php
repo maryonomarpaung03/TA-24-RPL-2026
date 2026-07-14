@@ -10,7 +10,6 @@ class Task extends Model
 
     protected $fillable = [
         'project_id',
-        'board_id',
         'milestone_id',
         'parent_task_id',
         'assigned_to',

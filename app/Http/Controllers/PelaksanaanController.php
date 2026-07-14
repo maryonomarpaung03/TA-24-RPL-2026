@@ -3,42 +3,48 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Models\ProjectBoard;
 use App\Models\Task;
 use App\Services\FinalizationService;
 use App\Services\ProjectTaskService;
+use App\Services\StageProgressService;
+use App\Support\KanbanFilter;
 use App\Support\PjblContext;
 use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use App\Support\TaskFilter;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Papan Pelaksanaan mahasiswa.
+ *
+ * Tugas hanya lahir di Penyusunan: di sini tim tidak bisa menambah, mengubah,
+ * atau menghapus tugas — hanya memindahkannya antar kolom dan mengumpulkan
+ * hasilnya. Papan dibaca dari tasks.status (sama seperti papan dosen), jadi
+ * seluruh tugas Penyusunan langsung muncul begitu tahapan itu difinalisasi.
+ */
 class PelaksanaanController extends Controller
 {
-    public function __construct(private readonly FinalizationService $finalization) {}
+    public function __construct(
+        private readonly FinalizationService $finalization,
+        private readonly ProjectTaskService $tasks,
+        private readonly StageProgressService $stages,
+    ) {}
 
     public function index(Request $request, $id)
     {
         $selected = ProjectCatalog::find($id);
 
-        if (!$selected) {
-
+        if (! $selected) {
             return redirect()
                 ->route('my-project')
                 ->with('error', 'Project tidak ditemukan.');
-
         }
 
-        $boards = ProjectBoard::with('tasks')
-            ->where('project_id', $id)
-            ->orderBy('position')
-            ->get();
-
-        $members = app(ProjectTaskService::class)->assignableMembers((int) $id);
-        $comments = $this->commentsByTask((int) $id);
+        $kanban = $this->tasks->kanbanForProject((int) $id);
 
         $filters = [
             'q' => trim((string) $request->query('q', '')),
@@ -47,202 +53,83 @@ class PelaksanaanController extends Controller
             'tenggat' => (string) $request->query('tenggat', ''),
         ];
 
-        $totalTasks = $boards->sum(fn (ProjectBoard $board) => $board->tasks->count());
+        [$kanbanFiltered, $shownTasks, $totalTasks] = KanbanFilter::apply($kanban, $filters);
 
-        // Papan tetap utuh; hanya isi tugas tiap kolom yang disaring.
-        $boards->each(function (ProjectBoard $board) use ($filters) {
-            $board->setRelation('tasks', $board->tasks->filter(
-                fn (Task $task) => $this->taskMatchesFilters($task, $filters)
-            )->values());
-        });
-
-        $shownTasks = $boards->sum(fn (ProjectBoard $board) => $board->tasks->count());
-
-        $locked = ProjectAccess::isFinalized($selected['status'] ?? null);
+        // Papan terkunci bila proyek sudah difinalisasi ke dosen, atau bila tahap
+        // Pelaksanaan sendiri sudah difinalisasi (middleware stage.waterfall juga
+        // menolak POST-nya; ini yang menyembunyikan tombolnya).
+        $locked = ProjectAccess::isFinalized($selected['status'] ?? null)
+            || $this->stages->isFinalized((int) $id, StageProgressService::EXECUTION);
 
         return view('Pelaksanaan', [
-
             'user' => PjblContext::viewer(),
-
             'namaProjek' => $selected['name'],
-
             'id' => $id,
-
-            'boards' => $boards,
-
-            'allBoards' => $boards,
-
-            'comments' => $comments,
+            'kanban' => $kanbanFiltered,
+            'columns' => $this->tasks->columnsForProject((int) $id),
+            'progress' => $this->tasks->progressForProject((int) $id),
+            'currentUserId' => (int) Auth::id(),
 
             'filterState' => $filters,
             'totalTasks' => $totalTasks,
             'shownTasks' => $shownTasks,
-            'pjOptions' => collect($members)->mapWithKeys(fn ($m) => [$m->id => $m->full_name])->all(),
-            'prioritasOptions' => [
-                'high' => 'Tinggi',
-                'medium' => 'Sedang',
-                'low' => 'Rendah',
-            ],
-            'tenggatOptions' => TaskFilter::DEADLINE_OPTIONS,
+            'pjOptions' => TaskFilter::assigneeOptions(KanbanFilter::flatten($kanban)),
+            'prioritasOptions' => KanbanFilter::PRIORITY_OPTIONS,
+            'tenggatOptions' => KanbanFilter::DEADLINE_OPTIONS,
+            'colorOptions' => ProjectTaskService::COLUMN_COLORS,
 
             // Finalisasi proyek
             'projectStatus' => $selected['status'] ?? null,
             'locked' => $locked,
             'lastSubmission' => $this->finalization->latestSubmission((int) $id),
-
         ]);
     }
 
     /**
-     * Komentar tugas diambil dari tabel discussions supaya thread mahasiswa
-     * dan dosen menjadi satu (lihat TaskCommentController).
-     *
-     * @return array<int, list<array{from: string, text: string, time: string, is_lecturer: bool}>>
+     * Pindahkan tugas antar kolom. Bisa tertahan bila kolom tujuan menuntut
+     * checklist atau persetujuan dosen.
      */
-    private function commentsByTask(int $projectId): array
-    {
-        $rows = DB::table('discussions')
-            ->leftJoin('users', 'users.id', '=', 'discussions.user_id')
-            ->where('discussions.project_id', $projectId)
-            ->whereNotNull('discussions.task_id')
-            ->orderBy('discussions.created_at')
-            ->select(
-                'discussions.task_id',
-                'discussions.message',
-                'discussions.created_at',
-                'users.full_name',
-                'users.name',
-                'users.role'
-            )
-            ->get();
-
-        $map = [];
-
-        foreach ($rows as $row) {
-            $isLecturer = $row->role === 'lecturer';
-            $name = $row->full_name ?: $row->name ?: 'Anggota';
-
-            $map[(int) $row->task_id][] = [
-                'from' => $name.($isLecturer ? ' (Dosen)' : ''),
-                'initials' => ProjectAccess::initialsFromName($name),
-                'text' => $row->message,
-                'time' => Carbon::parse($row->created_at)->diffForHumans(),
-                'is_lecturer' => $isLecturer,
-            ];
-        }
-
-        return $map;
-    }
-
-    /**
-     * Papan tugas terkunci setelah tim mengirim finalisasi ke dosen.
-     */
-    private function ensureNotLocked(int $projectId): ?\Illuminate\Http\RedirectResponse
-    {
-        $status = Project::query()->where('id', $projectId)->value('status');
-
-        if (! ProjectAccess::isFinalized($status)) {
-            return null;
-        }
-
-        return redirect()
-            ->route('pelaksanaan', $projectId)
-            ->with('error', 'Proyek sudah difinalisasi dan sedang dinilai dosen. Papan tugas terkunci.');
-    }
-
-    /** @param array<string, string> $filters */
-    private function taskMatchesFilters(Task $task, array $filters): bool
-    {
-        if ($filters['pj'] !== '' && (string) $task->assigned_to !== $filters['pj']) {
-            return false;
-        }
-
-        if ($filters['prioritas'] !== '' && $task->priority !== $filters['prioritas']) {
-            return false;
-        }
-
-        if ($filters['q'] !== '') {
-            $haystack = mb_strtolower($task->task_title.' '.$task->description);
-
-            if (! str_contains($haystack, mb_strtolower($filters['q']))) {
-                return false;
-            }
-        }
-
-        if ($filters['tenggat'] !== '') {
-            $due = $task->due_date ? Carbon::parse($task->due_date) : null;
-
-            return match ($filters['tenggat']) {
-                'tanpa_tenggat' => $due === null,
-                'terlewat' => $due !== null && $due->endOfDay()->isPast() && $task->status !== 'completed',
-                'minggu_ini' => $due !== null && $due->between(Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()),
-                'bulan_ini' => $due !== null && $due->between(Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()),
-                default => true,
-            };
-        }
-
-        return true;
-    }
-    public function moveTask(Request $request)
+    public function pindahTugas(Request $request, $id, int $taskId)
     {
         $request->validate([
-            'task_id' => 'required|exists:tasks,id',
-            'board_id' => 'required|exists:project_boards,id',
+            'column_key' => 'required|string',
+            'checklist_confirmed' => 'nullable|boolean',
         ]);
 
-        $task = Task::findOrFail($request->task_id);
-
-        if (ProjectAccess::isFinalized(Project::query()->where('id', $task->project_id)->value('status'))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Proyek sudah difinalisasi. Papan tugas terkunci.',
-            ], 422);
+        if ($locked = $this->ensureNotLocked((int) $id)) {
+            return $locked;
         }
 
-        $task->board_id = $request->board_id;
-        $task->save();
+        try {
+            $result = $this->tasks->moveTask(
+                (int) $id,
+                $taskId,
+                (string) $request->input('column_key'),
+                (int) Auth::id(),
+                $request->boolean('checklist_confirmed'),
+            );
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
 
-        return response()->json([
-            'success' => true
-        ]);
+        return back()->with('success', $result['pending']
+            ? 'Tugas diajukan ke dosen dan menunggu persetujuan untuk berpindah kolom.'
+            : 'Tugas berhasil dipindahkan.');
     }
-    public function store(Request $request, $projectId)
+
+    /**
+     * Pengumpulan hasil tugas: berupa link, atau berkas (foto/dokumen) yang
+     * diunggah. Judul, deskripsi, tenggat, dan penanggung jawab tidak bisa
+     * diubah di sini — itu milik Penyusunan.
+     */
+    public function submitTugas(Request $request, $id, int $taskId)
     {
-        if ($locked = $this->ensureNotLocked((int) $projectId)) {
+        if ($locked = $this->ensureNotLocked((int) $id)) {
             return $locked;
         }
 
         $request->validate([
-            'name' => 'required|max:100'
-        ]);
-
-        ProjectBoard::create([
-            'project_id' => $projectId,
-            'name' => $request->name,
-            'position' => ProjectBoard::where('project_id', $projectId)->count() + 1,
-            'is_completed' => false
-        ]);
-
-
-        return redirect()
-            ->route('pelaksanaan', $projectId)
-            ->with('success', 'Board berhasil ditambahkan.');
-    }
-    public function updateTask(Request $request, $taskId)
-    {
-        $task = Task::findOrFail($taskId);
-
-        if ($locked = $this->ensureNotLocked((int) $task->project_id)) {
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => 'Proyek sudah difinalisasi.'], 422)
-                : $locked;
-        }
-
-        $request->validate([
-            'task_title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'priority' => 'required|in:low,medium,high',
-            'submission_type' => 'nullable|in:link,file',
+            'submission_type' => 'required|in:link,file',
             'link' => 'nullable|url|required_if:submission_type,link',
             'attachment' => [
                 'nullable',
@@ -250,58 +137,125 @@ class PelaksanaanController extends Controller
                 'max:10240',
                 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip',
             ],
-            'board_id' => 'required|exists:project_boards,id',
-            'status' => 'required|in:pending,in_progress,completed',
-            'progress_percent' => 'required|integer|min:0|max:100',
-            'due_date' => 'nullable|date',
         ], [
             'link.required_if' => 'Link tugas wajib diisi bila pengumpulan berupa link.',
             'attachment.mimes' => 'Berkas harus berupa foto (jpg/png/webp/gif) atau dokumen (pdf/doc/xls/ppt/txt/zip).',
             'attachment.max' => 'Ukuran berkas maksimal 10 MB.',
         ]);
 
+        $task = Task::query()
+            ->where('id', $taskId)
+            ->where('project_id', $id)
+            ->firstOrFail();
+
         $submission = $this->submissionPayload($request, $task);
 
         // Pengumpulan diganti setelah dosen mereview: review lama tidak lagi berlaku.
-        $submissionChanged = ($submission['link'] ?? $task->link) !== $task->link
+        $changed = ($submission['link'] ?? null) !== $task->link
             || ($submission['attachment_path'] ?? $task->attachment_path) !== $task->attachment_path;
 
-        $task->update([
-            'board_id' => $request->board_id,
-            'task_title' => $request->task_title,
-            'description' => $request->description,
-            'priority' => $request->priority,
-            'status' => $request->status,
-            'progress_percent' => $request->progress_percent,
-            'due_date' => $request->due_date,
-        ] + $submission + ($submissionChanged ? ['reviewed_at' => null, 'reviewed_by' => null] : []));
+        $task->update($submission + ($changed ? ['reviewed_at' => null, 'reviewed_by' => null] : []));
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
+        return back()->with('success', 'Hasil tugas berhasil dikumpulkan.');
+    }
+
+    public function tambahKolom(Request $request, $id)
+    {
+        $request->validate($this->columnRules());
+
+        if ($locked = $this->ensureNotLocked((int) $id)) {
+            return $locked;
         }
 
-        return redirect()
-            ->route('pelaksanaan', $task->project_id)
-            ->with('success', 'Task berhasil diperbarui.');
+        try {
+            $this->tasks->createColumn(
+                (int) $id,
+                (string) $request->input('label'),
+                (string) $request->input('color'),
+                $this->columnConfig($request),
+            );
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
+
+        return back()->with('success', 'Kolom papan berhasil ditambahkan.');
+    }
+
+    public function ubahKolom(Request $request, $id, int $columnId)
+    {
+        $request->validate($this->columnRules());
+
+        if ($locked = $this->ensureNotLocked((int) $id)) {
+            return $locked;
+        }
+
+        try {
+            $this->tasks->updateColumn(
+                (int) $id,
+                $columnId,
+                (string) $request->input('label'),
+                (string) $request->input('color'),
+                $this->columnConfig($request),
+            );
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
+
+        return back()->with('success', 'Kolom papan berhasil diperbarui.');
+    }
+
+    public function hapusKolom(Request $request, $id, int $columnId)
+    {
+        if ($locked = $this->ensureNotLocked((int) $id)) {
+            return $locked;
+        }
+
+        try {
+            $this->tasks->deleteColumn((int) $id, $columnId);
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
+
+        return back()->with('success', 'Kolom dihapus. Tugas di dalamnya dipindahkan ke kolom tersisa.');
     }
 
     /**
-     * Kolom pengumpulan hasil tugas: berupa link, atau berkas (foto/dokumen)
-     * yang diunggah. Berkas lama dihapus saat diganti atau saat beralih ke link.
+     * @return array<string, mixed>
+     */
+    private function columnRules(): array
+    {
+        return [
+            'label' => 'required|string|max:60',
+            'color' => 'required|string|in:'.implode(',', ProjectTaskService::COLUMN_COLORS),
+            'description' => 'nullable|string|max:255',
+            'is_done' => 'nullable|boolean',
+            'requires_approval' => 'nullable|boolean',
+            'checklist' => 'nullable|array|max:15',
+            'checklist.*' => 'nullable|string|max:120',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function columnConfig(Request $request): array
+    {
+        return [
+            'description' => $request->input('description'),
+            'is_done' => $request->boolean('is_done'),
+            'requires_approval' => $request->boolean('requires_approval'),
+            'checklist' => (array) $request->input('checklist', []),
+        ];
+    }
+
+    /**
+     * Berkas lama dihapus saat diganti atau saat beralih ke link.
      *
      * @return array<string, mixed>
      */
     private function submissionPayload(Request $request, Task $task): array
     {
-        $type = $request->input('submission_type');
-
-        // Permintaan JSON lama tidak mengirim submission_type: hanya sentuh link
-        // bila field-nya memang dikirim, supaya pengumpulan tidak ikut terhapus.
-        if ($type === null) {
-            return $request->has('link') ? ['link' => $request->input('link')] : [];
-        }
-
-        if ($type === 'link') {
+        if ($request->input('submission_type') === 'link') {
             $this->deleteAttachment($task);
 
             return [
@@ -338,29 +292,20 @@ class PelaksanaanController extends Controller
         }
     }
 
-    public function destroyTask(Request $request, $taskId)
+    /**
+     * Papan tugas terkunci setelah tim mengirim finalisasi proyek ke dosen.
+     * Finalisasi tahap Pelaksanaan sendiri sudah ditangani stage.waterfall.
+     */
+    private function ensureNotLocked(int $projectId): ?RedirectResponse
     {
-        $task = Task::findOrFail($taskId);
-        $projectId = $task->project_id;
+        $status = Project::query()->where('id', $projectId)->value('status');
 
-        if ($locked = $this->ensureNotLocked((int) $projectId)) {
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => 'Proyek sudah difinalisasi.'], 422)
-                : $locked;
-        }
-
-        $this->deleteAttachment($task);
-
-        DB::table('discussions')->where('task_id', $task->id)->delete();
-
-        $task->delete();
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
+        if (! ProjectAccess::isFinalized($status)) {
+            return null;
         }
 
         return redirect()
             ->route('pelaksanaan', $projectId)
-            ->with('success', 'Task berhasil dihapus.');
+            ->with('error', 'Proyek sudah difinalisasi dan sedang dinilai dosen. Papan tugas terkunci.');
     }
 }

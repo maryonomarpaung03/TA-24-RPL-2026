@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Services\FinalizationService;
 use App\Services\StageProgressService;
 use App\Support\NotificationPresenter;
 use App\Support\ProjectCatalog;
@@ -58,15 +57,6 @@ class AppServiceProvider extends ServiceProvider
                     'stage_overview' => app(StageProgressService::class)->overview($projectId),
                     'active_stage' => $activeStage,
                 ]);
-
-                // Form finalisasi proyek hidup di tahap Assessment & Reflection, yang
-                // punya empat halaman dengan controller berbeda-beda — jadi prasyaratnya
-                // disiapkan di sini, bukan diduplikasi di tiap controller.
-                if ($activeStage === StageProgressService::ASSESSMENT) {
-                    $view->with([
-                        'finalReadiness' => app(FinalizationService::class)->readiness($projectId),
-                    ]);
-                }
             }
         });
     }

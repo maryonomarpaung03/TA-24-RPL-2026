@@ -8,6 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Tabel ini sudah dibuat lebih dulu oleh sync_application_schema pada
+        // basis data yang berjalan; tanpa penjaga ini migrasi berikutnya ikut macet.
+        if (Schema::hasTable('class_members')) {
+            return;
+        }
+
         Schema::create('class_members', function (Blueprint $table) {
             $table->id();
 

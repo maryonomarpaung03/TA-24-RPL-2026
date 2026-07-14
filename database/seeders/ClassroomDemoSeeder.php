@@ -355,7 +355,6 @@ class ClassroomDemoSeeder extends Seeder
         foreach ($taskRows as $i => [$title, $status, $priority, $progress, $dueOffset]) {
             DB::table('tasks')->insert([
                 'project_id' => $projectId,
-                'board_id' => null,
                 'milestone_id' => $milestoneId ?: null,
                 'assigned_to' => $allIds[$i % count($allIds)],
                 'task_title' => $title,
