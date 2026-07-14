@@ -5,9 +5,13 @@
     $pid = $selected_project['id'];
     $stage = collect($stage_overview['stages'])->firstWhere('key', $active_stage);
 
-    // Tahap Assessment tidak punya tombol "Finalisasi Tahap": mengirim laporan akhir
-    // lewat Submit Finalisasi Proyek itulah yang menutup tahap ini.
+    // Dua tahap ditutup oleh aksi "kirim ke dosen"-nya sendiri, bukan tombol
+    // "Finalisasi Tahap": Decomposition oleh Kirim Diagram ke Dosen, dan Assessment
+    // oleh Submit Finalisasi Proyek. Tombol generiknya disembunyikan di sana supaya
+    // tahap tidak bisa dikunci tanpa berkasnya pernah sampai ke dosen.
     $isAssessment = $active_stage === \App\Services\StageProgressService::ASSESSMENT;
+    $isDecomposition = $active_stage === \App\Services\StageProgressService::DECOMPOSITION;
+    $closedBySubmission = $isAssessment || $isDecomposition;
     $projectLocked = \App\Support\ProjectAccess::isFinalized($selected_project['status'] ?? null);
     $showFinalProject = $isAssessment && ! $projectLocked;
 
@@ -51,7 +55,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            @if($stage['state'] === 'current' && ! $isAssessment)
+            @if($stage['state'] === 'current' && ! $closedBySubmission)
                 <button type="button" @click="finalizeOpen = true"
                         class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700">
                     <i class="fas fa-flag-checkered"></i>
@@ -113,8 +117,16 @@
         </p>
     @endif
 
-    {{-- Konfirmasi finalisasi tahap (tidak berlaku untuk Assessment). --}}
-    @unless($isAssessment)
+    @if($isDecomposition && $stage['state'] !== 'done')
+        <p class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
+            <i class="fas fa-circle-info mr-1"></i>
+            Susun diagram dekomposisi, lalu tekan <span class="font-semibold">Kirim Diagram ke Dosen</span> di panel
+            langkah 5. Mengirim diagram sekaligus memfinalisasi tahapan ini dan membuka tahapan berikutnya.
+        </p>
+    @endif
+
+    {{-- Konfirmasi finalisasi tahap (tidak berlaku untuk tahap yang ditutup oleh pengiriman). --}}
+    @unless($closedBySubmission)
     <div x-show="finalizeOpen" x-cloak
          class="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
          @keydown.escape.window="finalizeOpen = false">

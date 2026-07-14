@@ -31,6 +31,8 @@
 
     @include('partials.flash-messages')
 
+    {{-- Status finalisasi proyek hanya ditampilkan di tahap Assessment & Reflection,
+         tempat finalisasi itu dikirim; di sini cukup papan tugasnya yang terkunci. --}}
     <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-wrap justify-between items-center gap-4">
         <div>
             <h2 class="text-3xl font-bold text-gray-900">{{ $namaProjek }}</h2>
@@ -38,17 +40,6 @@
                 <span class="text-blue-600">Pelaksanaan & Evaluasi</span>
             </p>
         </div>
-
-        {{-- Finalisasi proyek dikirim dari tahap Assessment & Reflection; di sini
-             hanya ditampilkan akibatnya pada papan tugas. --}}
-        @if($locked)
-            <div class="flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-5 py-2.5">
-                <i class="fas fa-lock text-emerald-600"></i>
-                <span class="text-sm font-bold text-emerald-700">
-                    {{ $projectStatus === 'completed' ? 'Proyek selesai & sudah dinilai' : 'Finalisasi terkirim — menunggu penilaian dosen' }}
-                </span>
-            </div>
-        @endif
     </div>
 
     @if($projectStatus === 'pending_final_revision' && $lastSubmission?->lecturer_note)

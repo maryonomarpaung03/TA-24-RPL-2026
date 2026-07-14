@@ -167,6 +167,7 @@ class PenyusunanController extends Controller
             'deskripsi_tugas' => 'nullable|string',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'penanggung_jawab' => 'required|integer',
         ]);
 
         $project = Project::query()->find($id);
@@ -174,20 +175,30 @@ class PenyusunanController extends Controller
             return back()->with('error', 'Akses ditolak.');
         }
 
-        $updated = DB::table('tasks')
-            ->where('id', $request->task_id)
-            ->where('project_id', $project->id)
-            ->update([
-                'task_title' => $request->judul_tugas,
-                'description' => $request->deskripsi_tugas,
-                'start_date' => $request->tanggal_mulai,
-                'due_date' => $request->tanggal_selesai,
-                'updated_at' => now(),
-            ]);
+        $assigneeId = (int) $request->penanggung_jawab;
 
-        if (! $updated) {
+        if (! $this->tasks->assigneeIsProjectMember((int) $project->id, $assigneeId)) {
+            return back()->with('error', 'Penanggung jawab harus anggota proyek ini.');
+        }
+
+        $task = DB::table('tasks')
+            ->where('id', $request->task_id)
+            ->where('project_id', $project->id);
+
+        // Dicek terpisah dari update(): update() mengembalikan 0 baris juga ketika
+        // isian dikirim tanpa perubahan, dan itu bukan "tugas tidak ditemukan".
+        if (! (clone $task)->exists()) {
             return back()->with('error', 'Tugas tidak ditemukan.');
         }
+
+        $task->update([
+            'task_title' => $request->judul_tugas,
+            'description' => $request->deskripsi_tugas,
+            'start_date' => $request->tanggal_mulai,
+            'due_date' => $request->tanggal_selesai,
+            'assigned_to' => $assigneeId,
+            'updated_at' => now(),
+        ]);
 
         return back()->with('success', 'Tugas berhasil diubah');
     }

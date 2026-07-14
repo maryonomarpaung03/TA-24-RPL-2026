@@ -143,6 +143,13 @@
 @endpush
 
 @section('content')
+@php
+    // Mengirim diagram ke dosen sekaligus memfinalisasi tahap ini, jadi tahap yang
+    // sudah terkunci tidak boleh dikirim ulang.
+    $stageFinalized = collect($stage_overview['stages'] ?? [])
+        ->firstWhere('key', \App\Services\StageProgressService::DECOMPOSITION)['state'] ?? null;
+    $stageFinalized = $stageFinalized === 'done';
+@endphp
 {{-- SVG arrow marker defs (referenced by CSS marker-end) --}}
 <svg style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true">
     <defs>
@@ -154,18 +161,45 @@
         </marker>
     </defs>
 </svg>
-<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(route('dekomposisi.submit', $id)), @js(csrf_token()), @js($approvedProblems))">
+<div class="w-full min-w-0" x-data="dekomposisiBoard(@js($diagramSeed), @js($user['initials'] ?? 'ME'), @js($user['name'] ?? ''), @js($id), @js(route('dekomposisi.sync', $id)), @js(route('dekomposisi.submit', $id)), @js(csrf_token()), @js($approvedProblems), @js($stageFinalized))">
     <div class="flex flex-col gap-6">
                     <div>
                         <p class="text-xs uppercase tracking-[0.3em] text-gray-500 font-semibold mb-2">Projects / Dekomposisi</p>
                         <h1 class="text-3xl font-bold text-slate-900">Dekomposisi Masalah</h1>
                     </div>
 
+                    @if($stageFinalized)
+                        {{-- Tahap sudah dikunci: diagram hanya dapat dibaca. --}}
+                        <div class="flex items-start gap-4 rounded-[1.75rem] border border-emerald-200 bg-emerald-50 px-5 py-4">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-emerald-800">Tahapan Dekomposisi sudah difinalisasi</p>
+                                <p class="mt-1 text-xs leading-relaxed text-emerald-700">
+                                    Diagram sudah dikirim ke dosen, sehingga halaman ini <span class="font-semibold">hanya dapat dibaca</span> —
+                                    node, garis, dan topik tidak dapat diubah lagi. Anda tetap dapat menggeser kanvas, memperbesar tampilan,
+                                    dan mengunduh diagram.
+                                </p>
+                                <p class="mt-1.5 text-xs text-emerald-700">
+                                    Perlu mengubah diagram? Tekan <span class="font-semibold">Ajukan Perbaikan</span> pada bar tahapan di atas,
+                                    lalu tunggu persetujuan dosen.
+                                </p>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="grid grid-cols-1 xl:grid-cols-[1.7fr_1fr] gap-6">
                         <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
                             <div class="border-b border-slate-200 px-5 py-2.5 flex items-center justify-between gap-3 flex-wrap">
                                 <div class="flex items-center gap-2 text-xs text-slate-500">
-                                    <span class="rounded-md bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">Draw Mode</span>
+                                    @if($stageFinalized)
+                                        <span class="flex items-center gap-1.5 rounded-md bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">
+                                            <i class="fas fa-lock text-[10px]"></i> Mode Baca
+                                        </span>
+                                    @else
+                                        <span class="rounded-md bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">Draw Mode</span>
+                                    @endif
                                 </div>
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     {{-- Zoom --}}
@@ -175,19 +209,21 @@
                                     <button @click="zoomOut()" title="Zoom Out" class="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 transition">
                                         <i class="fas fa-search-minus text-[11px]"></i> Zoom Out
                                     </button>
-                                    <div class="w-px h-5 bg-slate-200 mx-0.5"></div>
-                                    {{-- Connections --}}
-                                    <button @click="removeLastConnection()" title="Hapus garis terakhir" class="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition">
-                                        <i class="fas fa-minus text-[11px]"></i> Hapus Garis
-                                    </button>
-                                    <button @click="clearAllConnections()" title="Hapus semua garis" class="flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition">
-                                        <i class="fas fa-times text-[11px]"></i> Hapus Semua
-                                    </button>
-                                    <div class="w-px h-5 bg-slate-200 mx-0.5"></div>
-                                    {{-- Reset --}}
-                                    <button @click="resetCanvas()" title="Reset canvas" class="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition">
-                                        <i class="fas fa-redo-alt text-[11px]"></i> Reset
-                                    </button>
+                                    @unless($stageFinalized)
+                                        <div class="w-px h-5 bg-slate-200 mx-0.5"></div>
+                                        {{-- Connections --}}
+                                        <button @click="removeLastConnection()" title="Hapus garis terakhir" class="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition">
+                                            <i class="fas fa-minus text-[11px]"></i> Hapus Garis
+                                        </button>
+                                        <button @click="clearAllConnections()" title="Hapus semua garis" class="flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition">
+                                            <i class="fas fa-times text-[11px]"></i> Hapus Semua
+                                        </button>
+                                        <div class="w-px h-5 bg-slate-200 mx-0.5"></div>
+                                        {{-- Reset --}}
+                                        <button @click="resetCanvas()" title="Reset canvas" class="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition">
+                                            <i class="fas fa-redo-alt text-[11px]"></i> Reset
+                                        </button>
+                                    @endunless
                                 </div>
                             </div>
 
@@ -325,10 +361,12 @@
                                                         </div>
                                                     </td>
                                                     <td class="py-2.5 align-top">
-                                                        <button x-show="!addedProblemIds.includes(problem.id)" type="button" @click="addProblemToDiagram(problem)"
-                                                                class="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap">
-                                                            <i class="fas fa-plus text-[9px]"></i> Tambah
-                                                        </button>
+                                                        @unless($stageFinalized)
+                                                            <button x-show="!addedProblemIds.includes(problem.id)" type="button" @click="addProblemToDiagram(problem)"
+                                                                    class="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap">
+                                                                <i class="fas fa-plus text-[9px]"></i> Tambah
+                                                            </button>
+                                                        @endunless
                                                         <span x-show="addedProblemIds.includes(problem.id)"
                                                               class="flex items-center gap-1 rounded-lg bg-green-100 px-2.5 py-1.5 text-xs font-semibold text-green-700 whitespace-nowrap">
                                                             <i class="fas fa-check text-[9px]"></i> Ditambahkan
@@ -355,10 +393,17 @@
                                     <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">2</span>
                                     <h3 class="text-sm font-bold text-slate-800">Tambah Topik</h3>
                                 </div>
-                                <button @click="showTopicModal = true" class="flex w-full items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">
-                                    <span>+ Tambah Sub-Topik</span>
-                                    <i class="fas fa-plus-circle text-base text-blue-600"></i>
-                                </button>
+                                @if($stageFinalized)
+                                    <div class="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                                        <i class="fas fa-lock text-xs"></i>
+                                        <span>Topik terkunci — tahapan sudah difinalisasi</span>
+                                    </div>
+                                @else
+                                    <button @click="showTopicModal = true" class="flex w-full items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">
+                                        <span>+ Tambah Sub-Topik</span>
+                                        <i class="fas fa-plus-circle text-base text-blue-600"></i>
+                                    </button>
+                                @endif
                             </div>
 
                             {{-- connector --}}
@@ -387,14 +432,16 @@
                                                 <p class="truncate text-sm font-semibold text-slate-700" x-text="topic.title"></p>
                                                 <p class="text-[11px] text-slate-400" x-text="'oleh ' + (topic.createdBy || '-')"></p>
                                             </div>
-                                            <div class="flex items-center gap-1.5 shrink-0">
-                                                <button type="button" @click="openEditTopic(topic)" class="h-7 w-7 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition" title="Edit">
-                                                    <i class="fas fa-pen text-[11px]"></i>
-                                                </button>
-                                                <button x-show="!topic.isRoot" @click="removeTopic(topic.id)" type="button" class="h-7 w-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Hapus">
-                                                    <i class="fas fa-trash text-[11px]"></i>
-                                                </button>
-                                            </div>
+                                            @unless($stageFinalized)
+                                                <div class="flex items-center gap-1.5 shrink-0">
+                                                    <button type="button" @click="openEditTopic(topic)" class="h-7 w-7 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition" title="Edit">
+                                                        <i class="fas fa-pen text-[11px]"></i>
+                                                    </button>
+                                                    <button x-show="!topic.isRoot" @click="removeTopic(topic.id)" type="button" class="h-7 w-7 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Hapus">
+                                                        <i class="fas fa-trash text-[11px]"></i>
+                                                    </button>
+                                                </div>
+                                            @endunless
                                         </div>
                                     </template>
                                 </div>
@@ -414,10 +461,15 @@
                                     <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">4</span>
                                     <h3 class="text-sm font-bold text-slate-800">Export</h3>
                                 </div>
-                                <button class="flex w-full items-center justify-between rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">
-                                    <span>Download Diagram (.PNG)</span>
-                                    <i class="fas fa-download"></i>
+                                <button
+                                    @click="downloadDiagram()"
+                                    :disabled="downloading"
+                                    class="flex w-full items-center justify-between rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    <span x-text="downloading ? 'Menyiapkan diagram...' : 'Download Diagram (.PNG)'">Download Diagram (.PNG)</span>
+                                    <i class="fas" :class="downloading ? 'fa-spinner fa-spin' : 'fa-download'"></i>
                                 </button>
+                                <p x-show="downloadError" x-cloak class="mt-2 text-xs text-red-600" x-text="downloadError"></p>
                             </div>
 
                             {{-- connector --}}
@@ -434,26 +486,36 @@
                                     <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white">5</span>
                                     <h3 class="text-sm font-bold text-slate-800">Kirim ke Dosen</h3>
                                 </div>
-                                <p class="text-xs text-slate-500 mb-3">Kirim diagram dekomposisi beserta history pembuatannya kepada dosen untuk ditinjau.</p>
+                                @if($stageFinalized)
+                                    <p class="text-xs text-slate-500 mb-3">Diagram sudah dikirim ke dosen dan tahapan Dekomposisi telah difinalisasi.</p>
 
-                                <template x-if="submitSuccess">
-                                    <div class="mb-3 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-xs font-semibold text-green-700 flex items-center gap-2">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Diagram berhasil dikirim ke dosen!</span>
+                                    <div class="flex w-full items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                                        <i class="fas fa-lock"></i>
+                                        <span>Terkirim &amp; difinalisasi</span>
                                     </div>
-                                </template>
-                                <template x-if="submitError">
-                                    <div class="mb-3 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-semibold text-red-600 flex items-center gap-2">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                        <span x-text="submitError"></span>
-                                    </div>
-                                </template>
+                                    <p class="mt-2 text-[11px] text-slate-400">Perlu mengubah diagram? Ajukan perbaikan ke dosen lewat bar tahapan di atas.</p>
+                                @else
+                                    <p class="text-xs text-slate-500 mb-3">Kirim diagram dekomposisi beserta history pembuatannya kepada dosen untuk ditinjau. Mengirim diagram sekaligus memfinalisasi tahapan Dekomposisi dan membuka tahapan berikutnya.</p>
 
-                                <button @click="kirimKeDosen()" :disabled="submitting"
-                                        class="flex w-full items-center justify-between rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition">
-                                    <span x-text="submitting ? 'Mengirim...' : 'Kirim Diagram ke Dosen'"></span>
-                                    <i class="fas" :class="submitting ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
-                                </button>
+                                    <template x-if="submitSuccess">
+                                        <div class="mb-3 rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-xs font-semibold text-green-700 flex items-center gap-2">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Diagram terkirim &amp; tahapan difinalisasi. Memuat ulang halaman...</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="submitError">
+                                        <div class="mb-3 rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-semibold text-red-600 flex items-center gap-2">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span x-text="submitError"></span>
+                                        </div>
+                                    </template>
+
+                                    <button @click="kirimKeDosen()" :disabled="submitting || submitSuccess"
+                                            class="flex w-full items-center justify-between rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition">
+                                        <span x-text="submitting ? 'Mengirim...' : 'Kirim Diagram ke Dosen'"></span>
+                                        <i class="fas" :class="submitting ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+                                    </button>
+                                @endif
                             </div>
 
                             {{-- Komentar (di luar alur kerja) --}}
@@ -544,9 +606,12 @@
 
 @push('scripts')
 <script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
-function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, submitUrl, csrfToken, approvedProblemsData) {
+function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, syncUrl, submitUrl, csrfToken, approvedProblemsData, locked) {
     return {
+        // Tahap sudah difinalisasi -> diagram hanya dapat dibaca.
+        locked: !!locked,
         showTopicModal: false,
         showEditTopicModal: false,
         editTopicId: null,
@@ -576,6 +641,8 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
         submitting: false,
         submitSuccess: false,
         submitError: null,
+        downloading: false,
+        downloadError: null,
         init() {
             this.$nextTick(() => this.setupDrawflow());
         },
@@ -683,6 +750,11 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             });
             this.editor.on('connectionRemoved', () => this.syncTopicList());
             this.editor.on('nodeRemoved', () => this.syncTopicList());
+
+            // Tahap sudah difinalisasi: kunci kanvas setelah seluruh seed dimuat.
+            // Mode 'fixed' mematikan geser node, pembuatan/penghapusan koneksi, menu
+            // kanan, dan tombol Delete — tetapi panning dan zoom tetap bisa dipakai.
+            if (this.locked) this.editor.editor_mode = 'fixed';
         },
         getPersistPayload() {
             if (!this.editor) return { nodes: [], connections: [] };
@@ -729,6 +801,8 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
                     || []};
             },
         async persistDiagram() {
+            // Tahap terkunci: server menolak sync, jadi jangan kirim sama sekali.
+            if (this.locked) return;
             if (!this.syncUrl || !this.csrfToken) return;
             const payload = this.getPersistPayload();
             try {
@@ -796,6 +870,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.persistDiagram();
         },
         openEditTopic(topic) {
+            if (this.locked) return;
             if (!this.editor) return;
             this.editTopicId = topic.id;
             this.editTopicText = topic.title || '';
@@ -832,6 +907,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.editTopicId = null;
         },
         removeTopic(topicId) {
+            if (this.locked) return;
 
             if (!this.editor) {
                 return;
@@ -873,6 +949,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.persistDiagram();
         },
         addTopic() {
+            if (this.locked) return;
             if (!this.newTopicText.trim() || !this.editor) return;
             const key = `n-${Date.now()}`;
             const posX = 120 + (this.topicList.length % 4) * 180;
@@ -903,6 +980,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.showTopicModal = false;
         },
         addProblemToDiagram(problem) {
+            if (this.locked) return;
             if (!this.editor) return;
             const key = `prob-${problem.id}-${Date.now()}`;
             const posX = 160 + (this.topicList.length % 3) * 220;
@@ -925,7 +1003,102 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
         zoomOut() {
             if (this.editor) this.editor.zoom_out();
         },
+        async downloadDiagram() {
+            if (!this.editor || this.downloading) return;
+
+            this.downloadError = null;
+            const data = this.editor.export().drawflow.Home.data || {};
+            const ids = Object.keys(data);
+            if (!ids.length) {
+                this.downloadError = 'Diagram masih kosong. Tambahkan node terlebih dahulu.';
+                return;
+            }
+            if (typeof html2canvas !== 'function') {
+                this.downloadError = 'Gagal memuat pustaka export. Periksa koneksi internet Anda.';
+                return;
+            }
+
+            this.downloading = true;
+
+            const container = this.editor.container;
+            const precanvas = this.editor.precanvas;
+            const prev = {
+                transform: precanvas.style.transform,
+                width: container.style.width,
+                height: container.style.height,
+                overflow: container.style.overflow,
+            };
+
+            try {
+                // Bounding box seluruh node dalam koordinat canvas (skala 1).
+                const PAD = 60;
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                ids.forEach((id) => {
+                    const el = container.querySelector('#node-' + id);
+                    const w = el ? el.offsetWidth : 160;
+                    const h = el ? el.offsetHeight : 60;
+                    minX = Math.min(minX, data[id].pos_x);
+                    minY = Math.min(minY, data[id].pos_y);
+                    maxX = Math.max(maxX, data[id].pos_x + w);
+                    maxY = Math.max(maxY, data[id].pos_y + h);
+                });
+
+                const width = Math.ceil(maxX - minX) + PAD * 2;
+                const height = Math.ceil(maxY - minY) + PAD * 2;
+
+                // Perbesar canvas seukuran diagram penuh dan reset zoom, supaya node
+                // di luar viewport (container overflow-hidden, tinggi tetap) ikut terekam.
+                container.style.width = width + 'px';
+                container.style.height = height + 'px';
+                container.style.overflow = 'visible';
+                precanvas.style.transform =
+                    'translate(' + (PAD - minX) + 'px, ' + (PAD - minY) + 'px) scale(1)';
+
+                await new Promise((resolve) =>
+                    requestAnimationFrame(() => requestAnimationFrame(resolve))
+                );
+
+                const canvas = await html2canvas(container, {
+                    backgroundColor: '#f8fafc',
+                    scale: 2,
+                    width,
+                    height,
+                    windowWidth: width,
+                    windowHeight: height,
+                    scrollX: 0,
+                    scrollY: 0,
+                    useCORS: true,
+                    logging: false,
+                });
+
+                await new Promise((resolve, reject) => {
+                    canvas.toBlob((blob) => {
+                        if (!blob) return reject(new Error('toBlob gagal'));
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'dekomposisi-masalah-proyek-' + this.projectId + '.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        URL.revokeObjectURL(url);
+                        resolve();
+                    }, 'image/png');
+                });
+            } catch (e) {
+                console.error(e);
+                this.downloadError = 'Gagal mengunduh diagram. Silakan coba lagi.';
+            } finally {
+                // Kembalikan tampilan canvas seperti semula.
+                container.style.width = prev.width;
+                container.style.height = prev.height;
+                container.style.overflow = prev.overflow;
+                precanvas.style.transform = prev.transform;
+                this.downloading = false;
+            }
+        },
         resetCanvas() {
+            if (this.locked) return;
             if (!this.editor) return;
             this.editor.clear();
             this.nodeIdMap = {};
@@ -933,6 +1106,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.setupDrawflow();
         },
         removeLastConnection() {
+            if (this.locked) return;
             if (!this.editor || !this.lastConnection) return;
             const c = this.lastConnection;
             if (c.output_id && c.input_id && c.output_class && c.input_class) {
@@ -942,6 +1116,7 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.syncTopicList();
         },
         clearAllConnections() {
+            if (this.locked) return;
             if (!this.editor) return;
             const data = this.editor.export().drawflow.Home.data || {};
             Object.keys(data).forEach((id) => {
@@ -957,8 +1132,9 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
             this.syncTopicList();
         },
         async kirimKeDosen() {
-            if (!this.submitUrl || this.submitting) return;
-            if (!confirm('Apakah Anda yakin akan mengirimkan diagram dekomposisi ke dosen?')) return;
+            if (this.locked) return;
+            if (!this.submitUrl || this.submitting || this.submitSuccess) return;
+            if (!confirm('Kirim diagram dekomposisi ke dosen?\n\nTahapan Dekomposisi akan langsung difinalisasi dan tidak dapat diubah lagi tanpa persetujuan dosen.')) return;
             this.submitting = true;
             this.submitSuccess = false;
             this.submitError = null;
@@ -981,12 +1157,23 @@ function dekomposisiBoard(seedData, userInitials, currentUserName, projectId, sy
                     },
                     body: JSON.stringify(payload),
                 });
-                const json = await res.json();
-                if (json.ok) {
+
+                // Sesi habis / CSRF kedaluwarsa: server membalas halaman login, bukan JSON.
+                const json = res.headers.get('content-type')?.includes('application/json')
+                    ? await res.json()
+                    : null;
+
+                if (res.ok && json?.ok) {
                     this.submitSuccess = true;
-                } else {
-                    this.submitError = json.message || 'Gagal mengirim diagram.';
+                    // Muat ulang supaya bar tahapan menampilkan status terfinalisasi
+                    // dan tahapan berikutnya terbuka.
+                    setTimeout(() => window.location.reload(), 1200);
+                    return;
                 }
+
+                this.submitError = json?.message
+                    || (res.status === 419 ? 'Sesi Anda berakhir. Muat ulang halaman lalu coba lagi.'
+                        : 'Gagal mengirim diagram (kode ' + res.status + '). Coba lagi.');
             } catch (e) {
                 this.submitError = 'Terjadi kesalahan koneksi. Coba lagi.';
             } finally {

@@ -912,6 +912,46 @@ class StageProgressService
 
     /*
     |--------------------------------------------------------------------------
+    | Finalisasi tahap lewat pengiriman ke dosen
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Tahap Decomposition ditutup dengan mengirim diagram ke dosen. Dipanggil dari
+     * DekomposisiController::submit(), yang sudah mengirim notifikasi
+     * 'decomposition_submitted', jadi di sini notifikasi tahap sengaja tidak
+     * dikirim lagi agar dosen tidak menerimanya dua kali.
+     *
+     * Aman dipanggil berulang: tahap yang sudah terkunci atau belum gilirannya
+     * dilewati begitu saja.
+     */
+    public function finalizeOnDiagramSubmission(Project $project, int $userId): void
+    {
+        $projectId = (int) $project->id;
+
+        if ($this->isFinalized($projectId, self::DECOMPOSITION)) {
+            return;
+        }
+
+        if ($this->currentStage($projectId) !== self::DECOMPOSITION) {
+            return;
+        }
+
+        ProjectStageCompletion::create([
+            'project_id' => $projectId,
+            'stage' => self::DECOMPOSITION,
+            'finalized_at' => now(),
+            'finalized_by' => $userId,
+            'source' => 'manual',
+            'reopen_count' => $this->approvedReopenCount($projectId, self::DECOMPOSITION),
+            'summary' => $this->buildSummary($projectId, self::DECOMPOSITION),
+        ]);
+
+        $this->forgetCache($projectId);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Finalisasi proyek (form laporan akhir)
     |--------------------------------------------------------------------------
     */

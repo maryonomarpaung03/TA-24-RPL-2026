@@ -38,8 +38,21 @@ class EnsureStageWaterfall
 
         // Tahap yang sudah difinalisasi tetap boleh dibuka, tapi hanya untuk dibaca.
         if ($request->method() !== 'GET' && $this->stages->isFinalized($projectId, $stage)) {
-            return back()->with('error', 'Tahapan '.StageProgressService::label($stage)
-                .' sudah difinalisasi dan tidak dapat diubah. Ajukan perbaikan ke dosen bila perlu mengubahnya.');
+            $message = 'Tahapan '.StageProgressService::label($stage)
+                .' sudah difinalisasi dan tidak dapat diubah. Ajukan perbaikan ke dosen bila perlu mengubahnya.';
+
+            // Kanvas dekomposisi memanggil endpoint tahap lewat fetch(). Redirect HTML
+            // membuat res.json() di klien gagal dan tampil sebagai "kesalahan koneksi",
+            // jadi permintaan JSON dijawab JSON.
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'locked' => true,
+                    'message' => $message,
+                ], 423);
+            }
+
+            return back()->with('error', $message);
         }
 
         return $next($request);

@@ -144,10 +144,6 @@
                                 <i class="fas fa-file-pdf"></i>
                                 Download PDF
                             </button>
-                            <button class="flex-1 rounded-lg border border-slate-300 text-slate-700 font-semibold py-3 hover:bg-slate-50 transition flex items-center justify-center gap-2">
-                                
-                                Share
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -227,9 +223,6 @@
                             <button type="button" onclick="downloadEvaluationPdf('group')" class="flex-1 rounded-lg bg-blue-600 text-white font-semibold py-3 hover:bg-blue-700 transition flex items-center justify-center gap-2">
                                 <i class="fas fa-file-pdf"></i>
                                 Download PDF
-                            </button>
-                            <button class="flex-1 rounded-lg border border-slate-300 text-slate-700 font-semibold py-3 hover:bg-slate-50 transition flex items-center justify-center gap-2">
-                                Share
                             </button>
                         </div>
                     </aside>

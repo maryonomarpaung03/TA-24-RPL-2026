@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Services\StageProgressService;
 use App\Support\ProjectAccess;
 use App\Support\ProjectCatalog;
 use Illuminate\Http\Request;
@@ -244,193 +245,35 @@ class DekomposisiController extends Controller
 
     public function sync(
         Request $request,
-        $id
+        $id,
+        StageProgressService $stages
     )
     {
-        /*
-        =====================================
-        SAVE NODES
-        =====================================
-        */
-        $nodes =
-            $request->nodes
-            ?? [];
+        $project = Project::query()->find($id);
 
-        $keys = [];
-
-        foreach (
-            $nodes
-            as $node
-        ) {
-
-            $key =
-                $node['key']
-                ?? null;
-
-            if (!$key) {
-                continue;
-            }
-
-            $keys[] =
-                $key;
-
-            DB::table(
-                'decomposition_nodes'
-            )->updateOrInsert(
-
-                [
-                    'project_id' =>
-                        $id,
-
-                    'node_key' =>
-                        $key
-                ],
-
-                [
-                    'title' =>
-                        $node['title']
-                        ?? null,
-
-                    'shape' =>
-                        $node['shape']
-                        ?? 'rounded',
-
-                    'color' =>
-                        $node['color']
-                        ?? '#dbeafe',
-
-                    'created_by' =>
-                        $node['createdBy']
-                        ?? null,
-
-                    'created_at_label' =>
-                        $node['createdAt']
-                        ?? null,
-
-                    'pos_x' =>
-                        $node['x']
-                        ?? 0,
-
-                    'pos_y' =>
-                        $node['y']
-                        ?? 0,
-
-                    'updated_at' =>
-                        now(),
-
-                    'created_at' =>
-                        now(),
-                ]
-            );
+        if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
+            return response()->json(['ok' => false, 'message' => 'Akses ditolak.'], 403);
         }
 
         /*
-        DELETE REMOVED NODES
+        Tahap yang sudah difinalisasi hanya dapat dibaca. Klien menyimpan diagram
+        secara otomatis pada setiap perubahan, jadi tanpa penjagaan ini autosave
+        masih bisa menimpa diagram yang sudah dikirim ke dosen.
         */
-        DB::table(
-            'decomposition_nodes'
-        )
-        ->where(
-            'project_id',
-            $id
-        )
-        ->whereNotIn(
-            'node_key',
-            $keys
-        )
-        ->delete();
-
-        /*
-        =====================================
-        SAVE CONNECTIONS
-        =====================================
-        */
-        DB::table(
-            'decomposition_connections'
-        )
-        ->where(
-            'project_id',
-            $id
-        )
-        ->delete();
-
-        foreach (
-            $request->connections
-            ?? []
-            as $connection
-        ) {
-
-            DB::table(
-                'decomposition_connections'
-            )->insert([
-
-                'project_id' =>
-                    $id,
-
-                'from_node' =>
-                    $connection['from']
-                    ?? '',
-
-                'to_node' =>
-                    $connection['to']
-                    ?? '',
-
-                'created_at' =>
-                    now(),
-
-                'updated_at' =>
-                    now(),
-            ]);
+        if ($stages->isFinalized((int) $project->id, StageProgressService::DECOMPOSITION)) {
+            return response()->json([
+                'ok'      => false,
+                'locked'  => true,
+                'message' => 'Tahapan Dekomposisi sudah difinalisasi dan hanya dapat dibaca.',
+            ], 423);
         }
 
-        /*
-        =====================================
-        SAVE COMMENTS
-        =====================================
-        */
-        DB::table(
-            'decomposition_comments'
-        )
-        ->where(
-            'project_id',
-            $id
-        )
-        ->delete();
-
-        foreach (
-            $request->comments
-            ?? []
-            as $comment
-        ) {
-
-            DB::table(
-                'decomposition_comments'
-            )->insert([
-
-                'project_id' =>
-                    $id,
-
-                'author_name' =>
-                    Auth::user()
-                    ?->full_name
-                    ?? Auth::user()
-                    ?->name,
-
-                'author_initials' =>
-                    $comment['author']
-                    ?? 'U',
-
-                'comment_text' =>
-                    $comment['text']
-                    ?? '',
-
-                'created_at' =>
-                    now(),
-
-                'updated_at' =>
-                    now(),
-            ]);
-        }
+        $this->persistDiagram(
+            $id,
+            $request->input('nodes', []),
+            $request->input('connections', []),
+            $request->input('comments', [])
+        );
 
         return response()
             ->json([
@@ -438,12 +281,26 @@ class DekomposisiController extends Controller
             ]);
     }
 
-    public function submit(Request $request, $id)
+    /**
+     * Kirim diagram ke dosen. Pengiriman ini sekaligus menutup tahap Decomposition:
+     * tim tidak perlu menekan "Finalisasi Tahap" secara terpisah.
+     */
+    public function submit(Request $request, $id, StageProgressService $stages)
     {
         $project = Project::query()->find($id);
 
         if (! $project || ! ProjectAccess::userCanAccess((int) Auth::id(), $project)) {
             return response()->json(['ok' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        // Mengirim diagram sekaligus memfinalisasi tahap, jadi tahap yang sudah
+        // terkunci tidak boleh dikirim ulang.
+        if ($stages->isFinalized((int) $project->id, StageProgressService::DECOMPOSITION)) {
+            return response()->json([
+                'ok'      => false,
+                'locked'  => true,
+                'message' => 'Diagram sudah dikirim dan tahapan Dekomposisi telah difinalisasi.',
+            ], 423);
         }
 
         $nodes       = $request->input('nodes', []);
@@ -454,50 +311,153 @@ class DekomposisiController extends Controller
             return response()->json(['ok' => false, 'message' => 'Diagram masih kosong.'], 422);
         }
 
-        DB::table('decomposition_submissions')->insert([
-            'project_id'          => $project->id,
-            'submitted_by'        => Auth::id(),
-            'nodes_snapshot'      => json_encode($nodes),
-            'connections_snapshot' => json_encode($connections),
-            'comments_snapshot'   => json_encode($comments),
-            'status'              => 'submitted',
-            'created_at'          => now(),
-            'updated_at'          => now(),
+        $userId = (int) Auth::id();
+
+        DB::transaction(function () use ($project, $userId, $nodes, $connections, $comments, $stages) {
+            // Simpan dulu diagram yang dikirim. Autosave berjalan asinkron, jadi tanpa
+            // ini perubahan terakhir bisa belum sampai ke DB saat tahap dikunci — dan
+            // setelah terkunci autosave ditolak, sehingga perubahan itu hilang. Ini
+            // juga yang membuat diagram yang dilihat dosen sama persis dengan snapshot
+            // dan dengan ringkasan tahap.
+            $this->persistDiagram((int) $project->id, $nodes, $connections, $comments);
+
+            DB::table('decomposition_submissions')->insert([
+                'project_id'           => $project->id,
+                'submitted_by'         => $userId,
+                'nodes_snapshot'       => json_encode($nodes),
+                'connections_snapshot' => json_encode($connections),
+                'comments_snapshot'    => json_encode($comments),
+                'status'               => 'submitted',
+                'created_at'           => now(),
+                'updated_at'           => now(),
+            ]);
+
+            $this->notifyLecturers($project);
+
+            // Diagram terkirim = tahap Decomposition selesai. Dikunci setelah
+            // snapshot tersimpan supaya ringkasan tahap ikut mencerminkan diagram ini.
+            $stages->finalizeOnDiagramSubmission($project, $userId);
+        });
+
+        return response()->json([
+            'ok'      => true,
+            'message' => 'Diagram berhasil dikirim ke dosen. Tahapan Dekomposisi difinalisasi.',
         ]);
+    }
 
-        // Kirim notifikasi ke dosen yang terhubung ke proyek ini
-        $lecturerEmails = DB::table('project_members')
-            ->join('users', 'project_members.user_id', '=', 'users.id')
-            ->where('project_members.project_id', $project->id)
-            ->where('users.role', 'lecturer')
-            ->pluck('users.email');
+    /**
+     * Tulis ulang isi diagram (node, koneksi, komentar) sebuah proyek. Node yang
+     * tidak lagi dikirim klien dianggap terhapus. Dipakai oleh autosave (sync);
+     * dibungkus transaksi supaya kegagalan di tengah tidak menyisakan diagram
+     * yang separuh tertulis.
+     *
+     * @param  array<int, array<string, mixed>>  $nodes
+     * @param  array<int, array<string, mixed>>  $connections
+     * @param  array<int, array<string, mixed>>  $comments
+     */
+    private function persistDiagram(int|string $id, array $nodes, array $connections, array $comments): void
+    {
+        DB::transaction(function () use ($id, $nodes, $connections, $comments) {
+            $keys = [];
 
-        // Cek juga dosen dari kelas (academic_classes)
-        $classLecturerEmails = DB::table('academic_classes')
-            ->join('users', 'academic_classes.lecturer_id', '=', 'users.id')
-            ->whereIn('academic_classes.id', function ($q) use ($project) {
-                $q->select('class_id')
-                    ->from('project_members')
-                    ->where('project_id', $project->id);
-            })
-            ->pluck('users.email');
+            foreach ($nodes as $node) {
+                $key = $node['key'] ?? null;
 
-        $allLecturerEmails = $lecturerEmails->merge($classLecturerEmails)->unique();
+                if (! $key) {
+                    continue;
+                }
+
+                $keys[] = $key;
+
+                DB::table('decomposition_nodes')->updateOrInsert(
+                    [
+                        'project_id' => $id,
+                        'node_key'   => $key,
+                    ],
+                    [
+                        'title'            => $node['title'] ?? null,
+                        'shape'            => $node['shape'] ?? 'rounded',
+                        'color'            => $node['color'] ?? '#dbeafe',
+                        'created_by'       => $node['createdBy'] ?? null,
+                        'created_at_label' => $node['createdAt'] ?? null,
+                        'pos_x'            => $node['x'] ?? 0,
+                        'pos_y'            => $node['y'] ?? 0,
+                        'updated_at'       => now(),
+                        'created_at'       => now(),
+                    ]
+                );
+            }
+
+            DB::table('decomposition_nodes')
+                ->where('project_id', $id)
+                ->whereNotIn('node_key', $keys)
+                ->delete();
+
+            DB::table('decomposition_connections')->where('project_id', $id)->delete();
+
+            foreach ($connections as $connection) {
+                DB::table('decomposition_connections')->insert([
+                    'project_id' => $id,
+                    'from_node'  => $connection['from'] ?? '',
+                    'to_node'    => $connection['to'] ?? '',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            DB::table('decomposition_comments')->where('project_id', $id)->delete();
+
+            $authorName = Auth::user()?->full_name ?? Auth::user()?->name;
+
+            foreach ($comments as $comment) {
+                DB::table('decomposition_comments')->insert([
+                    'project_id'      => $id,
+                    'author_name'     => $authorName,
+                    'author_initials' => $comment['author'] ?? 'U',
+                    'comment_text'    => $comment['text'] ?? '',
+                    'created_at'      => now(),
+                    'updated_at'      => now(),
+                ]);
+            }
+        });
+    }
+
+    /**
+     * Dosen pembimbing proyek: yang tercatat di proyek dan yang mengampu kelasnya.
+     * project_members hanya berisi anggota tim, jadi kelas dibaca lewat
+     * projects.academic_class_id.
+     */
+    private function notifyLecturers(Project $project): void
+    {
+        $emails = collect([$project->lecturer_email]);
+
+        if ($project->academic_class_id) {
+            $emails->push(
+                DB::table('academic_classes')
+                    ->join('users', 'users.id', '=', 'academic_classes.lecturer_id')
+                    ->where('academic_classes.id', $project->academic_class_id)
+                    ->value('users.email')
+            );
+        }
+
+        $emails = $emails
+            ->filter()
+            ->map(fn ($email) => strtolower(trim((string) $email)))
+            ->filter()
+            ->unique();
 
         $submitterName = Auth::user()?->full_name ?? Auth::user()?->name ?? 'Mahasiswa';
 
-        foreach ($allLecturerEmails as $email) {
+        foreach ($emails as $email) {
             DB::table('project_notifications')->insert([
                 'project_id'      => $project->id,
-                'recipient_email' => strtolower(trim($email)),
+                'recipient_email' => $email,
                 'type'            => 'decomposition_submitted',
                 'title'           => 'Diagram Dekomposisi Dikirim',
-                'message'         => $submitterName . ' mengirimkan diagram dekomposisi proyek "' . $project->title . '" untuk ditinjau.',
+                'message'         => $submitterName.' mengirimkan diagram dekomposisi proyek "'.$project->title.'" untuk ditinjau.',
                 'created_at'      => now(),
                 'updated_at'      => now(),
             ]);
         }
-
-        return response()->json(['ok' => true, 'message' => 'Diagram berhasil dikirim ke dosen.']);
     }
 }

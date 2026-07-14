@@ -4,6 +4,16 @@
 @section('root_data', "{ sidebarOpen: true }")
 
 @section('content')
+@php
+    // Tahap Planning yang sudah difinalisasi hanya boleh dibaca — server menolak
+    // POST-nya lewat middleware stage.waterfall, jadi tombolnya pun dimatikan di
+    // sini supaya tim tidak menekan aksi yang pasti ditolak.
+    $planningStage = collect($stage_overview['stages'] ?? [])
+        ->firstWhere('key', \App\Services\StageProgressService::PLANNING);
+
+    $planningLocked = ($planningStage['state'] ?? null) === 'done';
+@endphp
+
 <div class="w-full"
 x-data="{
     addModal:false,
@@ -11,7 +21,7 @@ x-data="{
     editModal:false,
     deleteModal:false,
     confirmEdit:false,
-    selectedTask:{id:'',judul:'',deskripsi:'',mulai:'',selesai:'',pj:''},
+    selectedTask:{id:'',judul:'',deskripsi:'',mulai:'',selesai:'',pj:'',pj_id:''},
     myId: {{ $currentUserId ?? 0 }}
 }">
 
@@ -21,12 +31,19 @@ x-data="{
         <p class="text-gray-400 text-xs mt-1">Penyusunan Rencana Proyek</p>
     </div>
 
-    <button
-        @click="addModal = true"
-        class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-blue-700 transition"
-    >
-        + Tambah Tugas
-    </button>
+    @if($planningLocked)
+        <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-bold text-slate-500">
+            <i class="fas fa-lock"></i>
+            Tahapan difinalisasi &middot; hanya dapat dibaca
+        </span>
+    @else
+        <button
+            @click="addModal = true"
+            class="bg-blue-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-blue-700 transition"
+        >
+            + Tambah Tugas
+        </button>
+    @endif
 </div>
 
 @include('partials.due-today-alert')
@@ -128,26 +145,41 @@ x-data="{
                             </button>
 
                             <button
+                                @if($planningLocked)
+                                disabled
+                                class="cursor-not-allowed text-gray-300"
+                                title="Tahapan sudah difinalisasi — ajukan perbaikan ke dosen untuk mengubah tugas."
+                                @else
                                 @click="editModal = true;
                                 selectedTask = {
                                     id:'{{ $task['id'] }}',
                                     judul:@js($task['judul']),
                                     deskripsi:@js($task['deskripsi']),
                                     mulai:'{{ $task['mulai'] }}',
-                                    selesai:'{{ $task['selesai'] }}'
+                                    selesai:'{{ $task['selesai'] }}',
+                                    pj_id:'{{ $task['assigned_to'] ?: '' }}'
                                 }"
                                 class="text-yellow-500 hover:text-yellow-700"
+                                title="Edit tugas"
+                                @endif
                             >
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
 
                             <button
+                                @if($planningLocked)
+                                disabled
+                                class="cursor-not-allowed text-gray-300"
+                                title="Tahapan sudah difinalisasi — ajukan perbaikan ke dosen untuk menghapus tugas."
+                                @else
                                 @click="deleteModal = true;
                                 selectedTask = {
                                     id:'{{ $task['id'] }}',
                                     judul:@js($task['judul'])
                                 }"
                                 class="text-red-500 hover:text-red-700"
+                                title="Hapus tugas"
+                                @endif
                             >
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -238,6 +270,16 @@ x-data="{
     </div>
 </div>
 
+@if($planningLocked)
+<p class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+<i class="fas fa-lock mr-1"></i>
+Tahapan Project Planning sudah difinalisasi, sehingga komentar baru tidak dapat ditambahkan.
+Ajukan perbaikan ke dosen bila tahapan ini perlu dibuka kembali.
+</p>
+<div class="flex justify-end mt-5">
+<button type="button" @click="commentModal=false" class="px-5 py-2 bg-gray-200 rounded-xl">Tutup</button>
+</div>
+@else
 <form action="{{ route('penyusunan.komentar-tugas', $id) }}" method="POST">
 @csrf
 <input type="hidden" name="task_id" :value="selectedTask.id">
@@ -247,6 +289,7 @@ x-data="{
 <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-xl">Komentar</button>
 </div>
 </form>
+@endif
 </div>
 </div>
 
@@ -257,11 +300,32 @@ x-data="{
 <form @submit.prevent="confirmEdit=true">
 <input type="hidden" id="editTaskId" :value="selectedTask.id">
 <div class="space-y-4">
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Nama Tugas</label>
 <input x-model="selectedTask.judul" type="text" class="w-full border rounded-xl p-3" required>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi Tugas</label>
 <textarea x-model="selectedTask.deskripsi" class="w-full border rounded-xl p-3"></textarea>
+</div>
 <div class="grid grid-cols-2 gap-4">
-<input x-model="selectedTask.mulai" type="date" class="border rounded-xl p-3">
-<input x-model="selectedTask.selesai" type="date" class="border rounded-xl p-3">
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
+<input x-model="selectedTask.mulai" type="date" class="w-full border rounded-xl p-3" required>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Berakhir</label>
+<input x-model="selectedTask.selesai" type="date" class="w-full border rounded-xl p-3" required>
+</div>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Nama Penanggung Jawab</label>
+<select x-model="selectedTask.pj_id" class="w-full border rounded-xl p-3" required>
+<option value="">Pilih Penanggung Jawab</option>
+@foreach($users as $user)
+<option value="{{ $user->id }}">{{ $user->full_name }}</option>
+@endforeach
+</select>
 </div>
 </div>
 <div class="flex justify-end gap-3 mt-6">
@@ -283,6 +347,7 @@ x-data="{
 <input type="hidden" name="deskripsi_tugas" :value="selectedTask.deskripsi">
 <input type="hidden" name="tanggal_mulai" :value="selectedTask.mulai">
 <input type="hidden" name="tanggal_selesai" :value="selectedTask.selesai">
+<input type="hidden" name="penanggung_jawab" :value="selectedTask.pj_id">
 <div class="flex gap-3 mt-4">
 <button type="button" @click="confirmEdit=false" class="flex-1 bg-gray-200 rounded-xl py-2">Batal</button>
 <button type="submit" class="flex-1 bg-yellow-500 text-white rounded-xl py-2">Konfirmasi</button>
@@ -310,6 +375,23 @@ x-data="{
 @if(session('success'))
 <div x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false,3000)" class="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-4 rounded-2xl shadow-xl z-[100]">
 {{ session('success') }}
+</div>
+@endif
+
+{{-- Penolakan dari server (mis. tahapan sudah difinalisasi) tanpa ini akan hilang tanpa jejak. --}}
+@if(session('error'))
+<div x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false,5000)" class="fixed bottom-6 right-6 max-w-sm bg-red-600 text-white px-6 py-4 rounded-2xl shadow-xl z-[100]">
+{{ session('error') }}
+</div>
+@endif
+
+@if($errors->any())
+<div x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false,5000)" class="fixed bottom-6 right-6 max-w-sm bg-red-600 text-white px-6 py-4 rounded-2xl shadow-xl z-[100]">
+<ul class="list-disc list-inside space-y-0.5 text-sm">
+@foreach(collect($errors->all())->unique() as $message)
+<li>{{ $message }}</li>
+@endforeach
+</ul>
 </div>
 @endif
 
