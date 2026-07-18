@@ -64,6 +64,7 @@ class DosenPenilaianController extends Controller
             'finalSubmission' => $this->finalization->latestSubmission($id),
             'finalHistory' => $this->finalization->submissionHistory($id),
             'tasksFinalized' => ProjectAccess::isFinalized($project->status),
+            'reflections' => \Illuminate\Support\Facades\DB::table('project_reflections')->leftJoin('users', 'users.id', '=', 'project_reflections.student_id')->where('project_reflections.project_id', $id)->select('project_reflections.*', 'users.full_name')->get(),
         ]);
     }
 
@@ -135,13 +136,25 @@ class DosenPenilaianController extends Controller
             $students
         );
 
-        // Nilai keluar untuk proyek yang sudah difinalisasi = finalisasi diterima
-        // dan proyek ditutup (status completed).
-        $this->finalization->acceptOnGrading($project, (int) Auth::id());
-
         return redirect()
             ->route('dosen.penilaian', $project->id)
-            ->with('success', 'Penilaian berhasil disimpan dan dikirim ke mahasiswa.');
+            ->with('success', 'Penilaian disimpan sebagai draft. Nilai belum terlihat oleh mahasiswa.');
+    }
+
+    public function publish(int $id)
+    {
+        $project = $this->authorizeProject($id);
+        $updated = \Illuminate\Support\Facades\DB::table('project_evaluations')->where('project_id', $id)->update(['publication_status' => 'published', 'published_at' => now(), 'published_by' => Auth::id(), 'updated_at' => now()]);
+        if (! $updated) return back()->with('error', 'Simpan penilaian draft terlebih dahulu.');
+        $this->finalization->acceptOnGrading($project, (int) Auth::id());
+        return back()->with('success', 'Nilai berhasil dipublish.');
+    }
+
+    public function unpublish(int $id)
+    {
+        $this->authorizeProject($id);
+        \Illuminate\Support\Facades\DB::table('project_evaluations')->where('project_id', $id)->update(['publication_status' => 'draft', 'published_at' => null, 'published_by' => null, 'updated_at' => now()]);
+        return back()->with('success', 'Nilai disembunyikan dan kembali menjadi draft.');
     }
 
     /** Tambah komponen penilaian kelompok atau kriteria penilaian individu. */

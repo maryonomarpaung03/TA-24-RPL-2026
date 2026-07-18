@@ -48,6 +48,7 @@ class TaskCommentController extends Controller
             'user_id' => $user->id,
             'task_id' => (int) $taskId,
             'message' => trim($request->komentar),
+            'context' => 'execution',
             'created_at' => now(),
         ]);
 

@@ -36,6 +36,10 @@ class EnsureStageWaterfall
                     .StageProgressService::label($stage).'.');
         }
 
+        if ($request->method() !== 'GET' && $this->stages->gateStatus($projectId, $stage) === 'submitted') {
+            return back()->with('error', 'Tahap sudah dikirim dan sedang menunggu review dosen.');
+        }
+
         // Tahap yang sudah difinalisasi tetap boleh dibuka, tapi hanya untuk dibaca.
         if ($request->method() !== 'GET' && $this->stages->isFinalized($projectId, $stage)) {
             $message = 'Tahapan '.StageProgressService::label($stage)

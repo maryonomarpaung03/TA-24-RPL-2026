@@ -53,12 +53,11 @@
         <div class="bg-white p-5 rounded shadow">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
                 <h3 class="font-bold text-gray-700 text-xs uppercase">Identifikasi Masalah (Voting)</h3>
-                <a href="{{ route('notifikasi') }}" class="text-blue-500 text-xs font-bold hover:underline">Lihat semua &rarr;</a>
+                <a href="{{ route('dosen.problem-history') }}" class="text-blue-500 text-xs font-bold hover:underline">Lihat semua &rarr;</a>
             </div>
             @forelse($problem_voting_notifications as $note)
             <a href="{{ route('dosen.problem-review', $note['project_id']) }}" class="flex justify-between items-center mb-4 p-2 hover:bg-gray-50 rounded last:mb-0 block">
                 <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></div>
                     <div class="min-w-0">
                         <h4 class="text-sm font-bold text-gray-800 truncate">{{ $note['problem_title'] }}</h4>
                         <p class="text-[10px] text-gray-400">{{ $note['project_name'] }}</p>

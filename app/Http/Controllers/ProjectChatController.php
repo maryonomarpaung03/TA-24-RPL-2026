@@ -43,7 +43,9 @@ class ProjectChatController extends Controller
                 'mine' => $m->user_id === $currentId,
                 'can_edit' => $m->user_id === $currentId,
                 'can_delete' => $m->user_id === $currentId || $canManage,
-                'attachment_url' => $m->attachmentUrl(),
+                'attachment_url' => $m->attachment_path
+                    ? route('project-chat.attachment', [$project->id, $m->id])
+                    : null,
                 'attachment_name' => $m->attachment_name,
                 'is_image' => $m->isImage(),
             ]);
@@ -126,6 +128,28 @@ class ProjectChatController extends Controller
         $message->update(['body' => trim($validated['message'])]);
 
         return redirect()->route('project-chat', $project->id);
+    }
+
+    /** Sajikan lampiran lewat aplikasi agar chat tetap berfungsi tanpa public storage symlink. */
+    public function attachment($id, $messageId)
+    {
+        $project = Project::query()->findOrFail($id);
+        abort_unless($this->canAccess($project), 403);
+
+        $message = ProjectMessage::query()
+            ->where('project_id', $project->id)
+            ->findOrFail($messageId);
+
+        abort_unless($message->attachment_path && Storage::disk('public')->exists($message->attachment_path), 404);
+
+        $download = ! $message->isImage();
+
+        return Storage::disk('public')->response(
+            $message->attachment_path,
+            $message->attachment_name ?: basename($message->attachment_path),
+            ['Content-Type' => $message->attachment_mime ?: 'application/octet-stream'],
+            $download ? 'attachment' : 'inline'
+        );
     }
 
     public function deleteMessage($id, $messageId)

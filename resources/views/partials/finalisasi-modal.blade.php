@@ -21,8 +21,8 @@
                 return this.reportType === 'file' ? !!this.reportFile : this.reportLink.trim().length > 8;
             },
             get canSubmit() {
-                return this.reportReady
-                    && this.summary.trim().length > 0
+                 return this.reportReady
+                    && this.summary.trim().length >= 20
                     && this.confirmComments && this.confirmData && this.confirmFinal;
             }
          }"

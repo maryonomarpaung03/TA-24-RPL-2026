@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\ProjectStageCompletion;
+use App\Models\ProjectStageGate;
 use App\Models\StageReopenRequest;
 use App\Support\ProjectAccess;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,6 +35,9 @@ class StageProgressService
         self::EXECUTION,
         self::ASSESSMENT,
     ];
+
+    /** Tahap yang membutuhkan persetujuan gate dosen. */
+    public const GATED_STAGES = [self::PROBLEM, self::DECOMPOSITION, self::PLANNING, self::EXECUTION];
 
     /**
      * completions() dipanggil berkali-kali dalam satu request (tab bar, middleware,
@@ -159,7 +164,59 @@ class StageProgressService
 
     public function isFinalized(int $projectId, string $stage): bool
     {
-        return isset($this->completions($projectId)[$stage]);
+        return $this->gateStatus($projectId, $stage) === 'approved'
+            || isset($this->completions($projectId)[$stage]);
+    }
+
+    public function gateStatus(int $projectId, string $stage): string
+    {
+        if (! in_array($stage, self::GATED_STAGES, true)) {
+            return 'draft';
+        }
+
+        // Deploy bertahap: aplikasi tetap membaca mekanisme stage lama sampai
+        // migration project_stage_gates berhasil dijalankan.
+        if (! Schema::hasTable('project_stage_gates')) {
+            return isset($this->completions($projectId)[$stage]) ? 'approved' : 'draft';
+        }
+
+        return ProjectStageGate::query()->where('project_id', $projectId)->where('stage', $stage)->value('status')
+            ?? (isset($this->completions($projectId)[$stage]) ? 'approved' : 'draft');
+    }
+
+    public function submitGate(Project $project, string $stage, int $userId): ProjectStageGate
+    {
+        $projectId = (int) $project->id;
+        if (! in_array($stage, self::GATED_STAGES, true) || $stage !== $this->currentStage($projectId)) {
+            throw ValidationException::withMessages(['stage' => 'Tahap ini belum dapat dikirim untuk review.']);
+        }
+        $gate = ProjectStageGate::firstOrNew(['project_id' => $projectId, 'stage' => $stage]);
+        if ($gate->status === 'approved') {
+            throw ValidationException::withMessages(['stage' => 'Tahap yang sudah disetujui tidak dapat diubah.']);
+        }
+        $gate->fill(['status' => 'submitted', 'submitted_by' => $userId, 'submitted_at' => now(), 'summary' => $this->buildSummary($projectId, $stage)])->save();
+        $this->notifyLecturerOfFinalization($project, $stage, 'manual');
+        return $gate;
+    }
+
+    public function reviewGate(Project $project, string $stage, int $lecturerId, bool $approved, ?string $note): void
+    {
+        $gate = ProjectStageGate::query()->where('project_id', $project->id)->where('stage', $stage)->firstOrFail();
+        if ($gate->status === 'approved') {
+            throw ValidationException::withMessages(['stage' => 'Approval sudah final dan tidak dapat direvisi.']);
+        }
+        if (! in_array($gate->status, ['submitted', 'under_review', 'revision'], true)) {
+            throw ValidationException::withMessages(['stage' => 'Tahap belum dikirim oleh mahasiswa.']);
+        }
+        $gate->update([
+            'status' => $approved ? 'approved' : 'revision',
+            'reviewed_by' => $lecturerId, 'reviewed_at' => now(), 'approved_at' => $approved ? now() : null,
+            'lecturer_note' => $note, 'revision_count' => $approved ? $gate->revision_count : $gate->revision_count + 1,
+        ]);
+        if ($approved) {
+            ProjectStageCompletion::updateOrCreate(['project_id' => $project->id, 'stage' => $stage], ['finalized_at' => now(), 'finalized_by' => $lecturerId, 'source' => 'approved', 'summary' => $gate->summary, 'reopen_count' => 0]);
+            $this->forgetCache((int) $project->id);
+        }
     }
 
     /** Tahap pertama yang belum difinalisasi; kalau semua sudah, tetap tahap terakhir. */
@@ -215,6 +272,7 @@ class StageProgressService
 
             $stages[] = self::definitions()[$stage] + [
                 'key' => $stage,
+                'gate_status' => $this->gateStatus($projectId, $stage),
                 'index' => $index,
                 'number' => $index + 1,
                 'state' => $state,

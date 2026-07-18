@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Project;
+use App\Models\ProjectBoard;
 use App\Models\User;
 use App\Support\ProjectAccess;
 use Illuminate\Support\Facades\DB;
@@ -273,6 +274,7 @@ class ProjectTaskService
             ->leftJoin('users', 'users.id', '=', 'discussions.user_id')
             ->where('discussions.project_id', $projectId)
             ->whereNotNull('discussions.task_id')
+            ->where('discussions.context', 'execution')
             ->orderBy('discussions.created_at')
             ->select(
                 'discussions.task_id',
@@ -861,18 +863,21 @@ class ProjectTaskService
         ?string $description,
         string $startDate,
         string $dueDate,
-        int $createdByUserId
+        int $createdByUserId,
+        string $priority = 'medium'
     ): array {
         $milestoneId = $this->ensureMilestoneId((int) $project->id);
+        $todoBoard = ProjectBoard::ensureExecutionBoards((int) $project->id)['pending'];
 
         $taskId = (int) DB::table('tasks')->insertGetId([
             'project_id' => $project->id,
+            'board_id' => $todoBoard->id,
             'milestone_id' => $milestoneId,
             'parent_task_id' => null,
             'assigned_to' => $assigneeId,
             'task_title' => $title,
             'description' => $description,
-            'priority' => 'medium',
+            'priority' => $priority,
             'status' => self::STATUS_TODO,
             'progress_percent' => 0,
             'start_date' => $startDate,

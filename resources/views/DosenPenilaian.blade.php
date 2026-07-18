@@ -11,6 +11,19 @@
 
     @include('partials.flash-messages')
 
+    @if($evaluation)
+    <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4">
+        <div><p class="font-bold text-slate-800">Status penilaian: {{ ($evaluation->publication_status ?? 'draft') === 'published' ? 'Published' : 'Draft' }}</p><p class="text-xs text-slate-500">Mahasiswa hanya dapat melihat nilai saat status Published.</p></div>
+        <form method="POST" action="{{ route(($evaluation->publication_status ?? 'draft') === 'published' ? 'dosen.penilaian.unpublish' : 'dosen.penilaian.publish', $project['id']) }}">@csrf
+            <button class="rounded-xl px-5 py-2.5 text-sm font-bold text-white {{ ($evaluation->publication_status ?? 'draft') === 'published' ? 'bg-slate-600' : 'bg-emerald-600' }}">{{ ($evaluation->publication_status ?? 'draft') === 'published' ? 'Unpublish Nilai' : 'Publish Nilai' }}</button>
+        </form>
+    </div>
+    @endif
+
+    @if($reflections->isNotEmpty())
+    <div class="rounded-2xl border border-slate-200 bg-white p-6"><h3 class="font-bold text-slate-900">Refleksi Mahasiswa</h3><div class="mt-4 space-y-3">@foreach($reflections as $reflection)<details class="rounded-xl bg-slate-50 p-4"><summary class="cursor-pointer font-semibold">{{ $reflection->full_name ?? 'Mahasiswa' }} — {{ $reflection->status }}</summary><div class="mt-3 space-y-2 text-sm">@foreach(json_decode($reflection->answers, true) ?? [] as $key => $answer)<p><b>{{ str_replace('_', ' ', $key) }}:</b> {{ $answer }}</p>@endforeach</div></details>@endforeach</div></div>
+    @endif
+
     @unless($tasksFinalized)
     <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
         <p class="text-sm font-bold text-amber-900">Tim belum mengirim finalisasi proyek</p>

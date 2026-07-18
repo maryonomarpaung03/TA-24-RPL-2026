@@ -74,6 +74,7 @@ x-data="{
                     <th class="p-4 text-center">Mulai</th>
                     <th class="p-4 text-center">Selesai</th>
                     <th class="p-4 text-center">Penanggung Jawab</th>
+                    <th class="p-4 text-center">Prioritas</th>
                     <th class="p-4 text-center">Status</th>
                     <th class="p-4 text-center">Alat Bantu</th>
                 </tr>
@@ -110,6 +111,16 @@ x-data="{
                         @if($isMine)
                         <span class="ml-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-100 text-blue-600 align-middle">Saya</span>
                         @endif
+                    </td>
+                    <td class="p-4 text-center">
+                        @php
+                            $priorityMeta = match ($task['priority'] ?? 'medium') {
+                                'low' => ['Mudah', 'bg-blue-100 text-blue-700'],
+                                'high' => ['Sulit', 'bg-red-100 text-red-700'],
+                                default => ['Sedang', 'bg-yellow-100 text-yellow-700'],
+                            };
+                        @endphp
+                        <span class="inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold {{ $priorityMeta[1] }}">{{ $priorityMeta[0] }}</span>
                     </td>
                     <td class="p-4 text-center">
                         @php
@@ -157,7 +168,8 @@ x-data="{
                                     deskripsi:@js($task['deskripsi']),
                                     mulai:'{{ $task['mulai'] }}',
                                     selesai:'{{ $task['selesai'] }}',
-                                    pj_id:'{{ $task['assigned_to'] ?: '' }}'
+                                    pj_id:'{{ $task['assigned_to'] ?: '' }}',
+                                    prioritas:'{{ $task['priority'] ?? 'medium' }}'
                                 }"
                                 class="text-yellow-500 hover:text-yellow-700"
                                 title="Edit tugas"
@@ -188,7 +200,7 @@ x-data="{
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="text-center py-10 text-gray-400">
+                    <td colspan="9" class="text-center py-10 text-gray-400">
                         {{ $totalTasks > 0 ? 'Tidak ada tugas yang cocok dengan filter.' : 'Belum ada tugas.' }}
                     </td>
                 </tr>
@@ -231,6 +243,14 @@ x-data="{
 @foreach($users as $user)
 <option value="{{ $user->id }}">{{ $user->full_name }}</option>
 @endforeach
+</select>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Prioritas</label>
+<select name="prioritas" class="w-full border rounded-xl p-3" required>
+<option value="low">Mudah</option>
+<option value="medium" selected>Sedang</option>
+<option value="high">Sulit</option>
 </select>
 </div>
 </div>
@@ -327,6 +347,14 @@ Ajukan perbaikan ke dosen bila tahapan ini perlu dibuka kembali.
 @endforeach
 </select>
 </div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-1">Prioritas</label>
+<select x-model="selectedTask.prioritas" class="w-full border rounded-xl p-3" required>
+<option value="low">Mudah</option>
+<option value="medium">Sedang</option>
+<option value="high">Sulit</option>
+</select>
+</div>
 </div>
 <div class="flex justify-end gap-3 mt-6">
 <button type="button" @click="editModal=false" class="px-5 py-2 bg-gray-200 rounded-xl">Batal</button>
@@ -348,6 +376,7 @@ Ajukan perbaikan ke dosen bila tahapan ini perlu dibuka kembali.
 <input type="hidden" name="tanggal_mulai" :value="selectedTask.mulai">
 <input type="hidden" name="tanggal_selesai" :value="selectedTask.selesai">
 <input type="hidden" name="penanggung_jawab" :value="selectedTask.pj_id">
+<input type="hidden" name="prioritas" :value="selectedTask.prioritas">
 <div class="flex gap-3 mt-4">
 <button type="button" @click="confirmEdit=false" class="flex-1 bg-gray-200 rounded-xl py-2">Batal</button>
 <button type="submit" class="flex-1 bg-yellow-500 text-white rounded-xl py-2">Konfirmasi</button>

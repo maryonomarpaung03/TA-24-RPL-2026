@@ -14,6 +14,15 @@
             $initials = strtoupper(substr($words[0], 0, 2));
         }
     }
+
+    $profilePhotoUrl = null;
+    if (! empty($loggedUser?->profile_photo)
+        && \Illuminate\Support\Facades\Storage::disk('public')->exists($loggedUser->profile_photo)) {
+        // Gunakan URL relatif agar avatar tetap menunjuk ke server yang sedang
+        // dibuka pengguna, meski APP_URL berbeda dengan alamat development.
+        $profilePhotoUrl = '/storage/' . ltrim($loggedUser->profile_photo, '/')
+            . '?v=' . optional($loggedUser->updated_at)->timestamp;
+    }
 @endphp
 
 <header class="bg-white px-6 py-3 flex justify-between items-center border-b border-gray-100 sticky top-0 z-40">
@@ -39,15 +48,16 @@
     href="{{ route('profil') }}"
     class="block"
 >
-    <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-sm text-sm overflow-hidden">
+    <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
 
-        @if(!empty($loggedUser?->profile_photo))
+        @if($profilePhotoUrl)
             <img
-                src="{{ asset($loggedUser->profile_photo) }}"
-                class="w-full h-full object-cover"
+                src="{{ $profilePhotoUrl }}"
+                class="block h-full w-full object-cover object-center"
+                alt="Foto profil {{ $displayName }}"
             >
         @else
-            {{ $initials }}
+            <span class="flex h-full w-full items-center justify-center">{{ $initials }}</span>
         @endif
 
     </div>

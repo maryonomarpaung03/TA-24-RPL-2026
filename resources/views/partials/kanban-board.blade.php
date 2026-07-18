@@ -97,7 +97,14 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
                         <div class="w-6 h-6 rounded-full bg-blue-100 text-[8px] flex items-center justify-center font-bold text-blue-600 border border-white" title="{{ $task['assignee'] }}">{{ $task['creator'] }}</div>
-                        <span class="text-[8px] px-2 py-0.5 rounded-full font-bold text-white {{ $task['level'] == 'Sulit' ? 'bg-red-500' : ($task['level'] == 'Sedang' ? 'bg-blue-500' : 'bg-green-500') }}">{{ $task['level'] }}</span>
+                        @php
+                            $priorityTone = match ($task['level'] ?? '') {
+                                'Sulit', 'High' => 'bg-red-500 text-white',
+                                'Sedang', 'Medium' => 'bg-yellow-400 text-yellow-950',
+                                default => 'bg-blue-500 text-white',
+                            };
+                        @endphp
+                        <span class="text-[8px] px-2 py-0.5 rounded-full font-bold {{ $priorityTone }}">{{ $task['level'] }}</span>
                     </div>
                     @if(!empty($task['urgency_label']))
                     @php

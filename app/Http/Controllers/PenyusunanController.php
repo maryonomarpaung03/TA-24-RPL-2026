@@ -42,6 +42,7 @@ class PenyusunanController extends Controller
             $commentRows = DB::table('discussions')
                 ->leftJoin('users', 'users.id', '=', 'discussions.user_id')
                 ->whereIn('discussions.task_id', $taskIds)
+                ->where('discussions.context', 'planning')
                 ->orderBy('discussions.created_at')
                 ->select(
                     'discussions.task_id',
@@ -78,6 +79,7 @@ class PenyusunanController extends Controller
                     ? Carbon::parse($task->due_date)->format('Y-m-d')
                     : '-',
                 'pj' => $task->full_name ?? 'Belum Ditentukan',
+                'priority' => $task->priority ?? 'medium',
                 'assigned_to' => (int) $task->assigned_to,
                 'status' => ProjectTaskService::taskStatusMeta($task->status, $task->due_date, $doneKeys),
                 'days_left' => $urgency['days_left'],
@@ -129,6 +131,7 @@ class PenyusunanController extends Controller
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'penanggung_jawab' => 'required|integer',
+            'prioritas' => 'required|in:low,medium,high',
         ]);
 
         $project = Project::query()->find($id);
@@ -150,7 +153,8 @@ class PenyusunanController extends Controller
             $request->deskripsi_tugas,
             $request->tanggal_mulai,
             $request->tanggal_selesai,
-            (int) Auth::id()
+            (int) Auth::id(),
+            $request->prioritas
         );
 
         return back()->with(
@@ -168,6 +172,7 @@ class PenyusunanController extends Controller
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'penanggung_jawab' => 'required|integer',
+            'prioritas' => 'required|in:low,medium,high',
         ]);
 
         $project = Project::query()->find($id);
@@ -197,6 +202,7 @@ class PenyusunanController extends Controller
             'start_date' => $request->tanggal_mulai,
             'due_date' => $request->tanggal_selesai,
             'assigned_to' => $assigneeId,
+            'priority' => $request->prioritas,
             'updated_at' => now(),
         ]);
 
@@ -247,6 +253,7 @@ class PenyusunanController extends Controller
             'user_id' => Auth::id(),
             'task_id' => $request->task_id,
             'message' => $request->komentar,
+            'context' => 'planning',
             'created_at' => now(),
         ]);
 

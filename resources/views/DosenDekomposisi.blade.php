@@ -78,14 +78,14 @@
                 <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Riwayat Pengiriman</p>
                 <div class="flex flex-wrap gap-2">
                     <template x-for="(s, i) in submissions" :key="s.id">
-                        <button @click="activeIdx = i"
-                                :class="activeIdx === i
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                                class="rounded-xl border px-4 py-2 text-xs font-semibold transition">
+                        <span @click="activeIdx = i"
+                                 :class="activeIdx === i
+                                    ? 'text-blue-700'
+                                    : 'text-slate-500 hover:text-slate-700'"
+                                class="cursor-pointer px-1 py-1 text-xs font-semibold transition">
                             <span x-text="'Pengiriman #' + (submissions.length - i)"></span>
                             <span class="ml-1 opacity-70" x-text="formatDate(s.submitted_at)"></span>
-                        </button>
+                        </span>
                     </template>
                 </div>
             </div>

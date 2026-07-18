@@ -7,6 +7,7 @@ use App\Support\PjblContext;
 use App\Support\ProjectCatalog;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class NilaiIndividuController extends Controller
 {
@@ -30,6 +31,8 @@ class NilaiIndividuController extends Controller
         $groupEval = $this->evaluations->lecturerEvaluation($projectId);
         $activity = $this->evaluations->activityStats($projectId, (int) $authUser->id);
         $peer = $this->evaluations->peerSummary($projectId);
+        $reflectionForm = DB::table('project_reflection_forms')->where('project_id', $projectId)->value('fields');
+        $reflection = DB::table('project_reflections')->where('project_id', $projectId)->where('student_id', $authUser->id)->first();
 
         // Kriteria individu mengikuti komposisi yang diatur dosen pada proyek ini.
         $assessmentMetrics = [];
@@ -113,6 +116,10 @@ class NilaiIndividuController extends Controller
             'groupLecturerNote' => $groupEval?->note
                 ?: 'Belum ada catatan penilaian kelompok dari dosen.',
             'hasEvaluation' => (bool) $groupEval,
+            'reflectionFields' => $reflectionForm ? json_decode($reflectionForm, true) : \App\Http\Controllers\ProjectReflectionController::defaultFields(),
+            'reflectionAnswers' => $reflection?->answers ? json_decode($reflection->answers, true) : [],
+            'reflectionStatus' => $reflection?->status ?? 'draft',
+            'reflectionOpen' => ($groupEval->publication_status ?? 'draft') === 'published',
         ]);
     }
 

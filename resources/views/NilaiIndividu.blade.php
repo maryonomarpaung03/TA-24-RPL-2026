@@ -53,6 +53,9 @@
                     <button @click="activeTab = 'lecturer'" :class="activeTab === 'lecturer' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-600'" class="px-6 py-4 text-sm font-semibold hover:text-slate-900 transition">
                         Lecturer Evaluation
                     </button>
+                    <button @click="activeTab = 'reflection'" :class="activeTab === 'reflection' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-600'" class="px-6 py-4 text-sm font-semibold hover:text-slate-900 transition">
+                        Project Reflection
+                    </button>
                 </div>
 
                 <!-- Individual Evaluation -->
@@ -229,7 +232,8 @@
                 </div>
 
                 <!-- Lecturer Evaluation -->
-                <div x-show="activeTab === 'lecturer'" x-cloak class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
+                <div x-show="activeTab === 'lecturer'" x-cloak class="grid gap-6">
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
                     <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                         Detailed Lecturer Feedback
                     </h3>
@@ -237,6 +241,27 @@
                         {{ $lecturerFeedback }}
                     </div>
                     <p class="text-xs text-slate-500 mt-4 text-center">SUBMITTED 01 OCT 2024</p>
+                </div>
+                </div>
+
+                <!-- Project Reflection -->
+                <div x-show="activeTab === 'reflection'" x-cloak class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-900">Refleksi Project</h3>
+                    <p class="mt-1 text-xs text-slate-500">{{ $namaProjek }} &middot; {{ $studentData['role'] }}</p>
+                    @if($reflectionOpen)
+                    <form method="POST" action="{{ route('reflection.save', $id) }}" class="mt-5 space-y-4">@csrf
+                        @foreach($reflectionFields as $field)
+                        <div><label class="mb-1 block text-sm font-semibold text-slate-700">{{ $field['label'] }}</label>
+                            @if(($field['type'] ?? 'textarea') === 'radio')
+                                <div class="flex flex-wrap gap-3">@foreach($field['options'] ?? [] as $option)<label class="text-sm"><input type="radio" name="answers[{{ $field['key'] }}]" value="{{ $option }}" @checked(($reflectionAnswers[$field['key']] ?? '') === $option)> {{ $option }}</label>@endforeach</div>
+                            @else
+                                <textarea name="answers[{{ $field['key'] }}]" rows="3" class="w-full rounded-xl border border-slate-200 p-3">{{ $reflectionAnswers[$field['key']] ?? '' }}</textarea>
+                            @endif
+                        </div>
+                        @endforeach
+                        <div class="flex gap-3"><button name="action" value="draft" class="rounded-xl bg-slate-200 px-4 py-2 text-sm font-bold">Save Draft</button><button name="action" value="submitted" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white">Submit Reflection</button></div>
+                    </form>
+                    @else <p class="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Refleksi terbuka setelah dosen mempublish nilai.</p> @endif
                 </div>
  </div>
 @endsection

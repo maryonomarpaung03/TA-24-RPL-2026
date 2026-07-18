@@ -59,7 +59,7 @@
                 <button type="button" @click="finalizeOpen = true"
                         class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700">
                     <i class="fas fa-flag-checkered"></i>
-                    Finalisasi Tahap
+                    Kirim untuk Review
                 </button>
 
             @elseif($stage['state'] === 'done')
@@ -137,11 +137,10 @@
                     <i class="fas fa-flag-checkered text-xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900">Finalisasi Tahap: {{ $stage['label'] }}</h2>
+                    <h2 class="text-xl font-bold text-gray-900">Kirim untuk Review: {{ $stage['label'] }}</h2>
                     <p class="mt-1.5 text-sm text-gray-600">
-                        Tahapan ini akan dikunci dan tidak dapat diubah lagi, dosen akan menerima notifikasi
-                        beserta ringkasannya, dan tahapan berikutnya terbuka. Untuk mengubahnya kembali, Anda
-                        harus mengajukan perbaikan dan menunggu persetujuan dosen.
+                        Output tahap akan dikunci saat direview dosen. Tahap berikutnya baru terbuka setelah
+                        dosen menyetujui stage ini.
                     </p>
                 </div>
             </div>
@@ -158,7 +157,7 @@
                         @endforeach
                     </ul>
                     <p class="mt-3 text-xs font-semibold text-blue-800">
-                        Anda tetap dapat melanjutkan, tetapi ringkasan yang diterima dosen akan mencerminkan kondisi ini.
+                        Ringkasan ini akan dikirim ke dosen untuk ditinjau.
                     </p>
                 </div>
             @endif
@@ -173,7 +172,7 @@
                 </button>
                 <button type="submit"
                         class="rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white transition hover:bg-emerald-700">
-                    <i class="fas fa-check mr-1"></i>Ya, finalisasi
+                    <i class="fas fa-paper-plane mr-1"></i>Kirim untuk review
                 </button>
             </form>
         </div>

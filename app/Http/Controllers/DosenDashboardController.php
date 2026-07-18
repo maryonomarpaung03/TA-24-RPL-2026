@@ -76,33 +76,28 @@ class DosenDashboardController extends Controller
       ])
       ->all();
 
-    $problem_voting_notifications = DB::table('project_notifications')
-      ->join('projects', 'projects.id', '=', 'project_notifications.project_id')
+    $problem_voting_notifications = DB::table('project_notifications as notification')
+      ->join('projects', 'projects.id', '=', 'notification.project_id')
       ->leftJoin('problem_identifications', function ($join) {
         $join->on('problem_identifications.project_id', '=', 'projects.id')
           ->where('problem_identifications.board_status', '=', 'submitted');
       })
-      ->where('project_notifications.recipient_email', $email)
-      ->whereIn('project_notifications.type', ['problem_submitted_for_review', 'problem_resubmitted'])
+      ->where('notification.recipient_email', $email)
+      ->whereIn('notification.type', ['problem_submitted_for_review', 'problem_resubmitted'])
       ->when($classId !== '', fn ($q) => $q->where('projects.academic_class_id', $classId))
-      ->when($since, fn ($q) => $q->where('project_notifications.created_at', '>=', $since))
-      ->orderByDesc('project_notifications.created_at')
-      ->select(
-        'project_notifications.id',
-        'projects.name as project_name',
-        'projects.id as project_id',
-        'problem_identifications.title as problem_title',
-        'project_notifications.created_at'
-      )
+      ->when($since, fn ($q) => $q->where('notification.created_at', '>=', $since))
+      ->groupBy('projects.id', 'projects.name', 'problem_identifications.title')
+      ->orderByDesc(DB::raw('MAX(notification.created_at)'))
+      ->selectRaw('projects.name as project_name, projects.id as project_id, problem_identifications.title as problem_title, MAX(notification.created_at) as created_at')
       ->limit(5)
       ->get()
       ->map(fn ($row) => [
-        'id' => $row->id,
-        'project_id' => $row->project_id,
-        'project_name' => $row->project_name,
-        'problem_title' => $row->problem_title ?? 'Masalah utama',
-        'time_ago' => Carbon::parse($row->created_at)->diffForHumans(),
-      ])
+    'id' => $row->project_id,
+    'project_id' => $row->project_id,
+    'project_name' => $row->project_name,
+    'problem_title' => $row->problem_title ?? 'Masalah utama',
+    'time_ago' => Carbon::parse($row->created_at)->diffForHumans(),
+    ])
       ->all();
 
     $pending_total = $projects()->where('projects.status', 'pending_approval')->count();

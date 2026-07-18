@@ -27,8 +27,20 @@
             <div class="flex flex-wrap gap-2 mt-4 text-xs">
                 <span class="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">{{ $activeReview->category }}</span>
                 <span class="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">{{ $activeReview->priority }}</span>
-                @if($activeReview->attachment_link)
-                <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">{{ $activeReview->attachment_link }}</span>
+                @php
+                    $attachmentLink = $activeReview->attachment_link;
+                    $decodedAttachment = is_string($attachmentLink) ? json_decode($attachmentLink, true) : null;
+                    if (is_array($decodedAttachment)) {
+                        $attachmentLink = collect($decodedAttachment)
+                            ->pluck('value')
+                            ->filter(fn ($value) => is_string($value) && filter_var($value, FILTER_VALIDATE_URL))
+                            ->first();
+                    }
+                @endphp
+                @if($attachmentLink)
+                <a href="{{ $attachmentLink }}" target="_blank" rel="noopener" class="rounded-full bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100 hover:underline">
+                    <i class="fas fa-paperclip mr-1"></i>Buka lampiran
+                </a>
                 @endif
             </div>
             <p class="text-xs text-slate-400 mt-3">Diajukan oleh {{ $activeReview->author_name ?? 'Tim' }}</p>

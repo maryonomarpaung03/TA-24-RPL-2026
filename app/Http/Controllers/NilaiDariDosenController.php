@@ -25,7 +25,7 @@ class NilaiDariDosenController extends Controller
         $projectId = (int) $id;
         $groupEval = $this->evaluations->lecturerEvaluation($projectId);
 
-        if (! $groupEval) {
+        if (! $groupEval || ($groupEval->publication_status ?? 'draft') !== 'published') {
             return redirect()->route('penilaian-dosen-status', $projectId);
         }
 

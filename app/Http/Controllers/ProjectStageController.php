@@ -12,7 +12,7 @@ class ProjectStageController extends Controller
 {
     public function __construct(private readonly StageProgressService $stages) {}
 
-    /** Tim menekan tombol "Finalisasi Tahap" pada tahapan yang sedang berjalan. */
+    /** Tim mengirim output tahap untuk direview dosen. */
     public function finalize(Request $request, int $id)
     {
         $project = $this->authorizeProject($id);
@@ -21,18 +21,9 @@ class ProjectStageController extends Controller
             'stage' => ['required', 'string', 'in:'.implode(',', StageProgressService::ORDER)],
         ]);
 
-        $this->stages->finalize($project, $data['stage'], (int) Auth::id());
-
-        $next = $this->nextStage($data['stage']);
         $label = StageProgressService::label($data['stage']);
-
-        if ($next === null) {
-            return back()->with('success', 'Tahapan '.$label.' difinalisasi. Dosen telah diberi tahu bahwa refleksi siap dinilai.');
-        }
-
-        return redirect()
-            ->route(StageProgressService::definitions()[$next]['route'], $id)
-            ->with('success', 'Tahapan '.$label.' difinalisasi. Tahapan '.StageProgressService::label($next).' kini terbuka.');
+        $this->stages->submitGate($project, $data['stage'], (int) Auth::id());
+        return back()->with('success', 'Tahapan '.$label.' dikirim untuk review dosen. Tahap berikutnya dibuka setelah disetujui.');
     }
 
     /**

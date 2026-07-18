@@ -334,14 +334,13 @@ class DekomposisiController extends Controller
 
             $this->notifyLecturers($project);
 
-            // Diagram terkirim = tahap Decomposition selesai. Dikunci setelah
-            // snapshot tersimpan supaya ringkasan tahap ikut mencerminkan diagram ini.
-            $stages->finalizeOnDiagramSubmission($project, $userId);
+            // Diagram dikirim untuk review; hanya approval dosen yang membuka tahap berikutnya.
+            $stages->submitGate($project, StageProgressService::DECOMPOSITION, $userId);
         });
 
         return response()->json([
             'ok'      => true,
-            'message' => 'Diagram berhasil dikirim ke dosen. Tahapan Dekomposisi difinalisasi.',
+            'message' => 'Diagram berhasil dikirim untuk review dosen.',
         ]);
     }
 

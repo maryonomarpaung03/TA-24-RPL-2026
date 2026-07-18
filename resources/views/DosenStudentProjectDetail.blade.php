@@ -171,6 +171,9 @@
                         {{ $stage['badge']['label'] }}
                     </span>
                     @endif
+                    @if(in_array($stage['key'], \App\Services\StageProgressService::GATED_STAGES, true) && in_array($stage['gate_status'] ?? 'draft', ['submitted', 'under_review', 'revision'], true))
+                    <a href="{{ route('dosen.stage-gate.show', [$project['id'], $stage['key']]) }}" class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white">Review Stage</a>
+                    @endif
                 </div>
 
                 @if($stage['state'] === 'done' && $stage['summary_items'])

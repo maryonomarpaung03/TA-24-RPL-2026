@@ -206,12 +206,18 @@ Route::get(
 
     Route::post('/dosen/proyek/{id}/penilaian', [\App\Http\Controllers\DosenPenilaianController::class, 'store'])
         ->name('dosen.penilaian.store');
+    Route::post('/dosen/proyek/{id}/penilaian/publish', [\App\Http\Controllers\DosenPenilaianController::class, 'publish'])->name('dosen.penilaian.publish');
+    Route::post('/dosen/proyek/{id}/penilaian/unpublish', [\App\Http\Controllers\DosenPenilaianController::class, 'unpublish'])->name('dosen.penilaian.unpublish');
+    Route::post('/dosen/proyek/{id}/refleksi/form', [\App\Http\Controllers\ProjectReflectionController::class, 'configure'])->name('dosen.reflection.configure');
 
     Route::post('/dosen/proyek/{id}/penilaian/komposisi', [\App\Http\Controllers\DosenPenilaianController::class, 'addComponent'])
         ->name('dosen.penilaian.komposisi.tambah');
 
     Route::delete('/dosen/proyek/{id}/penilaian/komposisi', [\App\Http\Controllers\DosenPenilaianController::class, 'deleteComponent'])
         ->name('dosen.penilaian.komposisi.hapus');
+
+    Route::get('/dosen/problem-identification', [\App\Http\Controllers\DosenProblemReviewController::class, 'index'])
+        ->name('dosen.problem-history');
 
     Route::get('/dosen/proyek/{id}/problem-identification', [\App\Http\Controllers\DosenProblemReviewController::class, 'show'])
         ->name('dosen.problem-review');
@@ -224,6 +230,11 @@ Route::get(
 
     Route::post('/dosen/proyek/{id}/tahapan/{requestId}/tolak', [\App\Http\Controllers\DosenStageController::class, 'reject'])
         ->name('dosen.stage.reopen.reject');
+
+    Route::get('/dosen/proyek/{id}/stage-gate/{stage}', [\App\Http\Controllers\DosenStageGateController::class, 'show'])
+        ->name('dosen.stage-gate.show');
+    Route::post('/dosen/proyek/{id}/stage-gate/{stage}', [\App\Http\Controllers\DosenStageGateController::class, 'review'])
+        ->name('dosen.stage-gate.review');
 
     // Tahap Problem Identification terkunci begitu difinalisasi: aksi tulis di
     // bawah ini ditolak middleware sampai dosen menyetujui perbaikan.
@@ -413,6 +424,7 @@ Route::get(
                 '/penilaian-individu',
                 [NilaiIndividuController::class, 'index']
             )->name('penilaian-individu');
+            Route::post('/refleksi', [\App\Http\Controllers\ProjectReflectionController::class, 'save'])->name('reflection.save');
 
             // Nilai dari dosen baru bisa dilihat setelah tim mengirim finalisasi proyek.
             Route::middleware('final.submitted')->group(function () {
@@ -437,6 +449,11 @@ Route::get(
                 '/chat',
                 [ProjectChatController::class, 'send']
             )->name('project-chat.send');
+
+            Route::get(
+                '/chat/{message}/attachment',
+                [ProjectChatController::class, 'attachment']
+            )->name('project-chat.attachment');
 
             Route::put(
                 '/chat/{message}',

@@ -61,12 +61,12 @@
 
                                     @if(!empty($message['attachment_url']))
                                         @if($message['is_image'])
-                                        <a href="{{ $message['attachment_url'] }}" target="_blank" class="mt-2 block">
+                                        <a href="{{ $message['attachment_url'] }}" target="_blank" rel="noopener" class="mt-2 block">
                                             <img src="{{ $message['attachment_url'] }}" alt="{{ $message['attachment_name'] }}"
-                                                 class="max-h-56 w-auto rounded-xl border {{ $message['mine'] ? 'border-blue-400' : 'border-slate-200' }}">
+                                                 class="max-h-64 w-full max-w-md rounded-xl border object-contain {{ $message['mine'] ? 'border-blue-400' : 'border-slate-200' }}">
                                         </a>
                                         @else
-                                        <a href="{{ $message['attachment_url'] }}" target="_blank"
+                                        <a href="{{ $message['attachment_url'] }}" download="{{ $message['attachment_name'] }}"
                                            class="mt-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold
                                            {{ $message['mine'] ? 'border-blue-400 bg-blue-500/40 text-white hover:bg-blue-500/60' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
                                             <i class="fas fa-paperclip"></i>

@@ -15,6 +15,25 @@ class DosenProblemReviewController extends Controller
     private ProblemIdentificationService $service
   ) {}
 
+  /** Riwayat Problem Identification seluruh proyek yang diampu dosen. */
+  public function index()
+  {
+    abort_unless(Auth::user()?->role === 'lecturer', 403);
+
+    $email = strtolower(trim((string) Auth::user()->email));
+    $projects = Project::query()
+      ->where('lecturer_email', $email)
+      ->whereExists(function ($query) {
+        $query->selectRaw('1')
+          ->from('problem_identifications')
+          ->whereColumn('problem_identifications.project_id', 'projects.id');
+      })
+      ->orderByDesc('updated_at')
+      ->get(['id', 'name', 'group_name']);
+
+    return view('DosenProblemHistory', compact('projects'));
+  }
+
   public function show(Request $request, int $id)
   {
     if (Auth::user()->role !== 'lecturer') {
