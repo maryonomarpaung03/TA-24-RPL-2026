@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Project;
-use App\Models\ProjectBoard;
 use App\Models\User;
 use App\Support\ProjectAccess;
 use Illuminate\Support\Facades\DB;
@@ -867,11 +866,9 @@ class ProjectTaskService
         string $priority = 'medium'
     ): array {
         $milestoneId = $this->ensureMilestoneId((int) $project->id);
-        $todoBoard = ProjectBoard::ensureExecutionBoards((int) $project->id)['pending'];
 
         $taskId = (int) DB::table('tasks')->insertGetId([
             'project_id' => $project->id,
-            'board_id' => $todoBoard->id,
             'milestone_id' => $milestoneId,
             'parent_task_id' => null,
             'assigned_to' => $assigneeId,
