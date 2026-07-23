@@ -9,15 +9,12 @@
         - $lecturer         : mode dosen — buka bukti pengumpulan & tandai sudah direview
         - $canMove          : tombol "Pindahkan" (butuh openMove() di scope Alpine)
         - $canSubmit        : tombol "Kumpulkan" (butuh openSubmit() di scope Alpine)
-        - $canManageColumns : ubah/hapus/tambah kolom (butuh modal kolom di halamannya)
-
         Tugas tidak bisa ditambah, diubah, atau dihapus di sini — semuanya lahir di
         Penyusunan.
     */
     $lecturer = $lecturer ?? false;
     $canMove = $canMove ?? false;
     $canSubmit = $canSubmit ?? false;
-    $canManageColumns = $canManageColumns ?? false;
     $board = $kanban ?? [];
 @endphp
 
@@ -30,20 +27,6 @@
                 <h4 class="text-sm font-bold text-gray-700 truncate">{{ $col['label'] }}</h4>
                 <span class="text-[10px] font-bold text-gray-400 bg-white rounded-full px-2 py-0.5">{{ count($col['tasks']) }}</span>
             </div>
-            @if($canManageColumns)
-            <div class="flex items-center gap-1 shrink-0">
-                <button type="button"
-                        @click="editCol = { id: {{ $col['id'] }}, label: @js($col['label']), color: '{{ $col['color'] }}', description: @js($col['description'] ?? ''), is_done: {{ $col['is_done'] ? 'true' : 'false' }}, requires_approval: {{ $col['requires_approval'] ? 'true' : 'false' }}, checklist: @js(!empty($col['checklist']) ? $col['checklist'] : ['']) }; colEditModal = true"
-                        class="text-gray-400 hover:text-blue-500 transition p-1" title="Ubah kolom">
-                    <i class="fas fa-pen text-[11px]"></i>
-                </button>
-                <button type="button"
-                        @click="delCol = { id: {{ $col['id'] }}, label: @js($col['label']) }; colDeleteModal = true"
-                        class="text-gray-400 hover:text-red-500 transition p-1" title="Hapus kolom">
-                    <i class="fas fa-trash text-[11px]"></i>
-                </button>
-            </div>
-            @endif
         </div>
 
         {{-- Indikator konfigurasi kolom --}}
@@ -183,11 +166,4 @@
     </div>
     @endforeach
 
-    @if($canManageColumns)
-    <button type="button" @click="addCol = { label: '', color: 'blue-600', description: '', is_done: false, requires_approval: false, checklist: [''] }; colAddModal = true"
-            class="w-72 shrink-0 h-[600px] rounded-[2rem] border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition flex flex-col items-center justify-center gap-2">
-        <i class="fas fa-plus text-2xl"></i>
-        <span class="text-sm font-bold">Tambah Kolom</span>
-    </button>
-    @endif
 </div>

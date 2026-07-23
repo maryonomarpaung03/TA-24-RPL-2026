@@ -19,7 +19,7 @@ class DosenPenilaianController extends Controller
         private readonly FinalizationService $finalization
     ) {}
 
-    public function show(int $id)
+    public function show(Request $request, int $id)
     {
         $project = $this->authorizeProject($id);
 
@@ -55,7 +55,6 @@ class DosenPenilaianController extends Controller
             'criteria' => $this->evaluations->componentsFor($id, EvaluationService::TYPE_INDIVIDUAL),
             'evaluation' => $evaluation,
             'students' => $rows,
-            'peer' => $this->evaluations->peerSummary($id),
             'progress' => $progress,
             'pendingApproval' => $pendingApproval,
 
@@ -64,7 +63,14 @@ class DosenPenilaianController extends Controller
             'finalSubmission' => $this->finalization->latestSubmission($id),
             'finalHistory' => $this->finalization->submissionHistory($id),
             'tasksFinalized' => ProjectAccess::isFinalized($project->status),
-            'reflections' => \Illuminate\Support\Facades\DB::table('project_reflections')->leftJoin('users', 'users.id', '=', 'project_reflections.student_id')->where('project_reflections.project_id', $id)->select('project_reflections.*', 'users.full_name')->get(),
+            'activeTab' => $request->query('tab') === 'refleksi' ? 'refleksi' : 'nilai',
+            'reflectionFields' => $this->reflectionFields($id),
+            'reflections' => \Illuminate\Support\Facades\DB::table('project_reflections')
+                ->leftJoin('users', 'users.id', '=', 'project_reflections.student_id')
+                ->where('project_reflections.project_id', $id)
+                ->select('project_reflections.*', 'users.full_name')
+                ->orderByDesc('project_reflections.updated_at')
+                ->get(),
         ]);
     }
 
@@ -210,5 +216,19 @@ class DosenPenilaianController extends Controller
         }
 
         return $project;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function reflectionFields(int $projectId): array
+    {
+        $fields = \Illuminate\Support\Facades\DB::table('project_reflection_forms')
+            ->where('project_id', $projectId)
+            ->value('fields');
+
+        $decoded = $fields ? json_decode($fields, true) : null;
+
+        return is_array($decoded) && $decoded !== []
+            ? $decoded
+            : ProjectReflectionController::defaultFields();
     }
 }

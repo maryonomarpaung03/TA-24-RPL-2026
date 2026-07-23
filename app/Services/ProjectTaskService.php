@@ -29,37 +29,76 @@ class ProjectTaskService
         ['key' => self::STATUS_DONE, 'label' => 'Selesai', 'color' => 'green-500'],
     ];
 
-    /** Palet warna preset (token Tailwind) untuk kolom kanban. */
+    /** @deprecated Kolom tidak lagi dapat dikonfigurasi dari papan. */
     public const COLUMN_COLORS = [
         'blue-600', 'yellow-400', 'green-500', 'red-500', 'purple-500',
         'pink-500', 'indigo-500', 'orange-500', 'teal-500', 'slate-500',
     ];
 
     /**
-     * Pastikan proyek punya kolom kanban; buat default bila belum ada.
+     * Pastikan papan selalu memakai tiga kolom status tetap.
+     *
+     * Versi awal papan mengizinkan kolom tambahan dengan checklist dan approval.
+     * Konfigurasi tersebut dapat menahan perpindahan tugas. Kolom tambahan kini
+     * dipensiunkan; tugasnya dikembalikan ke "Belum Dikerjakan".
      */
     public function ensureColumns(int $projectId): void
     {
-        $exists = DB::table('project_task_columns')
-            ->where('project_id', $projectId)
-            ->exists();
+        DB::transaction(function () use ($projectId): void {
+            $fixedKeys = array_column(self::DEFAULT_COLUMNS, 'key');
 
-        if ($exists) {
-            return;
-        }
+            // Tugas yang sebelumnya berada di kolom kustom tetap ada, tetapi
+            // kembali ke status awal karena kolom kustom tidak lagi tersedia.
+            DB::table('tasks')
+                ->where('project_id', $projectId)
+                ->whereNotIn('status', $fixedKeys)
+                ->update([
+                    'status' => self::STATUS_TODO,
+                    'progress_percent' => 0,
+                    'updated_at' => now(),
+                ]);
 
-        foreach (self::DEFAULT_COLUMNS as $position => $col) {
-            DB::table('project_task_columns')->insert([
-                'project_id' => $projectId,
-                'key' => $col['key'],
-                'label' => $col['label'],
-                'color' => $col['color'],
-                'is_done_column' => $col['key'] === self::STATUS_DONE,
-                'position' => $position,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+            // Fitur approval kolom dipensiunkan; pengajuan lama tidak boleh
+            // lagi menghalangi perpindahan tugas.
+            DB::table('task_approvals')
+                ->where('project_id', $projectId)
+                ->where('status', 'pending')
+                ->delete();
+
+            DB::table('project_task_columns')
+                ->where('project_id', $projectId)
+                ->whereNotIn('key', $fixedKeys)
+                ->delete();
+
+            foreach (self::DEFAULT_COLUMNS as $position => $col) {
+                $attributes = [
+                    'label' => $col['label'],
+                    'color' => $col['color'],
+                    'description' => null,
+                    'is_done_column' => $col['key'] === self::STATUS_DONE,
+                    'requires_approval' => false,
+                    'checklist' => null,
+                    'position' => $position,
+                    'updated_at' => now(),
+                ];
+
+                $existing = DB::table('project_task_columns')
+                    ->where('project_id', $projectId)
+                    ->where('key', $col['key'])
+                    ->first();
+
+                if ($existing) {
+                    DB::table('project_task_columns')->where('id', $existing->id)->update($attributes);
+                    continue;
+                }
+
+                DB::table('project_task_columns')->insert($attributes + [
+                    'project_id' => $projectId,
+                    'key' => $col['key'],
+                    'created_at' => now(),
+                ]);
+            }
+        });
     }
 
     /**

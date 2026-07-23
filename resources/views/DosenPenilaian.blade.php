@@ -3,7 +3,7 @@
 @section('title', 'Penilaian Proyek - PjBL')
 
 @section('content')
-<div class="w-full space-y-6" x-data="{ addGroup: false, addIndividual: false, revisiModal: false }">
+<div class="w-full space-y-6" x-data="{ addGroup: false, addIndividual: false, revisiModal: false, reflectionFields: @js($reflectionFields) }">
 
     <a href="{{ route('dosen.proyek-mahasiswa.show', $project['id']) }}" class="text-blue-600 text-xs font-bold hover:underline mb-4 inline-block">
         &larr; Kembali ke detail proyek
@@ -11,6 +11,12 @@
 
     @include('partials.flash-messages')
 
+    <div class="flex gap-2 border-b border-slate-200">
+        <a href="{{ route('dosen.penilaian', ['id' => $project['id'], 'tab' => 'nilai']) }}" class="border-b-2 px-5 py-3 text-sm font-bold {{ $activeTab === 'nilai' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}"><i class="fas fa-star mr-1"></i>Beri Nilai</a>
+        <a href="{{ route('dosen.penilaian', ['id' => $project['id'], 'tab' => 'refleksi']) }}" class="border-b-2 px-5 py-3 text-sm font-bold {{ $activeTab === 'refleksi' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}"><i class="fas fa-pen-to-square mr-1"></i>Refleksi</a>
+    </div>
+
+    @if($activeTab === 'nilai')
     @if($evaluation)
     <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4">
         <div><p class="font-bold text-slate-800">Status penilaian: {{ ($evaluation->publication_status ?? 'draft') === 'published' ? 'Published' : 'Draft' }}</p><p class="text-xs text-slate-500">Mahasiswa hanya dapat melihat nilai saat status Published.</p></div>
@@ -187,11 +193,6 @@
                 <p class="text-xs text-slate-500">{{ $progress['done'] }} dari {{ $progress['total'] }} selesai</p>
             </div>
             <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                <p class="text-[11px] font-bold text-slate-500 uppercase">Penilaian Antar Anggota</p>
-                <p class="mt-1 text-2xl font-bold text-slate-900">{{ $peer['group_average'] ?? '-' }}</p>
-                <p class="text-xs text-slate-500">{{ $peer['submitted'] }} dari {{ $peer['total'] }} mahasiswa mengisi</p>
-            </div>
-            <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
                 <p class="text-[11px] font-bold text-slate-500 uppercase">Status Penilaian</p>
                 <p class="mt-1 text-lg font-bold {{ $evaluation ? 'text-emerald-600' : 'text-amber-600' }}">
                     {{ $evaluation ? 'Sudah dinilai' : 'Belum dinilai' }}
@@ -204,34 +205,6 @@
                 </p>
             </div>
         </div>
-    </div>
-
-    {{-- Rekap penilaian antar anggota dari mahasiswa --}}
-    <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-        <h2 class="text-lg font-bold text-slate-900 mb-4">Rekap Penilaian Antar Anggota</h2>
-
-        @if($peer['submitted'] === 0)
-            <p class="text-sm text-slate-500 italic">Belum ada mahasiswa yang mengisi penilaian kelompok.</p>
-        @else
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach($peer['members'] as $member)
-                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p class="text-sm font-semibold text-slate-800">{{ $member['name'] }}</p>
-                    <p class="mt-1 text-2xl font-bold text-blue-700">{{ $member['average'] ?? '-' }}</p>
-                    <p class="text-xs text-slate-500">dinilai {{ $member['voters'] }} rekan</p>
-                </div>
-                @endforeach
-            </div>
-
-            @if(count($peer['reflections']) > 0)
-            <div class="mt-5 space-y-2">
-                <p class="text-xs font-bold text-slate-500 uppercase">Refleksi Mahasiswa</p>
-                @foreach($peer['reflections'] as $reflection)
-                <p class="text-sm text-slate-600 italic border-l-4 border-slate-200 pl-3">"{{ $reflection }}"</p>
-                @endforeach
-            </div>
-            @endif
-        @endif
     </div>
 
     <form method="POST" action="{{ route('dosen.penilaian.store', $project['id']) }}" class="space-y-6">
@@ -472,5 +445,67 @@
             </form>
         </div>
     </div>
+    @else
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-blue-600">Form mahasiswa</p>
+                <h2 class="mt-1 text-xl font-bold text-slate-900">Pertanyaan Refleksi</h2>
+                <p class="mt-1 text-sm text-slate-500">Pertanyaan ini akan ditampilkan kepada setiap mahasiswa setelah nilai dipublish.</p>
+            </div>
+            <span class="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700" x-text="reflectionFields.length + ' pertanyaan'"></span>
+        </div>
+
+        <form method="POST" action="{{ route('dosen.reflection.configure', $project['id']) }}" class="mt-6 space-y-4">
+            @csrf
+            <template x-for="(field, index) in reflectionFields" :key="field.key + index">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <input type="hidden" :name="'fields[' + index + '][key]'" x-model="field.key">
+                    <input type="hidden" :name="'fields[' + index + '][type]'" value="textarea">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700" x-text="index + 1"></span>
+                        <input type="text" required maxlength="500" :name="'fields[' + index + '][label]'" x-model="field.label"
+                               class="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-blue-500">
+                        <button type="button" @click="reflectionFields.splice(index, 1)" :disabled="reflectionFields.length === 1"
+                                class="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30" title="Hapus pertanyaan">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <button type="button" @click="reflectionFields.push({ key: 'pertanyaan_' + Date.now(), label: '', type: 'textarea' })"
+                        class="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-100">
+                    <i class="fas fa-plus"></i>Tambah Pertanyaan
+                </button>
+                <button type="submit" class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700">
+                    Simpan Pertanyaan
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900">Jawaban Refleksi Mahasiswa</h2>
+        <div class="mt-4 space-y-3">
+            @forelse($reflections as $reflection)
+            <details class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <summary class="cursor-pointer font-semibold text-slate-800">{{ $reflection->full_name ?? 'Mahasiswa' }} <span class="ml-2 text-xs font-normal text-slate-500">({{ $reflection->status === 'submitted' ? 'Sudah dikirim' : 'Draft' }})</span></summary>
+                @php $answers = json_decode($reflection->answers, true) ?? []; @endphp
+                <div class="mt-4 space-y-3">
+                    @foreach($reflectionFields as $field)
+                    @if(array_key_exists($field['key'], $answers))
+                    <div><p class="text-xs font-bold text-slate-500">{{ $field['label'] }}</p><p class="mt-1 whitespace-pre-line text-sm text-slate-700">{{ $answers[$field['key']] }}</p></div>
+                    @endif
+                    @endforeach
+                </div>
+            </details>
+            @empty
+            <p class="rounded-xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Belum ada jawaban refleksi dari mahasiswa.</p>
+            @endforelse
+        </div>
+    </section>
+    @endif
 </div>
 @endsection

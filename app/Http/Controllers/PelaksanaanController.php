@@ -76,8 +76,6 @@ class PelaksanaanController extends Controller
             'pjOptions' => TaskFilter::assigneeOptions(KanbanFilter::flatten($kanban)),
             'prioritasOptions' => KanbanFilter::PRIORITY_OPTIONS,
             'tenggatOptions' => KanbanFilter::DEADLINE_OPTIONS,
-            'colorOptions' => ProjectTaskService::COLUMN_COLORS,
-
             // Finalisasi proyek
             'projectStatus' => $selected['status'] ?? null,
             'locked' => $locked,
@@ -157,95 +155,6 @@ class PelaksanaanController extends Controller
         $task->update($submission + ($changed ? ['reviewed_at' => null, 'reviewed_by' => null] : []));
 
         return back()->with('success', 'Hasil tugas berhasil dikumpulkan.');
-    }
-
-    public function tambahKolom(Request $request, $id)
-    {
-        $request->validate($this->columnRules());
-
-        if ($locked = $this->ensureNotLocked((int) $id)) {
-            return $locked;
-        }
-
-        try {
-            $this->tasks->createColumn(
-                (int) $id,
-                (string) $request->input('label'),
-                (string) $request->input('color'),
-                $this->columnConfig($request),
-            );
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
-
-        return back()->with('success', 'Kolom papan berhasil ditambahkan.');
-    }
-
-    public function ubahKolom(Request $request, $id, int $columnId)
-    {
-        $request->validate($this->columnRules());
-
-        if ($locked = $this->ensureNotLocked((int) $id)) {
-            return $locked;
-        }
-
-        try {
-            $this->tasks->updateColumn(
-                (int) $id,
-                $columnId,
-                (string) $request->input('label'),
-                (string) $request->input('color'),
-                $this->columnConfig($request),
-            );
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
-
-        return back()->with('success', 'Kolom papan berhasil diperbarui.');
-    }
-
-    public function hapusKolom(Request $request, $id, int $columnId)
-    {
-        if ($locked = $this->ensureNotLocked((int) $id)) {
-            return $locked;
-        }
-
-        try {
-            $this->tasks->deleteColumn((int) $id, $columnId);
-        } catch (ValidationException $e) {
-            return back()->with('error', $e->validator->errors()->first());
-        }
-
-        return back()->with('success', 'Kolom dihapus. Tugas di dalamnya dipindahkan ke kolom tersisa.');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function columnRules(): array
-    {
-        return [
-            'label' => 'required|string|max:60',
-            'color' => 'required|string|in:'.implode(',', ProjectTaskService::COLUMN_COLORS),
-            'description' => 'nullable|string|max:255',
-            'is_done' => 'nullable|boolean',
-            'requires_approval' => 'nullable|boolean',
-            'checklist' => 'nullable|array|max:15',
-            'checklist.*' => 'nullable|string|max:120',
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function columnConfig(Request $request): array
-    {
-        return [
-            'description' => $request->input('description'),
-            'is_done' => $request->boolean('is_done'),
-            'requires_approval' => $request->boolean('requires_approval'),
-            'checklist' => (array) $request->input('checklist', []),
-        ];
     }
 
     /**

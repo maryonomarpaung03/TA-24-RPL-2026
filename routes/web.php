@@ -391,21 +391,6 @@ Route::get(
             )->name('pelaksanaan.tugas.submit');
 
             Route::post(
-                '/pelaksanaan/kolom',
-                [PelaksanaanController::class, 'tambahKolom']
-            )->name('pelaksanaan.kolom.tambah');
-
-            Route::post(
-                '/pelaksanaan/kolom/{columnId}',
-                [PelaksanaanController::class, 'ubahKolom']
-            )->name('pelaksanaan.kolom.ubah');
-
-            Route::delete(
-                '/pelaksanaan/kolom/{columnId}',
-                [PelaksanaanController::class, 'hapusKolom']
-            )->name('pelaksanaan.kolom.hapus');
-
-            Route::post(
                 '/finalisasi',
                 [\App\Http\Controllers\FinalisasiController::class, 'submit']
             )->name('finalisasi.submit');
