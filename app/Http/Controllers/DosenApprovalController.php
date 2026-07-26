@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\User;
 use App\Models\Project;
 use App\Support\ProjectAccess;
 use Illuminate\Http\Request;
@@ -71,6 +71,98 @@ class DosenApprovalController extends Controller
         ]);
     }
 
+    public function indexApi(Request $request)
+{
+    try {
+        $email = strtolower(trim($request->query('email')));
+
+        $user = User::where('email', $email)
+            ->where('role', 'lecturer')
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dosen tidak ditemukan'
+            ], 404);
+        }
+
+        $base = Project::query()
+            ->where('lecturer_email', $email)
+            ->whereIn('status', [
+                'pending_approval',
+                'pending_revision'
+            ]);
+
+        $total = (clone $base)->count();
+        $all = (clone $base)->get();
+
+        $keyword = trim((string) $request->query('q', ''));
+        $classId = (string) $request->query('kelas', '');
+        $jenis = (string) $request->query('jenis', '');
+        $urut = (string) $request->query('urut', 'terbaru');
+
+        $query = clone $base;
+
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'LIKE', "%{$keyword}%")
+                    ->orWhere('group_name', 'LIKE', "%{$keyword}%");
+            });
+        }
+
+        if ($classId !== '') {
+            $query->where('academic_class_id', $classId);
+        }
+
+        if ($jenis !== '') {
+            $query->where('status', $jenis);
+        }
+
+        $pending = $query
+            ->orderBy(
+                'submitted_at',
+                $urut === 'terlama' ? 'asc' : 'desc'
+            )
+            ->get()
+            ->map(fn (Project $p) => $this->mapListRow($p));
+
+        $classIds = $all->pluck('academic_class_id')
+            ->filter()
+            ->unique();
+
+        $classOptions = $classIds->isEmpty()
+            ? []
+            : DB::table('academic_classes')
+                ->whereIn('id', $classIds)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+        return response()->json([
+            'success' => true,
+            'totalPending' => $total,
+            'filterState' => [
+                'q' => $keyword,
+                'kelas' => $classId,
+                'jenis' => $jenis,
+                'urut' => $urut,
+            ],
+            'classOptions' => $classOptions,
+            'pending_projects' => $pending,
+        ]);
+
+    } catch (\Exception $e) {
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => config('app.debug')
+                ? $e->getMessage()
+                : 'Terjadi kesalahan.'
+        ], 500);
+    }
+}
+
     public function show(int $id)
     {
         if (Auth::user()->role !== 'lecturer') {
@@ -134,6 +226,85 @@ class DosenApprovalController extends Controller
             ->route('dosen.proyek-mahasiswa.show', $project->id)
             ->with('success', $successMessage);
     }
+
+public function approveApi(Request $request)
+{
+    try {
+        $request->validate([
+            'id' => ['required', 'integer'],
+            'email' => ['required', 'email'],
+        ]);
+
+        $project = Project::findOrFail($request->id);
+
+        if (
+            strtolower($project->lecturer_email) !==
+            strtolower($request->email)
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke proyek ini.'
+            ], 403);
+        }
+
+        if (! in_array(
+            $project->status,
+            ['pending_approval', 'pending_revision'],
+            true
+        )) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proyek ini tidak dalam status menunggu persetujuan.'
+            ], 400);
+        }
+
+        $wasRevision = $project->status === 'pending_revision';
+
+        $project->update([
+            'status' => 'active',
+        ]);
+
+        $creatorEmail = DB::table('users')
+            ->where('id', $project->created_by)
+            ->value('email');
+
+        if ($creatorEmail) {
+            DB::table('project_notifications')->insert([
+                'project_id' => $project->id,
+                'recipient_email' => strtolower($creatorEmail),
+                'type' => $wasRevision
+                    ? 'project_revision_approved'
+                    : 'project_approved',
+                'title' => $wasRevision
+                    ? 'Perubahan proyek disetujui'
+                    : 'Proyek disetujui dosen',
+                'message' => $wasRevision
+                    ? 'Dosen menyetujui perubahan pada proyek "' . $project->title . '".'
+                    : 'Proyek "' . $project->title . '" telah disetujui. Anda dapat melanjutkan ke tahap PjBL.',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $wasRevision
+                ? 'Perubahan proyek berhasil disetujui.'
+                : 'Proyek berhasil disetujui.',
+            'project' => $project->fresh(),
+        ]);
+
+    } catch (\Exception $e) {
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => config('app.debug')
+                ? $e->getMessage()
+                : 'Terjadi kesalahan saat menyetujui proyek.'
+        ], 500);
+    }
+}
 
     /**
      * @return array<string, mixed>

@@ -105,6 +105,30 @@ Route::post(
     [\App\Http\Controllers\RegisterDosenController::class, 'store']
 )->name('register.dosen.store');
 
+Route::post('/simpan-projek-api', [BuatProjekController::class, 'storeAPI'])
+        ->name('simpan-projek-api');
+
+Route::get('/get-projek-api', [BuatProjekController::class, 'getProjectsByEmail'])
+        ->name('get-projek-api');
+
+Route::get('/dosen/persetujuan-proyek-api', [\App\Http\Controllers\DosenApprovalController::class, 'indexApi'])
+ ->name('dosen.persetujuan-api');
+
+Route::post(
+    '/dosen/persetujuan-proyek/approve-api',
+    [\App\Http\Controllers\DosenApprovalController::class, 'approveApi']
+)->name('dosen.persetujuan.approve-api');
+
+Route::put(
+    '/projek/update-api',
+    [BuatProjekController::class, 'updateAPI']
+);
+
+Route::delete(
+    '/projek/delete-api',
+    [BuatProjekController::class, 'destroyAPI']
+)->name('projek.delete-api');
+
 Route::middleware('auth')->group(function () {
 
     /*

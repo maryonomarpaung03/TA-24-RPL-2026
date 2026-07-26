@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\User;
 use App\Models\AcademicClass;
 use App\Models\Project;
 use App\Services\ProjectWorkspaceService;
@@ -121,7 +121,7 @@ class BuatProjekController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateProjectForm($request, 'draft');
-
+        
         try {
             $description = $this->buildDescription($validated);
             $logoPath = ProjectAccess::storeProjectAttachment($request);
@@ -166,6 +166,189 @@ class BuatProjekController extends Controller
         }
     }
 
+public function getProjectsByEmail(Request $request)
+{
+    $email = strtolower($request->query('email'));
+
+    $user = User::where('email', $email)->first();
+
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User tidak ditemukan'
+        ], 404);
+    }
+
+    $projects = Project::where('created_by', $user->id)
+        ->latest()
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'data' => $projects
+    ]);
+}
+
+public function storeAPI(Request $request)
+{
+$email = strtolower($request->input('email'));
+$request->request->remove('email');
+
+    $validated = $this->validateProjectForm($request, 'draft');
+
+    try {
+        $user = User::where('email', $email)->firstOrFail();
+        // $user = User::where(
+        //     'email',
+        //     strtolower($validated['email'])
+        // )->firstOrFail();
+
+        $description = $this->buildDescription($validated);
+        $logoPath = ProjectAccess::storeProjectAttachment($request);
+        $memberEmails = $this->parseMemberEmails($validated['member_emails'] ?? '');
+        $months = (int) $validated['planned_months'];
+
+        $academicClass = $this->resolveClassContext(
+            $request->input('academic_class_id')
+        );
+
+        $project = Project::create([
+            'name'              => $validated['judul'],
+            'title'             => $validated['judul'],
+            'academic_class_id' => $academicClass?->id,
+            'group_name'        => $validated['group_name'],
+            'course_name'       => $validated['course_name'],
+            'description'       => $description,
+            'logo'              => $logoPath,
+            'status'            => 'pending_approval',
+            'start_date'        => now()->toDateString(),
+            'end_date'          => now()->addMonths($months)->toDateString(),
+            'planned_months'    => $months,
+            'created_by'        => $user->id,
+            'lecturer_email'    => strtolower($validated['lecturer_email']),
+            'lecturer_name'     => $validated['lecturer_name'],
+        ]);
+
+        $skippedEmails = $this->workspace->initialize(
+            $project,
+            $user,
+            $validated['lecturer_email'],
+            $memberEmails
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Project berhasil dibuat.',
+            'data' => [
+                'project' => $project,
+                'skipped_emails' => $skippedEmails,
+            ]
+        ], 201);
+
+    } catch (\Exception $e) {
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => config('app.debug')
+                ? $e->getMessage()
+                : 'Gagal menyimpan proyek.',
+        ], 500);
+    }
+}
+
+public function updateAPI(Request $request)
+{
+    try {
+
+        $email = strtolower($request->input('email'));
+
+        $request->validate([
+            'id' => ['required', 'integer'],
+            'email' => ['required', 'email'],
+        ]);
+
+        $project = Project::findOrFail($request->id);
+
+        $user = User::where('email', $email)->firstOrFail();
+
+        if (! ProjectAccess::isProjectManager($project, $user->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Project Manager yang dapat memperbarui proyek ini.'
+            ], 403);
+        }
+
+        if (! in_array(
+            $project->status,
+            ProjectAccess::editableStatuses(),
+            true
+        )) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proyek dengan status ini tidak dapat diperbarui.'
+            ], 403);
+        }
+
+        $request->request->remove('email');
+        $request->request->remove('id');
+
+        $validated = $this->validateProjectForm(
+            $request,
+            $project->status
+        );
+
+        $months = (int) $validated['planned_months'];
+
+        $logoPath = ProjectAccess::storeProjectAttachment(
+            $request,
+            $project->logo
+        );
+
+        $project->update([
+            'name' => $validated['judul'],
+            'group_name' => $validated['group_name'],
+            'course_name' => $validated['course_name'],
+            'description' => $this->buildDescription($validated),
+            'logo' => $logoPath,
+            'end_date' => now()->addMonths($months)->toDateString(),
+            'planned_months' => $months,
+            'lecturer_email' => strtolower($validated['lecturer_email']),
+            'lecturer_name' => $validated['lecturer_name'],
+        ]);
+
+        $memberEmails = $this->parseMemberEmails(
+            $validated['member_emails'] ?? ''
+        );
+
+        $skippedEmails = $this->workspace->syncProjectMembers(
+            $project->fresh(),
+            $user,
+            $memberEmails
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proyek berhasil diperbarui.',
+            'data' => [
+                'project' => $project->fresh(),
+                'skipped_emails' => $skippedEmails,
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => config('app.debug')
+                ? $e->getMessage()
+                : 'Gagal memperbarui proyek.'
+        ], 500);
+    }
+}
+
     public function update(Request $request, int $id)
     {
         $project = Project::query()->findOrFail($id);
@@ -209,6 +392,51 @@ class BuatProjekController extends Controller
             $skippedEmails
         );
     }
+
+    public function destroyAPI(Request $request)
+{
+    try {
+
+        $request->validate([
+            'id' => ['required', 'integer'],
+            'email' => ['required', 'email'],
+        ]);
+
+        $project = Project::findOrFail($request->id);
+
+        $user = User::where(
+            'email',
+            strtolower($request->email)
+        )->firstOrFail();
+
+        if (! ProjectAccess::isProjectManager($project, $user->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Project Manager yang dapat menghapus proyek ini.'
+            ], 403);
+        }
+
+        $projectTitle = $project->title;
+
+        $project->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proyek "' . $projectTitle . '" berhasil dihapus.'
+        ]);
+
+    } catch (\Exception $e) {
+
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => config('app.debug')
+                ? $e->getMessage()
+                : 'Gagal menghapus proyek.'
+        ], 500);
+    }
+}
 
     public function destroy(int $id)
     {

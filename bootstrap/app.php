@@ -11,6 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->preventRequestForgery(except: [
+            'simpan-projek-api', 
+            'dosen/persetujuan-proyek/approve-api',
+            'projek/update-api',
+            'projek/delete-api',
+        ]);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
         $middleware->web(append: [
