@@ -74,11 +74,26 @@ class DosenApprovalController extends Controller
     public function indexApi(Request $request)
 {
     try {
-        $email = strtolower(trim($request->query('email')));
+       $user = $request->attributes->get('auth_user');
 
-        $user = User::where('email', $email)
-            ->where('role', 'lecturer')
-            ->first();
+
+if (!$user) {
+    return response()->json([
+        'success' => false,
+        'message' => 'User token tidak ditemukan'
+    ], 401);
+}
+
+
+if ($user->role !== 'lecturer') {
+    return response()->json([
+        'success' => false,
+        'message' => 'API ini hanya untuk dosen'
+    ], 403);
+}
+
+
+$email = strtolower($user->email);
 
         if (! $user) {
             return response()->json([
@@ -227,75 +242,225 @@ class DosenApprovalController extends Controller
             ->with('success', $successMessage);
     }
 
+// public function approveApi(Request $request)
+// {
+//     try {
+//         $request->validate([
+//             'id' => ['required', 'integer'],
+//             'email' => ['required', 'email'],
+//         ]);
+
+//         $project = Project::findOrFail($request->id);
+
+//         if (
+//             strtolower($project->lecturer_email) !==
+//             strtolower($request->email)
+//         ) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Anda tidak memiliki akses ke proyek ini.'
+//             ], 403);
+//         }
+
+//         if (! in_array(
+//             $project->status,
+//             ['pending_approval', 'pending_revision'],
+//             true
+//         )) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Proyek ini tidak dalam status menunggu persetujuan.'
+//             ], 400);
+//         }
+
+//         $wasRevision = $project->status === 'pending_revision';
+
+//         $project->update([
+//             'status' => 'active',
+//         ]);
+
+//         $creatorEmail = DB::table('users')
+//             ->where('id', $project->created_by)
+//             ->value('email');
+
+//         if ($creatorEmail) {
+//             DB::table('project_notifications')->insert([
+//                 'project_id' => $project->id,
+//                 'recipient_email' => strtolower($creatorEmail),
+//                 'type' => $wasRevision
+//                     ? 'project_revision_approved'
+//                     : 'project_approved',
+//                 'title' => $wasRevision
+//                     ? 'Perubahan proyek disetujui'
+//                     : 'Proyek disetujui dosen',
+//                 'message' => $wasRevision
+//                     ? 'Dosen menyetujui perubahan pada proyek "' . $project->title . '".'
+//                     : 'Proyek "' . $project->title . '" telah disetujui. Anda dapat melanjutkan ke tahap PjBL.',
+//                 'created_at' => now(),
+//                 'updated_at' => now(),
+//             ]);
+//         }
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => $wasRevision
+//                 ? 'Perubahan proyek berhasil disetujui.'
+//                 : 'Proyek berhasil disetujui.',
+//             'project' => $project->fresh(),
+//         ]);
+
+//     } catch (\Exception $e) {
+//         report($e);
+
+//         return response()->json([
+//             'success' => false,
+//             'message' => config('app.debug')
+//                 ? $e->getMessage()
+//                 : 'Terjadi kesalahan saat menyetujui proyek.'
+//         ], 500);
+//     }
+// }
 public function approveApi(Request $request)
 {
     try {
+
+        // ambil user dari token
+        $user = $request->attributes->get('auth_user');
+
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User token tidak ditemukan'
+            ], 401);
+        }
+
+
+        // hanya dosen
+        if ($user->role !== 'lecturer') {
+            return response()->json([
+                'success' => false,
+                'message' => 'API ini hanya untuk dosen'
+            ], 403);
+        }
+
+
+
         $request->validate([
             'id' => ['required', 'integer'],
-            'email' => ['required', 'email'],
         ]);
+
+
 
         $project = Project::findOrFail($request->id);
 
+
+
+        // cek apakah project milik dosen dari token
         if (
             strtolower($project->lecturer_email) !==
-            strtolower($request->email)
+            strtolower($user->email)
         ) {
+
             return response()->json([
                 'success' => false,
                 'message' => 'Anda tidak memiliki akses ke proyek ini.'
             ], 403);
+
         }
 
-        if (! in_array(
+
+
+        // cek status project
+        if (!in_array(
             $project->status,
-            ['pending_approval', 'pending_revision'],
+            [
+                'pending_approval',
+                'pending_revision'
+            ],
             true
         )) {
+
             return response()->json([
                 'success' => false,
                 'message' => 'Proyek ini tidak dalam status menunggu persetujuan.'
             ], 400);
+
         }
 
+
+
         $wasRevision = $project->status === 'pending_revision';
+
+
 
         $project->update([
             'status' => 'active',
         ]);
 
+
+
         $creatorEmail = DB::table('users')
             ->where('id', $project->created_by)
             ->value('email');
 
+
+
         if ($creatorEmail) {
+
             DB::table('project_notifications')->insert([
+
                 'project_id' => $project->id,
+
                 'recipient_email' => strtolower($creatorEmail),
+
                 'type' => $wasRevision
                     ? 'project_revision_approved'
                     : 'project_approved',
+
                 'title' => $wasRevision
                     ? 'Perubahan proyek disetujui'
                     : 'Proyek disetujui dosen',
+
                 'message' => $wasRevision
-                    ? 'Dosen menyetujui perubahan pada proyek "' . $project->title . '".'
-                    : 'Proyek "' . $project->title . '" telah disetujui. Anda dapat melanjutkan ke tahap PjBL.',
+                    ? 'Dosen menyetujui perubahan pada proyek "' 
+                        . $project->title . '".'
+                    : 'Proyek "' 
+                        . $project->title 
+                        . '" telah disetujui. Anda dapat melanjutkan ke tahap PjBL.',
+
                 'created_at' => now(),
+
                 'updated_at' => now(),
+
             ]);
         }
 
+
+
         return response()->json([
             'success' => true,
+
             'message' => $wasRevision
                 ? 'Perubahan proyek berhasil disetujui.'
                 : 'Proyek berhasil disetujui.',
+
+            'approved_by' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+
             'project' => $project->fresh(),
         ]);
 
+
+
     } catch (\Exception $e) {
+
         report($e);
+
 
         return response()->json([
             'success' => false,

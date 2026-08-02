@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'project.pjbl' => \App\Http\Middleware\EnsureProjectPjblAccess::class,
             'stage.waterfall' => \App\Http\Middleware\EnsureStageWaterfall::class,
             'final.submitted' => \App\Http\Middleware\EnsureFinalSubmitted::class,
+            'api.token' => \App\Http\Middleware\ApiTokenMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
